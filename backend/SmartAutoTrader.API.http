@@ -1,0 +1,6 @@
+@SmartAutoTrader.API_HostAddress = http://localhost:5171
+
+GET {{SmartAutoTrader.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
