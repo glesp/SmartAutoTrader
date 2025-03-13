@@ -11,6 +11,12 @@ interface VehicleImage {
   isPrimary: boolean
 }
 
+// Define a type for the ASP.NET Core reference format
+interface ReferenceWrapper {
+  $id?: string
+  $values: VehicleImage[]
+}
+
 interface ApiVehicle {
   id: number
   make: string
@@ -22,7 +28,8 @@ interface ApiVehicle {
   transmission: string
   vehicleType: string
   description: string
-  images: VehicleImage[]
+  // Define more precisely to help TypeScript
+  images: VehicleImage[] | ReferenceWrapper | any
 }
 
 const VehicleDetailPage = () => {
@@ -46,9 +53,30 @@ const VehicleDetailPage = () => {
         const data = await vehicleService.getVehicle(parseInt(id))
         setVehicle(data)
 
+        // Handle both array formats for images
+        let imageArray: VehicleImage[] = []
+
+        // Check if images exists
+        if (data.images) {
+          // Check if images is an array
+          if (Array.isArray(data.images)) {
+            imageArray = data.images
+          }
+          // Check if images has $values property using a type guard
+          else if (
+            typeof data.images === 'object' &&
+            data.images !== null &&
+            '$values' in data.images
+          ) {
+            // Use a safe type assertion
+            const imagesWithValues = data.images as { $values: VehicleImage[] }
+            imageArray = imagesWithValues.$values
+          }
+        }
+
         // Set primary image as active
-        if (data.images && data.images.length > 0) {
-          const primaryIndex = data.images.findIndex((img) => img.isPrimary)
+        if (imageArray.length > 0) {
+          const primaryIndex = imageArray.findIndex((img) => img.isPrimary)
           setActiveImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
         }
       } catch (err) {
@@ -96,6 +124,38 @@ const VehicleDetailPage = () => {
     }
   }
 
+  // Helper function to get image array regardless of format
+  const getImageArray = (): VehicleImage[] => {
+    if (!vehicle) return []
+
+    if (Array.isArray(vehicle.images)) {
+      return vehicle.images
+    } else if (
+      typeof vehicle.images === 'object' &&
+      vehicle.images !== null &&
+      '$values' in vehicle.images
+    ) {
+      // Use a safe type assertion
+      const imagesWithValues = vehicle.images as { $values: VehicleImage[] }
+      return imagesWithValues.$values
+    }
+    return []
+  }
+
+  // Helper function to get image URL with fallback
+  const getImageUrl = (image: VehicleImage | undefined) => {
+    if (!image || !image.imageUrl) {
+      return `https://via.placeholder.com/800x450/3498db/ffffff?text=No+Image`
+    }
+
+    const isPlaceholderUrl = image.imageUrl.includes('placeholder.com/vehicles')
+    if (isPlaceholderUrl && vehicle) {
+      return `https://via.placeholder.com/800x450/3498db/ffffff?text=${vehicle.make}+${vehicle.model}`
+    }
+
+    return image.imageUrl
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -122,6 +182,8 @@ const VehicleDetailPage = () => {
     )
   }
 
+  const imageArray = getImageArray()
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
@@ -144,9 +206,9 @@ const VehicleDetailPage = () => {
         <div className="lg:col-span-3">
           {/* Main image */}
           <div className="relative mb-4 bg-gray-100 rounded-lg overflow-hidden aspect-w-16 aspect-h-9">
-            {vehicle.images && vehicle.images.length > 0 ? (
+            {imageArray.length > 0 ? (
               <img
-                src={vehicle.images[activeImageIndex].imageUrl}
+                src={getImageUrl(imageArray[activeImageIndex])}
                 alt={`${vehicle.make} ${vehicle.model}`}
                 className="object-cover w-full h-full"
               />
@@ -158,9 +220,9 @@ const VehicleDetailPage = () => {
           </div>
 
           {/* Thumbnail images */}
-          {vehicle.images && vehicle.images.length > 1 && (
+          {imageArray.length > 1 && (
             <div className="grid grid-cols-5 gap-2">
-              {vehicle.images.map((image, index) => (
+              {imageArray.map((image, index) => (
                 <button
                   key={image.id}
                   onClick={() => setActiveImageIndex(index)}
@@ -171,7 +233,7 @@ const VehicleDetailPage = () => {
                   }`}
                 >
                   <img
-                    src={image.imageUrl}
+                    src={getImageUrl(image)}
                     alt={`${vehicle.make} ${vehicle.model} thumbnail ${index + 1}`}
                     className="object-cover w-full h-full"
                   />
