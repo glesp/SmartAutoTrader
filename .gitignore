@@ -24,7 +24,6 @@ frontend/yarn-error.log*
 
 # IDEs and editors
 **/.idea/
-**/.vscode/
 *.swp
 *.swo
 
