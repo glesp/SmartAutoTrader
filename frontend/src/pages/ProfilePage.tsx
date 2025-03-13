@@ -5,6 +5,20 @@ import { AuthContext } from '../contexts/AuthContext'
 import { favoriteService, inquiryService } from '../services/api'
 import VehicleCard from '../components/vehicles/VehicleCard'
 
+// Define VehicleImage interface
+interface VehicleImage {
+  id: number
+  imageUrl: string
+  isPrimary: boolean
+}
+
+// Define ReferenceWrapper for ASP.NET serialization
+interface ReferenceWrapper<T> {
+  $id?: string
+  $values: T[]
+}
+
+// Define Vehicle interface
 interface Vehicle {
   id: number
   make: string
@@ -12,9 +26,10 @@ interface Vehicle {
   year: number
   price: number
   mileage: number
-  images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>
+  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | any
 }
 
+// Define Inquiry interface
 interface Inquiry {
   id: number
   vehicleId: number
@@ -27,14 +42,32 @@ interface Inquiry {
   vehicle?: Vehicle
 }
 
+// Define what the arrays might look like with ASP.NET serialization
+type SerializedData<T> = T[] | ReferenceWrapper<T> | any
+
+// Helper function to extract arrays from ASP.NET reference format
+const extractArray = <T,>(data: SerializedData<T>): T[] => {
+  if (!data) return []
+
+  if (Array.isArray(data)) {
+    return data
+  } else if (typeof data === 'object' && data !== null && '$values' in data) {
+    return (data as ReferenceWrapper<T>).$values
+  }
+
+  return []
+}
+
 const ProfilePage = () => {
   const {
     user,
     isAuthenticated,
     loading: authLoading,
   } = useContext(AuthContext)
-  const [favoriteVehicles, setFavoriteVehicles] = useState<Vehicle[]>([])
-  const [inquiries, setInquiries] = useState<Inquiry[]>([])
+  const [favoriteVehicles, setFavoriteVehicles] = useState<
+    SerializedData<Vehicle>
+  >([])
+  const [inquiries, setInquiries] = useState<SerializedData<Inquiry>>([])
   const [activeTab, setActiveTab] = useState('favorites')
   const [loading, setLoading] = useState(true)
 
@@ -70,6 +103,10 @@ const ProfilePage = () => {
   if (authLoading) {
     return <div className="text-center py-12">Loading profile...</div>
   }
+
+  // Extract arrays from potentially reference-wrapped data
+  const favoritesArray = extractArray<Vehicle>(favoriteVehicles)
+  const inquiriesArray = extractArray<Inquiry>(inquiries)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -118,7 +155,7 @@ const ProfilePage = () => {
                 <div className="text-center py-8">
                   Loading your favorites...
                 </div>
-              ) : favoriteVehicles.length === 0 ? (
+              ) : favoritesArray.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600 mb-4">
                     You haven't added any vehicles to your favorites yet.
@@ -132,7 +169,7 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {favoriteVehicles.map((vehicle) => (
+                  {favoritesArray.map((vehicle: Vehicle) => (
                     <VehicleCard key={vehicle.id} vehicle={vehicle} />
                   ))}
                 </div>
@@ -147,7 +184,7 @@ const ProfilePage = () => {
                 <div className="text-center py-8">
                   Loading your inquiries...
                 </div>
-              ) : inquiries.length === 0 ? (
+              ) : inquiriesArray.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-600 mb-4">
                     You haven't sent any inquiries yet.
@@ -161,7 +198,7 @@ const ProfilePage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {inquiries.map((inquiry) => (
+                  {inquiriesArray.map((inquiry: Inquiry) => (
                     <div
                       key={inquiry.id}
                       className="border rounded-lg overflow-hidden"
@@ -205,9 +242,10 @@ const ProfilePage = () => {
                             <p className="text-gray-700">{inquiry.response}</p>
                             <p className="text-xs text-gray-500 mt-2">
                               Replied on{' '}
-                              {new Date(
-                                inquiry.dateReplied!
-                              ).toLocaleDateString()}
+                              {inquiry.dateReplied &&
+                                new Date(
+                                  inquiry.dateReplied
+                                ).toLocaleDateString()}
                             </p>
                           </div>
                         )}
@@ -218,13 +256,15 @@ const ProfilePage = () => {
                               onClick={async () => {
                                 try {
                                   await inquiryService.closeInquiry(inquiry.id)
-                                  setInquiries((prev) =>
-                                    prev.map((i) =>
+                                  setInquiries((prev: any) => {
+                                    const prevArray =
+                                      extractArray<Inquiry>(prev)
+                                    return prevArray.map((i) =>
                                       i.id === inquiry.id
                                         ? { ...i, status: 'Closed' }
                                         : i
                                     )
-                                  )
+                                  })
                                 } catch (error) {
                                   console.error('Error closing inquiry:', error)
                                 }
