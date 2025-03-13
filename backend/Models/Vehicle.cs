@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace SmartAutoTrader.API.Models
 {
@@ -80,7 +81,8 @@ namespace SmartAutoTrader.API.Models
         // Navigation properties
         public ICollection<VehicleImage> Images { get; set; }
         public ICollection<VehicleFeature> Features { get; set; }
-        public ICollection<UserFavorite> FavoritedBy { get; set; }
+        [JsonIgnore]
+        public IEnumerable<UserFavorite>? FavoritedBy { get; set; }
     }
 
     public class VehicleImage
@@ -94,6 +96,7 @@ namespace SmartAutoTrader.API.Models
         public bool IsPrimary { get; set; }
         
         public int VehicleId { get; set; }
+        [JsonIgnore]
         public Vehicle Vehicle { get; set; }
     }
 
@@ -106,6 +109,7 @@ namespace SmartAutoTrader.API.Models
         public string Name { get; set; }
         
         public int VehicleId { get; set; }
+        [JsonIgnore]
         public Vehicle Vehicle { get; set; }
     }
 }

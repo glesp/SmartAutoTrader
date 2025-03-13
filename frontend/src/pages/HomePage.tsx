@@ -21,21 +21,34 @@ const HomePage = () => {
     const loadFeaturedVehicles = async () => {
       try {
         // Get the latest 4 vehicles
-        const vehicles = await vehicleService.getVehicles({
+        console.log('Fetching vehicles...');
+        const response = await vehicleService.getVehicles({
           pageSize: 4,
           sortBy: 'DateListed',
           ascending: false,
-        })
-        setFeaturedVehicles(vehicles)
+        });
+        
+        console.log('API response type:', typeof response);
+        console.log('Is array?', Array.isArray(response));
+        console.log('Raw response:', response);
+        
+        // Safe check before setting state
+        if (Array.isArray(response)) {
+          setFeaturedVehicles(response);
+        } else {
+          console.error('Response is not an array:', response);
+          setFeaturedVehicles([]); // Use empty array as fallback
+        }
       } catch (error) {
-        console.error('Error loading featured vehicles:', error)
+        console.error('Error loading featured vehicles:', error);
+        setFeaturedVehicles([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-
-    loadFeaturedVehicles()
-  }, [])
+    };
+  
+    loadFeaturedVehicles();
+  }, []);
 
   return (
     <div>

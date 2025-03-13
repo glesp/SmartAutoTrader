@@ -5,6 +5,7 @@ using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Services;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using SmartAutoTrader.API.DataSeeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,13 +34,30 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<VehicleSeeder>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+//JSON Image self reference issue fix
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        // Or to ignore cycles completely:
+        // options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 // Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(builder.Configuration.GetSection("CorsOrigins").Get<string[]>())
+        policy.WithOrigins("http://localhost:5173")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -88,8 +106,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
-app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -101,6 +119,8 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<ApplicationDbContext>();
     context.Database.EnsureCreated();
+    var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
+    vehicleSeeder.SeedVehicles(services, 200);
 }
 
 app.Run();  
