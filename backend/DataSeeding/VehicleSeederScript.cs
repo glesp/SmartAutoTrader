@@ -105,7 +105,7 @@ namespace SmartAutoTrader.API.DataSeeding
                     int imageId = random.Next(1, 20); // Assuming you have 20 placeholder images
                     vehicle.Images.Add(new VehicleImage
                     {
-                        ImageUrl = $"https://placeholder.com/vehicles/{make.ToLower()}-{model.ToLower().Replace(" ", "-")}-{imageId}.jpg",
+                        ImageUrl = $"https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
                         IsPrimary = j == 0, // First image is primary
                         Vehicle = vehicle
                     });
