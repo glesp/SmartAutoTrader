@@ -36,41 +36,60 @@ namespace SmartAutoTrader.API.Services
         {
             try
             {
-                // 1. Get user data
+                _logger.LogInformation("Fetching recommendations for user ID: {UserId}", userId);
+
+                // Fetch user separately to avoid SQLite APPLY issue
                 var user = await _context.Users
                     .Include(u => u.Preferences)
-                    .Include(u => u.Favorites)
-                        .ThenInclude(f => f.Vehicle)
-                    .Include(u => u.BrowsingHistory.OrderByDescending(h => h.ViewDate).Take(10))
-                        .ThenInclude(h => h.Vehicle)
                     .FirstOrDefaultAsync(u => u.Id == userId);
                 
                 if (user == null)
                 {
-                    _logger.LogWarning($"User with ID {userId} not found for recommendations");
+                    _logger.LogWarning("User with ID {UserId} not found, returning empty recommendations.", userId);
                     return new List<Vehicle>();
                 }
+
+                // Fetch related entities separately
+                user.Favorites = await _context.UserFavorites
+                    .Where(f => f.UserId == userId)
+                    .Include(f => f.Vehicle)
+                    .ToListAsync();
+
+                user.BrowsingHistory = await _context.BrowsingHistory
+                    .Where(h => h.UserId == userId)
+                    .OrderByDescending(h => h.ViewDate)
+                    .Take(10)
+                    .Include(h => h.Vehicle)
+                    .ToListAsync();
                 
-                // 2. Get available vehicles that match basic criteria
+                _logger.LogInformation("User data fetched, retrieving available vehicles.");
                 var availableVehicles = await GetFilteredVehiclesAsync(parameters);
                 
                 if (!availableVehicles.Any())
                 {
+                    _logger.LogWarning("No available vehicles found for filtering criteria.");
                     return new List<Vehicle>();
                 }
                 
                 // 3. Generate embeddings for user preferences and history
+                _logger.LogInformation("Generating user embedding for user ID {UserId}", userId);
                 var userEmbedding = await GenerateUserEmbeddingAsync(user, parameters);
+                _logger.LogInformation("Generated user embedding: {Embedding}", string.Join(", ", userEmbedding));
                 
                 // 4. Generate embeddings for vehicles
+                _logger.LogInformation("Generating vehicle embeddings...");
                 var vehicleEmbeddings = await GenerateVehicleEmbeddingsAsync(availableVehicles);
+                _logger.LogInformation("Generated vehicle embeddings for {Count} vehicles", vehicleEmbeddings.Count);
                 
                 // 5. Calculate similarity and rank vehicles
+                _logger.LogInformation("Ranking vehicles by similarity score...");
                 var recommendedVehicleIds = RankVehiclesBySimilarity(
                     userEmbedding, 
                     vehicleEmbeddings, 
                     availableVehicles.Select(v => v.Id).ToList(),
                     parameters.MaxResults ?? 5);
+                
+                _logger.LogInformation("Top {Count} recommended vehicle IDs: {VehicleIds}", recommendedVehicleIds.Count, string.Join(", ", recommendedVehicleIds));
                 
                 // 6. Get recommended vehicles with details
                 var recommendedVehicles = await _context.Vehicles
@@ -82,6 +101,7 @@ namespace SmartAutoTrader.API.Services
                 // 7. Add fallback recommendations if needed
                 if (recommendedVehicles.Count < (parameters.MaxResults ?? 5))
                 {
+                    _logger.LogWarning("Insufficient recommendations found ({Count}/{Max}), fetching fallback recommendations.", recommendedVehicles.Count, parameters.MaxResults ?? 5);
                     var additionalVehicles = await GetFallbackRecommendationsAsync(
                         userId,
                         parameters,
@@ -91,14 +111,16 @@ namespace SmartAutoTrader.API.Services
                     recommendedVehicles.AddRange(additionalVehicles);
                 }
                 
+                _logger.LogInformation("Final recommendation list contains {Count} vehicles.", recommendedVehicles.Count);
                 return recommendedVehicles;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting Hugging Face recommendations");
+                _logger.LogError(ex, "Error retrieving Hugging Face recommendations for user ID {UserId}", userId);
                 return await GetFallbackRecommendationsAsync(userId, parameters, new List<int>(), parameters.MaxResults ?? 5);
             }
         }
+    
         
         private async Task<List<Vehicle>> GetFilteredVehiclesAsync(RecommendationParameters parameters)
         {
@@ -247,79 +269,150 @@ namespace SmartAutoTrader.API.Services
         }
         
         private async Task<float[]> GetEmbeddingFromHuggingFaceAsync(string text)
+{
+    try
+    {
+        // Get Hugging Face API configuration
+        var apiKey = _configuration["HuggingFace:ApiKey"];
+        var modelId = _configuration["HuggingFace:EmbeddingModel"] ?? 
+            "sentence-transformers/all-MiniLM-L6-v2"; // Small, efficient model
+        
+        // Looking at the error, the API expects input in a specific format for sentence similarity
+        // The API is looking for a specific structure based on SentenceSimilarityInputsCheck
+        var request = new
         {
-            try
-            {
-                // Get Hugging Face API configuration
-                var apiKey = _configuration["HuggingFace:ApiKey"];
-                var modelId = _configuration["HuggingFace:EmbeddingModel"] ?? 
-                    "sentence-transformers/all-MiniLM-L6-v2"; // Small, efficient model
-                
-                // Create request
-                var request = new
-                {
-                    inputs = text,
-                    options = new { wait_for_model = true }
-                };
-                
-                var content = new StringContent(
-                    JsonSerializer.Serialize(request),
-                    Encoding.UTF8,
-                    "application/json");
-                
-                // Set up headers
-                _httpClient.DefaultRequestHeaders.Clear();
-                if (!string.IsNullOrEmpty(apiKey))
-                {
-                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-                }
-                
-                // Call Hugging Face API
-                var response = await _httpClient.PostAsync(
-                    $"https://api-inference.huggingface.co/models/{modelId}",
-                    content);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"Hugging Face API error: {response.StatusCode}, {errorContent}");
-                    return new float[384]; // Default embedding size for the model
-                }
-                
-                // Parse response
-                var responseContent = await response.Content.ReadAsStringAsync();
-                
-                // The response format depends on the model. For sentence-transformers it's typically a single array
-                using var doc = JsonDocument.Parse(responseContent);
-                var root = doc.RootElement;
-                
-                if (root.ValueKind == JsonValueKind.Array)
-                {
-                    // Handle array response (most common for embeddings)
-                    var embeddingArray = JsonSerializer.Deserialize<float[]>(responseContent);
-                    return embeddingArray ?? new float[384];
-                }
-                else
-                {
-                    // Handle object response with nested array
-                    var firstProperty = root.EnumerateObject().FirstOrDefault();
-                    if (firstProperty.Value.ValueKind == JsonValueKind.Array)
-                    {
-                        var embeddingArray = JsonSerializer.Deserialize<float[]>(firstProperty.Value.ToString());
-                        return embeddingArray ?? new float[384];
-                    }
-                }
-                
-                _logger.LogWarning("Unable to parse embedding response from Hugging Face");
-                return new float[384];
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting embedding from Hugging Face");
-                return new float[384]; // Return empty embedding as fallback
-            }
+            // For sentence-transformers models, use this format
+            source_sentence = text,
+            sentences = new List<string> { text }
+        };
+        
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json");
+        
+        // Set up headers
+        _httpClient.DefaultRequestHeaders.Clear();
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
         }
         
+        // Log request to help debug
+        _logger.LogInformation("Calling Hugging Face API for text embedding with model: {Model}", modelId);
+        _logger.LogDebug("Request payload: {Payload}", JsonSerializer.Serialize(request));
+        
+        // Call Hugging Face API
+        var response = await _httpClient.PostAsync(
+            $"https://api-inference.huggingface.co/models/{modelId}",
+            content);
+        
+        _logger.LogInformation("Received response from Hugging Face API: {StatusCode}", response.StatusCode);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Hugging Face API error: {StatusCode}, {ErrorContent}", response.StatusCode, errorContent);
+            
+            // Try an alternative approach - using feature-extraction endpoint
+            return await FallbackToFeatureExtractionAsync(text, apiKey);
+        }
+        
+        // Parse response
+        var responseContent = await response.Content.ReadAsStringAsync();
+        
+        // For sentence similarity, we might get scores rather than embeddings
+        // Try to extract embeddings based on response format
+        using var doc = JsonDocument.Parse(responseContent);
+        var root = doc.RootElement;
+        
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            // It's likely an array of similarity scores
+            // Convert to floats and return
+            var scores = JsonSerializer.Deserialize<float[]>(responseContent);
+            return scores ?? new float[384];
+        }
+        else if (root.TryGetProperty("embeddings", out var embeddings) && 
+                embeddings.ValueKind == JsonValueKind.Array)
+        {
+            // Some models return embeddings in this format
+            var embeddingArray = JsonSerializer.Deserialize<float[]>(embeddings.GetRawText());
+            return embeddingArray ?? new float[384];
+        }
+        
+        _logger.LogWarning("Unable to parse embedding response from Hugging Face, using fallback");
+        return await FallbackToFeatureExtractionAsync(text, apiKey);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error getting embedding from Hugging Face");
+        return new float[384]; // Return empty embedding as fallback
+    }
+}
+
+private async Task<float[]> FallbackToFeatureExtractionAsync(string text, string apiKey)
+{
+    try
+    {
+        _logger.LogInformation("Trying fallback approach with feature-extraction endpoint");
+        
+        // Feature extraction has a more straightforward API
+        var request = new
+        {
+            inputs = text,
+            options = new { wait_for_model = true }
+        };
+        
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json");
+        
+        // Reset headers
+        _httpClient.DefaultRequestHeaders.Clear();
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        }
+        
+        // Use a different model specifically for feature extraction
+        var modelId = "sentence-transformers/all-MiniLM-L6-v2";
+        
+        var response = await _httpClient.PostAsync(
+            $"https://api-inference.huggingface.co/pipeline/feature-extraction/{modelId}",
+            content);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Feature extraction API error: {StatusCode}, {ErrorContent}", 
+                response.StatusCode, errorContent);
+            return new float[384];
+        }
+        
+        var responseContent = await response.Content.ReadAsStringAsync();
+        
+        // Feature extraction typically returns a 2D array (batch x features)
+        using var doc = JsonDocument.Parse(responseContent);
+        var root = doc.RootElement;
+        
+        if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+        {
+            // Get the first element (our embedding)
+            var embeddings = JsonSerializer.Deserialize<float[][]>(responseContent);
+            return embeddings?[0] ?? new float[384];
+        }
+        
+        _logger.LogWarning("Failed to get embeddings from feature extraction endpoint");
+        return new float[384];
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error in feature extraction fallback");
+        return new float[384];
+    }
+}
         private List<int> RankVehiclesBySimilarity(
             float[] userEmbedding, 
             Dictionary<int, float[]> vehicleEmbeddings, 
@@ -423,5 +516,46 @@ namespace SmartAutoTrader.API.Services
                 .Include(v => v.Features)
                 .ToListAsync();
         }
+        
+        private string ConvertFuelTypeToString(int fuelType)
+        {
+            return fuelType switch
+            {
+                0 => "Petrol",
+                1 => "Diesel",
+                2 => "Electric",
+                3 => "Hybrid",
+                4 => "Hydrogen",
+                _ => "Unknown"
+            };
+        }
+
+        private string ConvertTransmissionToString(int transmission)
+        {
+            return transmission switch
+            {
+                0 => "Manual",
+                1 => "Automatic",
+                2 => "Semi-Automatic",
+                _ => "Unknown"
+            };
+        }
+
+        private string ConvertVehicleTypeToString(int vehicleType)
+        {
+            return vehicleType switch
+            {
+                0 => "Hatchback",
+                1 => "Sedan",
+                2 => "SUV",
+                3 => "Coupe",
+                4 => "Convertible",
+                5 => "Wagon",
+                6 => "Pickup",
+                7 => "Minivan",
+                _ => "Unknown"
+            };
+        }
+
     }
 }
