@@ -21,55 +21,66 @@ interface VehicleProps {
 
 const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
   // Debug logging
-  console.log('Vehicle ID:', vehicle.id);
-  console.log('Images property:', vehicle.images);
-  console.log('Images type:', typeof vehicle.images);
-  console.log('Is images an array?', Array.isArray(vehicle.images));
-  
+  console.log('Vehicle ID:', vehicle.id)
+  console.log('Images property:', vehicle.images)
+  console.log('Images type:', typeof vehicle.images)
+  console.log('Is images an array?', Array.isArray(vehicle.images))
+
   // Handle different possible formats of the images property
-  let primaryImage = 'https://via.placeholder.com/300x200?text=No+Image';
-  
+  let primaryImage = 'https://via.placeholder.com/300x200?text=No+Image'
+
   if (vehicle.images) {
     // If images is already an array
     if (Array.isArray(vehicle.images)) {
-      console.log('Images array content:', vehicle.images);
+      console.log('Images array content:', vehicle.images)
       // Use a more defensive approach
       try {
-        const primaryImg = vehicle.images.find(img => img && img.isPrimary === true);
-        primaryImage = primaryImg?.imageUrl || (vehicle.images[0] && vehicle.images[0].imageUrl) || primaryImage;
+        const primaryImg = vehicle.images.find(
+          (img) => img && img.isPrimary === true
+        )
+        primaryImage =
+          primaryImg?.imageUrl ||
+          (vehicle.images[0] && vehicle.images[0].imageUrl) ||
+          primaryImage
       } catch (error) {
-        console.error('Error processing images array:', error);
+        console.error('Error processing images array:', error)
       }
-    } 
+    }
     // If images has $values property (ASP.NET reference handling format)
     else if (vehicle.images.$values && Array.isArray(vehicle.images.$values)) {
-      console.log('Images $values content:', vehicle.images.$values);
+      console.log('Images $values content:', vehicle.images.$values)
       // Use a more defensive approach
       try {
         // Log first item to see its structure
         if (vehicle.images.$values.length > 0) {
-          console.log('First image item:', vehicle.images.$values[0]);
+          console.log('First image item:', vehicle.images.$values[0])
         }
-        
+
         // Check each item before using find
-        let primaryImg = null;
+        let primaryImg = null
         for (const img of vehicle.images.$values) {
-          if (img && typeof img === 'object' && 'isPrimary' in img && img.isPrimary === true) {
-            primaryImg = img;
-            break;
+          if (
+            img &&
+            typeof img === 'object' &&
+            'isPrimary' in img &&
+            img.isPrimary === true
+          ) {
+            primaryImg = img
+            break
           }
         }
-        
-        primaryImage = primaryImg?.imageUrl || 
-                      (vehicle.images.$values[0] && vehicle.images.$values[0].imageUrl) || 
-                      primaryImage;
+
+        primaryImage =
+          primaryImg?.imageUrl ||
+          (vehicle.images.$values[0] && vehicle.images.$values[0].imageUrl) ||
+          primaryImage
       } catch (error) {
-        console.error('Error processing images.$values array:', error);
+        console.error('Error processing images.$values array:', error)
       }
     }
     // Log unexpected format for debugging
     else {
-      console.error('Unexpected images format:', vehicle.images);
+      console.error('Unexpected images format:', vehicle.images)
     }
   }
   return (
