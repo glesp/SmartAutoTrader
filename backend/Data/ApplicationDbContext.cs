@@ -18,6 +18,7 @@ namespace SmartAutoTrader.API.Data
         public DbSet<UserPreference> UserPreferences { get; set; }
         public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
         public DbSet<Inquiry> Inquiries { get; set; }
+        public DbSet<ChatHistory> ChatHistory { get; set; } // Added ChatHistory DbSet
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -78,6 +79,12 @@ namespace SmartAutoTrader.API.Data
                 .HasOne(i => i.Vehicle)
                 .WithMany()
                 .HasForeignKey(i => i.VehicleId);
+            
+            // User - ChatHistory (one-to-many)
+            modelBuilder.Entity<ChatHistory>()
+                .HasOne(ch => ch.User)
+                .WithMany()
+                .HasForeignKey(ch => ch.UserId);
         }
     }
 }
