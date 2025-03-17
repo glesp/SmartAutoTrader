@@ -1,0 +1,5313 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+backend/
+  Controllers/
+    AuthController.cs
+    FavoritesController.cs
+    InquiriesController.cs
+    RecommendationsController.cs
+    VehiclesController.cs
+  Data/
+    ApplicationDbContext.cs
+  DataSeeding/
+    VehicleSeederScript.cs
+  Models/
+    Inquiry.cs
+    User.cs
+    Vehicle.cs
+  Properties/
+    launchSettings.json
+  Services/
+    AIServiceRegistration.cs
+    AuthService.cs
+    HuggingFaceRecommendationsService.cs
+    RecommendationParameters.cs
+  appsettings.Development.json
+  appsettings.json
+  Program.cs
+  SmartAutoTrader.API.csproj
+  SmartAutoTrader.API.http
+frontend/
+  .vscode/
+    settings.json
+  public/
+    vite.svg
+  src/
+    assets/
+      react.svg
+    components/
+      layout/
+        Footer.tsx
+        Header.tsx
+      vehicles/
+        VehicleCard.tsx
+        VehicleFilters.tsx
+        VehicleRecommendations.tsx
+    contexts/
+      AuthContext.tsx
+      AuthProvider.tsx
+      index.ts
+    pages/
+      HomePage.tsx
+      LoginPage.tsx
+      ProfilePage.tsx
+      RecommendationsPage.tsx
+      RegisterPage.tsx
+      VehicleDetailPage.tsx
+      VehicleListingPage.tsx
+    services/
+      api.ts
+    styles/
+      recommendations.css
+    App.css
+    App.tsx
+    index.css
+    main.tsx
+    vite-env.d.ts
+  .env
+  .eslintrc.json
+  .prettierrc
+  eslint.config.js
+  index.html
+  package.json
+  README.md
+  tsconfig.app.json
+  tsconfig.json
+  tsconfig.node.json
+  vite.config.ts
+.gitignore
+README.md
+
+================================================================
+Files
+================================================================
+
+================
+File: backend/Controllers/RecommendationsController.cs
+================
+using System;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Services;
+
+namespace SmartAutoTrader.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize] // Requires authentication
+    public class RecommendationsController : ControllerBase
+    {
+        private readonly IAIRecommendationService _recommendationService;
+        private readonly ILogger<RecommendationsController> _logger;
+
+        public RecommendationsController(
+            IAIRecommendationService recommendationService,
+            ILogger<RecommendationsController> logger)
+        {
+            _recommendationService = recommendationService;
+            _logger = logger;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetRecommendations([FromQuery] RecommendationRequestModel request)
+        {
+            try
+            {
+                // Get user ID from claims
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Unauthorized("User not authenticated or invalid user ID");
+                }
+
+                // Convert request model to service parameters
+                var parameters = new RecommendationParameters
+                {
+                    MinPrice = request.MinPrice,
+                    MaxPrice = request.MaxPrice,
+                    MinYear = request.MinYear,
+                    MaxYear = request.MaxYear,
+                    PreferredFuelTypes = request.FuelTypes,
+                    PreferredVehicleTypes = request.VehicleTypes,
+                    PreferredMakes = request.Makes,
+                    DesiredFeatures = request.Features,
+                    MaxResults = request.MaxResults ?? 5
+                };
+
+                // Get recommendations from service
+                var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+
+                // Return recommendations
+                return Ok(recommendations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting recommendations");
+                return StatusCode(500, "An error occurred while getting recommendations");
+            }
+        }
+        
+        // Endpoint for testing without authentication
+        [HttpGet("test/{userId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> TestRecommendations(int userId, [FromQuery] RecommendationRequestModel request)
+        {
+            try
+            {
+                // Convert request model to service parameters
+                var parameters = new RecommendationParameters
+                {
+                    MinPrice = request.MinPrice,
+                    MaxPrice = request.MaxPrice,
+                    MinYear = request.MinYear,
+                    MaxYear = request.MaxYear,
+                    PreferredFuelTypes = request.FuelTypes,
+                    PreferredVehicleTypes = request.VehicleTypes,
+                    PreferredMakes = request.Makes,
+                    DesiredFeatures = request.Features,
+                    MaxResults = request.MaxResults ?? 5
+                };
+
+                // Get recommendations from service
+                var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+
+                // Return recommendations
+                return Ok(recommendations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing recommendations");
+                return StatusCode(500, "An error occurred while testing recommendations");
+            }
+        }
+    }
+
+    public class RecommendationRequestModel
+    {
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public int? MinYear { get; set; }
+        public int? MaxYear { get; set; }
+        public List<FuelType>? FuelTypes { get; set; }
+        public List<VehicleType>? VehicleTypes { get; set; }
+        public List<string>? Makes { get; set; }
+        public List<string>? Features { get; set; }
+        public int? MaxResults { get; set; }
+    }
+}
+
+================
+File: backend/Services/AIServiceRegistration.cs
+================
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+
+namespace SmartAutoTrader.API.Services
+{
+    public static class AIServiceRegistration
+    {
+        public static IServiceCollection AddAIRecommendationServices(
+            this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            // Register HttpClient for API calls
+            services.AddHttpClient();
+            
+            // Determine which AI provider to use based on configuration
+            var aiProvider = configuration["AI:Provider"]?.ToLower() ?? "huggingface";
+            
+            switch (aiProvider)
+            {
+                case "huggingface":
+                    services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                    break;
+                    
+                case "openai":
+                    // If you implement OpenAI in the future
+                    // services.AddScoped<IAIRecommendationService, OpenAIRecommendationService>();
+                    throw new NotImplementedException("OpenAI provider not yet implemented");
+                    
+                case "none":
+                case "fallback":
+                    // For a simple fallback without AI, implement a FallbackRecommendationService
+                    // services.AddScoped<IAIRecommendationService, FallbackRecommendationService>();
+                    throw new NotImplementedException("Fallback provider not yet implemented");
+                    
+                default:
+                    // Default to Hugging Face
+                    services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                    break;
+            }
+            
+            return services;
+        }
+    }
+}
+
+================
+File: backend/Services/HuggingFaceRecommendationsService.cs
+================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Services
+{
+    public class HuggingFaceRecommendationService : IAIRecommendationService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<HuggingFaceRecommendationService> _logger;
+        private readonly HttpClient _httpClient;
+        
+        public HuggingFaceRecommendationService(
+            ApplicationDbContext context,
+            IConfiguration configuration,
+            ILogger<HuggingFaceRecommendationService> logger,
+            HttpClient httpClient)
+        {
+            _context = context;
+            _configuration = configuration;
+            _logger = logger;
+            _httpClient = httpClient;
+        }
+        
+        public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
+        {
+            try
+            {
+                // 1. Get user data
+                var user = await _context.Users
+                    .Include(u => u.Preferences)
+                    .Include(u => u.Favorites)
+                        .ThenInclude(f => f.Vehicle)
+                    .Include(u => u.BrowsingHistory.OrderByDescending(h => h.ViewDate).Take(10))
+                        .ThenInclude(h => h.Vehicle)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                
+                if (user == null)
+                {
+                    _logger.LogWarning($"User with ID {userId} not found for recommendations");
+                    return new List<Vehicle>();
+                }
+                
+                // 2. Get available vehicles that match basic criteria
+                var availableVehicles = await GetFilteredVehiclesAsync(parameters);
+                
+                if (!availableVehicles.Any())
+                {
+                    return new List<Vehicle>();
+                }
+                
+                // 3. Generate embeddings for user preferences and history
+                var userEmbedding = await GenerateUserEmbeddingAsync(user, parameters);
+                
+                // 4. Generate embeddings for vehicles
+                var vehicleEmbeddings = await GenerateVehicleEmbeddingsAsync(availableVehicles);
+                
+                // 5. Calculate similarity and rank vehicles
+                var recommendedVehicleIds = RankVehiclesBySimilarity(
+                    userEmbedding, 
+                    vehicleEmbeddings, 
+                    availableVehicles.Select(v => v.Id).ToList(),
+                    parameters.MaxResults ?? 5);
+                
+                // 6. Get recommended vehicles with details
+                var recommendedVehicles = await _context.Vehicles
+                    .Where(v => recommendedVehicleIds.Contains(v.Id))
+                    .Include(v => v.Images)
+                    .Include(v => v.Features)
+                    .ToListAsync();
+                
+                // 7. Add fallback recommendations if needed
+                if (recommendedVehicles.Count < (parameters.MaxResults ?? 5))
+                {
+                    var additionalVehicles = await GetFallbackRecommendationsAsync(
+                        userId,
+                        parameters,
+                        recommendedVehicles.Select(v => v.Id).ToList(),
+                        (parameters.MaxResults ?? 5) - recommendedVehicles.Count);
+                    
+                    recommendedVehicles.AddRange(additionalVehicles);
+                }
+                
+                return recommendedVehicles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Hugging Face recommendations");
+                return await GetFallbackRecommendationsAsync(userId, parameters, new List<int>(), parameters.MaxResults ?? 5);
+            }
+        }
+        
+        private async Task<List<Vehicle>> GetFilteredVehiclesAsync(RecommendationParameters parameters)
+        {
+            var query = _context.Vehicles.AsQueryable();
+            
+            // Apply basic filters from parameters
+            if (parameters.MinPrice.HasValue)
+                query = query.Where(v => v.Price >= parameters.MinPrice.Value);
+                
+            if (parameters.MaxPrice.HasValue)
+                query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
+                
+            if (parameters.MinYear.HasValue)
+                query = query.Where(v => v.Year >= parameters.MinYear.Value);
+                
+            if (parameters.MaxYear.HasValue)
+                query = query.Where(v => v.Year <= parameters.MaxYear.Value);
+                
+            if (parameters.PreferredFuelTypes?.Any() == true)
+                query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
+                
+            if (parameters.PreferredVehicleTypes?.Any() == true)
+                query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
+                
+            if (parameters.PreferredMakes?.Any() == true)
+                query = query.Where(v => parameters.PreferredMakes.Contains(v.Make));
+            
+            // Only available vehicles
+            query = query.Where(v => v.Status == VehicleStatus.Available);
+            
+            // Include features for more detailed filtering
+            return await query
+                .Include(v => v.Features)
+                .ToListAsync();
+        }
+        
+        private async Task<float[]> GenerateUserEmbeddingAsync(User user, RecommendationParameters parameters)
+        {
+            // Prepare text that represents the user preferences and history
+            var userText = new StringBuilder();
+            
+            // Add explicit parameters
+            userText.AppendLine("User is looking for a car with these preferences:");
+            if (parameters.MinPrice.HasValue) userText.AppendLine($"Minimum price: {parameters.MinPrice:C0}");
+            if (parameters.MaxPrice.HasValue) userText.AppendLine($"Maximum price: {parameters.MaxPrice:C0}");
+            if (parameters.MinYear.HasValue) userText.AppendLine($"Minimum year: {parameters.MinYear}");
+            if (parameters.MaxYear.HasValue) userText.AppendLine($"Maximum year: {parameters.MaxYear}");
+            
+            if (parameters.PreferredFuelTypes?.Any() == true)
+                userText.AppendLine($"Fuel types: {string.Join(", ", parameters.PreferredFuelTypes)}");
+                
+            if (parameters.PreferredVehicleTypes?.Any() == true)
+                userText.AppendLine($"Vehicle types: {string.Join(", ", parameters.PreferredVehicleTypes)}");
+                
+            if (parameters.PreferredMakes?.Any() == true)
+                userText.AppendLine($"Makes: {string.Join(", ", parameters.PreferredMakes)}");
+                
+            if (parameters.DesiredFeatures?.Any() == true)
+                userText.AppendLine($"Desired features: {string.Join(", ", parameters.DesiredFeatures)}");
+            
+            // Add browsing history
+            var recentlyViewed = user.BrowsingHistory?.OrderByDescending(h => h.ViewDate).Take(5).ToList();
+            if (recentlyViewed?.Any() == true)
+            {
+                userText.AppendLine("\nUser recently viewed these vehicles:");
+                foreach (var history in recentlyViewed)
+                {
+                    userText.AppendLine($"{history.Vehicle.Year} {history.Vehicle.Make} {history.Vehicle.Model}, " +
+                                       $"Price: {history.Vehicle.Price:C0}, Type: {history.Vehicle.VehicleType}, " +
+                                       $"Fuel: {history.Vehicle.FuelType}, View duration: {history.ViewDurationSeconds}s");
+                }
+            }
+            
+            // Add favorites
+            var favorites = user.Favorites?.Select(f => f.Vehicle).ToList();
+            if (favorites?.Any() == true)
+            {
+                userText.AppendLine("\nUser favorited these vehicles:");
+                foreach (var favorite in favorites)
+                {
+                    userText.AppendLine($"{favorite.Year} {favorite.Make} {favorite.Model}, " +
+                                       $"Price: {favorite.Price:C0}, Type: {favorite.VehicleType}, " +
+                                       $"Fuel: {favorite.FuelType}");
+                }
+            }
+            
+            // Get user preferences
+            if (user.Preferences?.Any() == true)
+            {
+                userText.AppendLine("\nUser has these saved preferences:");
+                foreach (var pref in user.Preferences)
+                {
+                    userText.AppendLine($"{pref.PreferenceType}: {pref.Value} (Weight: {pref.Weight})");
+                }
+            }
+            
+            // Generate embedding via Hugging Face
+            return await GetEmbeddingFromHuggingFaceAsync(userText.ToString());
+        }
+        
+        private async Task<Dictionary<int, float[]>> GenerateVehicleEmbeddingsAsync(List<Vehicle> vehicles)
+        {
+            var embeddings = new Dictionary<int, float[]>();
+            
+            // Process in batches to avoid rate limits
+            int batchSize = 10;
+            for (int i = 0; i < vehicles.Count; i += batchSize)
+            {
+                var batch = vehicles.Skip(i).Take(batchSize).ToList();
+                var tasks = batch.Select(vehicle => GetVehicleEmbedding(vehicle)).ToList();
+                var results = await Task.WhenAll(tasks);
+                
+                for (int j = 0; j < batch.Count; j++)
+                {
+                    embeddings[batch[j].Id] = results[j];
+                }
+            }
+            
+            return embeddings;
+        }
+        
+        private async Task<float[]> GetVehicleEmbedding(Vehicle vehicle)
+        {
+            // Generate a text description of the vehicle
+            var vehicleText = new StringBuilder();
+            
+            vehicleText.AppendLine($"{vehicle.Year} {vehicle.Make} {vehicle.Model}");
+            vehicleText.AppendLine($"Price: {vehicle.Price:C0}");
+            vehicleText.AppendLine($"Mileage: {vehicle.Mileage} miles");
+            vehicleText.AppendLine($"Type: {vehicle.VehicleType}");
+            vehicleText.AppendLine($"Fuel: {vehicle.FuelType}");
+            vehicleText.AppendLine($"Transmission: {vehicle.Transmission}");
+            vehicleText.AppendLine($"Engine: {vehicle.EngineSize}L, {vehicle.HorsePower}hp");
+            vehicleText.AppendLine($"Country: {vehicle.Country}");
+            vehicleText.AppendLine(vehicle.Description);
+            
+            // Add features
+            if (vehicle.Features?.Any() == true)
+            {
+                vehicleText.AppendLine("Features: " + 
+                    string.Join(", ", vehicle.Features.Select(f => f.Name)));
+            }
+            
+            // Generate embedding via Hugging Face
+            return await GetEmbeddingFromHuggingFaceAsync(vehicleText.ToString());
+        }
+        
+        private async Task<float[]> GetEmbeddingFromHuggingFaceAsync(string text)
+        {
+            try
+            {
+                // Get Hugging Face API configuration
+                var apiKey = _configuration["HuggingFace:ApiKey"];
+                var modelId = _configuration["HuggingFace:EmbeddingModel"] ?? 
+                    "sentence-transformers/all-MiniLM-L6-v2"; // Small, efficient model
+                
+                // Create request
+                var request = new
+                {
+                    inputs = text,
+                    options = new { wait_for_model = true }
+                };
+                
+                var content = new StringContent(
+                    JsonSerializer.Serialize(request),
+                    Encoding.UTF8,
+                    "application/json");
+                
+                // Set up headers
+                _httpClient.DefaultRequestHeaders.Clear();
+                if (!string.IsNullOrEmpty(apiKey))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+                }
+                
+                // Call Hugging Face API
+                var response = await _httpClient.PostAsync(
+                    $"https://api-inference.huggingface.co/models/{modelId}",
+                    content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Hugging Face API error: {response.StatusCode}, {errorContent}");
+                    return new float[384]; // Default embedding size for the model
+                }
+                
+                // Parse response
+                var responseContent = await response.Content.ReadAsStringAsync();
+                
+                // The response format depends on the model. For sentence-transformers it's typically a single array
+                using var doc = JsonDocument.Parse(responseContent);
+                var root = doc.RootElement;
+                
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    // Handle array response (most common for embeddings)
+                    var embeddingArray = JsonSerializer.Deserialize<float[]>(responseContent);
+                    return embeddingArray ?? new float[384];
+                }
+                else
+                {
+                    // Handle object response with nested array
+                    var firstProperty = root.EnumerateObject().FirstOrDefault();
+                    if (firstProperty.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        var embeddingArray = JsonSerializer.Deserialize<float[]>(firstProperty.Value.ToString());
+                        return embeddingArray ?? new float[384];
+                    }
+                }
+                
+                _logger.LogWarning("Unable to parse embedding response from Hugging Face");
+                return new float[384];
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting embedding from Hugging Face");
+                return new float[384]; // Return empty embedding as fallback
+            }
+        }
+        
+        private List<int> RankVehiclesBySimilarity(
+            float[] userEmbedding, 
+            Dictionary<int, float[]> vehicleEmbeddings, 
+            List<int> vehicleIds,
+            int maxResults)
+        {
+            // Calculate cosine similarity between user and each vehicle
+            var similarities = new Dictionary<int, double>();
+            
+            foreach (var vehicleId in vehicleIds)
+            {
+                if (vehicleEmbeddings.TryGetValue(vehicleId, out var vehicleEmbedding))
+                {
+                    similarities[vehicleId] = CalculateCosineSimilarity(userEmbedding, vehicleEmbedding);
+                }
+            }
+            
+            // Return top N vehicle IDs by similarity
+            return similarities
+                .OrderByDescending(s => s.Value)
+                .Take(maxResults)
+                .Select(s => s.Key)
+                .ToList();
+        }
+        
+        private double CalculateCosineSimilarity(float[] a, float[] b)
+        {
+            // Ensure vectors are same length
+            if (a.Length != b.Length)
+            {
+                return 0;
+            }
+            
+            double dotProduct = 0;
+            double normA = 0;
+            double normB = 0;
+            
+            for (int i = 0; i < a.Length; i++)
+            {
+                dotProduct += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
+            }
+            
+            // Avoid division by zero
+            if (normA == 0 || normB == 0)
+            {
+                return 0;
+            }
+            
+            return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
+        }
+        
+        private async Task<List<Vehicle>> GetFallbackRecommendationsAsync(
+            int userId,
+            RecommendationParameters parameters,
+            List<int> excludeIds,
+            int count)
+        {
+            // Simple fallback logic based on preferences but without AI
+            var query = _context.Vehicles.AsQueryable();
+            
+            // Apply filters from parameters
+            if (parameters.MinPrice.HasValue)
+                query = query.Where(v => v.Price >= parameters.MinPrice.Value);
+                
+            if (parameters.MaxPrice.HasValue)
+                query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
+                
+            if (parameters.MinYear.HasValue)
+                query = query.Where(v => v.Year >= parameters.MinYear.Value);
+                
+            if (parameters.MaxYear.HasValue)
+                query = query.Where(v => v.Year <= parameters.MaxYear.Value);
+                
+            if (parameters.PreferredFuelTypes?.Any() == true)
+                query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
+                
+            if (parameters.PreferredVehicleTypes?.Any() == true)
+                query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
+                
+            if (parameters.PreferredMakes?.Any() == true)
+                query = query.Where(v => parameters.PreferredMakes.Contains(v.Make));
+                
+            if (parameters.DesiredFeatures?.Any() == true)
+            {
+                query = query.Where(v => v.Features.Any(f => 
+                    parameters.DesiredFeatures.Contains(f.Name)));
+            }
+            
+            // Exclude already recommended vehicles
+            if (excludeIds.Any())
+                query = query.Where(v => !excludeIds.Contains(v.Id));
+            
+            // Get most recently listed vehicles matching criteria
+            return await query
+                .Where(v => v.Status == VehicleStatus.Available)
+                .OrderByDescending(v => v.DateListed)
+                .Take(count)
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .ToListAsync();
+        }
+    }
+}
+
+================
+File: backend/Services/RecommendationParameters.cs
+================
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Services
+{
+    // Parameter class to pass user preferences and context to the recommendation service
+    public class RecommendationParameters
+    {
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public int? MinYear { get; set; }
+        public int? MaxYear { get; set; }
+        public List<FuelType>? PreferredFuelTypes { get; set; }
+        public List<VehicleType>? PreferredVehicleTypes { get; set; }
+        public List<string>? PreferredMakes { get; set; }
+        public List<string>? DesiredFeatures { get; set; }
+        public int? MaxResults { get; set; } = 5; // Default to 5 recommendations
+    }
+
+    // Interface for any AI recommendation service (allows easy swapping)
+    public interface IAIRecommendationService
+    {
+        Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
+    }
+}
+
+================
+File: frontend/src/components/vehicles/VehicleRecommendations.tsx
+================
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+
+// Simple interfaces for the component
+interface VehicleImage {
+  id: number
+  imageUrl: string
+  isPrimary: boolean
+}
+
+interface Vehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  fuelType: number
+  vehicleType: number
+  images?: VehicleImage[] | { $values: VehicleImage[] }
+}
+
+// Helper function to extract arrays from ASP.NET response format
+const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  if (data && '$values' in data) return data.$values
+  return []
+}
+
+const VehicleRecommendations = () => {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setLoading(true)
+
+        // Use a test user ID for demonstration
+        const userId = 1
+        const response = await axios.get(`/api/recommendations/test/${userId}`)
+
+        // Handle both possible response formats
+        let vehiclesData: Vehicle[] = []
+        if (Array.isArray(response.data)) {
+          vehiclesData = response.data
+        } else if (response.data && '$values' in response.data) {
+          vehiclesData = response.data.$values
+        }
+
+        setVehicles(vehiclesData)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching recommendations:', err)
+        setError('Failed to load recommendations')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRecommendations()
+  }, [])
+
+  // Helper function to get image URL
+  const getImageUrl = (vehicle: Vehicle) => {
+    const images = extractArray(vehicle.images)
+    if (images.length === 0) return 'https://via.placeholder.com/200x150'
+
+    const primaryImage = images.find((img) => img.isPrimary)
+    return (
+      primaryImage?.imageUrl ||
+      images[0].imageUrl ||
+      'https://via.placeholder.com/200x150'
+    )
+  }
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>AI-Powered Recommendations</h2>
+
+      {loading ? (
+        <p>Loading recommendations...</p>
+      ) : error ? (
+        <p style={{ color: 'red' }}>{error}</p>
+      ) : vehicles.length === 0 ? (
+        <p>No recommendations found</p>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: '20px',
+          }}
+        >
+          {vehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              style={{
+                border: '1px solid #eee',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              }}
+            >
+              <img
+                src={getImageUrl(vehicle)}
+                alt={`${vehicle.make} ${vehicle.model}`}
+                style={{ width: '100%', height: '150px', objectFit: 'cover' }}
+              />
+              <div style={{ padding: '12px' }}>
+                <h3 style={{ margin: '0 0 8px' }}>
+                  {vehicle.year} {vehicle.make} {vehicle.model}
+                </h3>
+                <p
+                  style={{
+                    margin: '0 0 8px',
+                    fontWeight: 'bold',
+                    color: '#1976d2',
+                  }}
+                >
+                  ${vehicle.price.toLocaleString()}
+                </p>
+                <a
+                  href={`/vehicles/${vehicle.id}`}
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  View Details
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default VehicleRecommendations
+
+================
+File: frontend/src/pages/RecommendationsPage.tsx
+================
+import { useContext } from 'react'
+import { Navigate } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
+import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
+
+const RecommendationsPage = () => {
+  const { isAuthenticated, loading } = useContext(AuthContext)
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return <div className="text-center py-8">Loading...</div>
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: '/recommendations' }} />
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Personalized Recommendations</h1>
+        <p className="text-gray-600 mt-2">
+          Our AI analyzes your browsing history and preferences to recommend
+          vehicles you might like.
+        </p>
+      </div>
+
+      <VehicleRecommendations />
+    </div>
+  )
+}
+
+export default RecommendationsPage
+
+================
+File: frontend/src/styles/recommendations.css
+================
+/* recommendations.css */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.aspect-w-16 {
+  position: relative;
+  padding-bottom: 56.25%;
+}
+
+.aspect-w-16 > * {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Recommended vehicle card styles */
+.recommended-badge {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: rgb(30, 64, 175);
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lg\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lg\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .lg\:col-span-3 {
+    grid-column: span 3 / span 3;
+  }
+}
+
+================
+File: backend/Controllers/AuthController.cs
+================
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using SmartAutoTrader.API.Services;
+
+namespace SmartAutoTrader.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthService _authService;
+
+        public AuthController(IAuthService authService)
+        {
+            _authService = authService;
+        }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        {
+            try
+            {
+                var user = await _authService.RegisterAsync(
+                    model.Username,
+                    model.Email,
+                    model.Password,
+                    model.FirstName,
+                    model.LastName,
+                    model.PhoneNumber
+                );
+
+                return Ok(new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.FirstName,
+                    user.LastName,
+                    user.PhoneNumber,
+                    Message = "Registration successful"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        {
+            try
+            {
+                var (token, user) = await _authService.LoginAsync(model.Email, model.Password);
+
+                return Ok(new
+                {
+                    Token = token,
+                    User = new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.Email,
+                        user.FirstName,
+                        user.LastName
+                    },
+                    Message = "Login successful"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string PhoneNumber { get; set; }
+    }
+
+    public class LoginModel
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+}
+
+================
+File: backend/Controllers/FavoritesController.cs
+================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class FavoritesController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public FavoritesController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Favorites
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var favorites = await _context.UserFavorites
+                .Where(uf => uf.UserId == userId)
+                .Include(uf => uf.Vehicle)
+                .ThenInclude(v => v.Images)
+                .Select(uf => uf.Vehicle)
+                .ToListAsync();
+
+            return favorites;
+        }
+
+        // POST: api/Favorites
+        [HttpPost("{vehicleId}")]
+        public async Task<IActionResult> AddFavorite(int vehicleId)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            // Check if vehicle exists
+            var vehicle = await _context.Vehicles.FindAsync(vehicleId);
+            if (vehicle == null)
+            {
+                return NotFound(new { Message = "Vehicle not found" });
+            }
+
+            // Check if already favorited
+            var existingFavorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+
+            if (existingFavorite != null)
+            {
+                return BadRequest(new { Message = "Vehicle already in favorites" });
+            }
+
+            // Add to favorites
+            var favorite = new UserFavorite
+            {
+                UserId = userId,
+                VehicleId = vehicleId,
+                DateAdded = DateTime.Now
+            };
+
+            _context.UserFavorites.Add(favorite);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Vehicle added to favorites" });
+        }
+
+        // DELETE: api/Favorites/5
+        [HttpDelete("{vehicleId}")]
+        public async Task<IActionResult> RemoveFavorite(int vehicleId)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var favorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+
+            if (favorite == null)
+            {
+                return NotFound(new { Message = "Vehicle not in favorites" });
+            }
+
+            _context.UserFavorites.Remove(favorite);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Vehicle removed from favorites" });
+        }
+
+        // GET: api/Favorites/Check/5
+        [HttpGet("Check/{vehicleId}")]
+        public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var isFavorite = await _context.UserFavorites
+                .AnyAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+
+            return isFavorite;
+        }
+
+        // GET: api/Favorites/Count
+        [HttpGet("Count")]
+        public async Task<ActionResult<int>> GetFavoritesCount()
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var count = await _context.UserFavorites
+                .CountAsync(uf => uf.UserId == userId);
+
+            return count;
+        }
+    }
+}
+
+================
+File: backend/Controllers/InquiriesController.cs
+================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class InquiriesController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public InquiriesController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Inquiries
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Inquiry>>> GetUserInquiries()
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var inquiries = await _context.Inquiries
+                .Where(i => i.UserId == userId)
+                .Include(i => i.Vehicle)
+                .OrderByDescending(i => i.DateSent)
+                .ToListAsync();
+
+            return inquiries;
+        }
+
+        // GET: api/Inquiries/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Inquiry>> GetInquiry(int id)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            var inquiry = await _context.Inquiries
+                .Include(i => i.Vehicle)
+                .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
+
+            if (inquiry == null)
+            {
+                return NotFound();
+            }
+
+            return inquiry;
+        }
+
+        // POST: api/Inquiries
+        [HttpPost]
+        public async Task<ActionResult<Inquiry>> CreateInquiry(InquiryCreateDto inquiryDto)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+
+            // Check if vehicle exists
+            var vehicle = await _context.Vehicles.FindAsync(inquiryDto.VehicleId);
+            if (vehicle == null)
+            {
+                return NotFound(new { Message = "Vehicle not found" });
+            }
+
+            var inquiry = new Inquiry
+            {
+                UserId = userId,
+                VehicleId = inquiryDto.VehicleId,
+                Subject = inquiryDto.Subject,
+                Message = inquiryDto.Message,
+                DateSent = DateTime.Now,
+                Status = InquiryStatus.New
+            };
+
+            _context.Inquiries.Add(inquiry);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetInquiry), new { id = inquiry.Id }, inquiry);
+        }
+
+        // PUT: api/Inquiries/5/MarkAsRead
+        [HttpPut("{id}/MarkAsRead")]
+        [Authorize(Roles = "Admin")] // For admin access only
+        public async Task<IActionResult> MarkInquiryAsRead(int id)
+        {
+            var inquiry = await _context.Inquiries.FindAsync(id);
+
+            if (inquiry == null)
+            {
+                return NotFound();
+            }
+
+            inquiry.Status = InquiryStatus.Read;
+            _context.Entry(inquiry).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!InquiryExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PUT: api/Inquiries/5/Reply
+        [HttpPut("{id}/Reply")]
+        [Authorize(Roles = "Admin")] // For admin access only
+        public async Task<IActionResult> ReplyToInquiry(int id, InquiryReplyDto replyDto)
+        {
+            var inquiry = await _context.Inquiries.FindAsync(id);
+
+            if (inquiry == null)
+            {
+                return NotFound();
+            }
+
+            inquiry.Response = replyDto.Response;
+            inquiry.DateReplied = DateTime.Now;
+            inquiry.Status = InquiryStatus.Replied;
+            
+            _context.Entry(inquiry).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!InquiryExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PUT: api/Inquiries/5/Close
+        [HttpPut("{id}/Close")]
+        public async Task<IActionResult> CloseInquiry(int id)
+        {
+            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+            
+            var inquiry = await _context.Inquiries
+                .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
+
+            if (inquiry == null)
+            {
+                return NotFound();
+            }
+
+            inquiry.Status = InquiryStatus.Closed;
+            _context.Entry(inquiry).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!InquiryExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        private bool InquiryExists(int id)
+        {
+            return _context.Inquiries.Any(e => e.Id == id);
+        }
+    }
+
+    public class InquiryCreateDto
+    {
+        public int VehicleId { get; set; }
+        public string Subject { get; set; }
+        public string Message { get; set; }
+    }
+
+    public class InquiryReplyDto
+    {
+        public string Response { get; set; }
+    }
+}
+
+================
+File: backend/Controllers/VehiclesController.cs
+================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class VehiclesController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public VehiclesController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Vehicles
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles(
+            [FromQuery] string make = null,
+            [FromQuery] string model = null,
+            [FromQuery] int? minYear = null,
+            [FromQuery] int? maxYear = null,
+            [FromQuery] decimal? minPrice = null,
+            [FromQuery] decimal? maxPrice = null,
+            [FromQuery] FuelType? fuelType = null,
+            [FromQuery] TransmissionType? transmission = null,
+            [FromQuery] VehicleType? vehicleType = null,
+            [FromQuery] int? minMileage = null,
+            [FromQuery] int? maxMileage = null,
+            [FromQuery] string sortBy = "DateListed",
+            [FromQuery] bool ascending = false,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            IQueryable<Vehicle> query = _context.Vehicles
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .Where(v => v.Status == VehicleStatus.Available);
+
+            // Apply filters
+            if (!string.IsNullOrEmpty(make))
+                query = query.Where(v => v.Make.Contains(make));
+
+            if (!string.IsNullOrEmpty(model))
+                query = query.Where(v => v.Model.Contains(model));
+
+            if (minYear.HasValue)
+                query = query.Where(v => v.Year >= minYear.Value);
+
+            if (maxYear.HasValue)
+                query = query.Where(v => v.Year <= maxYear.Value);
+
+            if (minPrice.HasValue)
+                query = query.Where(v => v.Price >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(v => v.Price <= maxPrice.Value);
+
+            if (fuelType.HasValue)
+                query = query.Where(v => v.FuelType == fuelType.Value);
+
+            if (transmission.HasValue)
+                query = query.Where(v => v.Transmission == transmission.Value);
+
+            if (vehicleType.HasValue)
+                query = query.Where(v => v.VehicleType == vehicleType.Value);
+
+            if (minMileage.HasValue)
+                query = query.Where(v => v.Mileage >= minMileage.Value);
+
+            if (maxMileage.HasValue)
+                query = query.Where(v => v.Mileage <= maxMileage.Value);
+
+            // Apply sorting
+            query = sortBy.ToLower() switch
+            {
+                "price" => ascending ? query.OrderBy(v => v.Price) : query.OrderByDescending(v => v.Price),
+                "year" => ascending ? query.OrderBy(v => v.Year) : query.OrderByDescending(v => v.Year),
+                "mileage" => ascending ? query.OrderBy(v => v.Mileage) : query.OrderByDescending(v => v.Mileage),
+                "make" => ascending ? query.OrderBy(v => v.Make) : query.OrderByDescending(v => v.Make),
+                "model" => ascending ? query.OrderBy(v => v.Model) : query.OrderByDescending(v => v.Model),
+                _ => ascending ? query.OrderBy(v => v.DateListed) : query.OrderByDescending(v => v.DateListed),
+            };
+
+            // Apply pagination
+            var totalItems = await query.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var vehicles = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Add pagination headers
+            Response.Headers.Add("X-Total-Count", totalItems.ToString());
+            Response.Headers.Add("X-Total-Pages", totalPages.ToString());
+
+            return vehicles;
+        }
+
+        // GET: api/Vehicles/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Vehicle>> GetVehicle(int id)
+        {
+            var vehicle = await _context.Vehicles
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (vehicle == null)
+            {
+                return NotFound();
+            }
+
+            // Record viewing in browsing history if user is authenticated
+            if (User.Identity.IsAuthenticated)
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
+                
+                var history = new BrowsingHistory
+                {
+                    UserId = userId,
+                    VehicleId = id,
+                    ViewDate = DateTime.Now,
+                    ViewDurationSeconds = 0 // Can be updated later
+                };
+                
+                _context.BrowsingHistory.Add(history);
+                await _context.SaveChangesAsync();
+            }
+
+            return vehicle;
+        }
+
+        // POST: api/Vehicles
+        [HttpPost]
+        [Authorize] // Only authenticated users can add vehicles (in your case, admins)
+        public async Task<ActionResult<Vehicle>> PostVehicle(Vehicle vehicle)
+        {
+            _context.Vehicles.Add(vehicle);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
+        }
+
+        // PUT: api/Vehicles/5
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> PutVehicle(int id, Vehicle vehicle)
+        {
+            if (id != vehicle.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(vehicle).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!VehicleExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // DELETE: api/Vehicles/5
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteVehicle(int id)
+        {
+            var vehicle = await _context.Vehicles.FindAsync(id);
+            if (vehicle == null)
+            {
+                return NotFound();
+            }
+
+            _context.Vehicles.Remove(vehicle);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool VehicleExists(int id)
+        {
+            return _context.Vehicles.Any(e => e.Id == id);
+        }
+    }
+}
+
+================
+File: backend/Data/ApplicationDbContext.cs
+================
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Models;
+
+namespace SmartAutoTrader.API.Data
+{
+    public class ApplicationDbContext : DbContext
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+        
+        public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<VehicleImage> VehicleImages { get; set; }
+        public DbSet<VehicleFeature> VehicleFeatures { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<UserFavorite> UserFavorites { get; set; }
+        public DbSet<UserPreference> UserPreferences { get; set; }
+        public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
+        public DbSet<Inquiry> Inquiries { get; set; }
+        
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            
+            // Configure relationships
+            
+            // Vehicle - VehicleImage (one-to-many)
+            modelBuilder.Entity<VehicleImage>()
+                .HasOne(vi => vi.Vehicle)
+                .WithMany(v => v.Images)
+                .HasForeignKey(vi => vi.VehicleId);
+            
+            // Vehicle - VehicleFeature (one-to-many)
+            modelBuilder.Entity<VehicleFeature>()
+                .HasOne(vf => vf.Vehicle)
+                .WithMany(v => v.Features)
+                .HasForeignKey(vf => vf.VehicleId);
+            
+            // User - UserFavorite (one-to-many)
+            modelBuilder.Entity<UserFavorite>()
+                .HasOne(uf => uf.User)
+                .WithMany(u => u.Favorites)
+                .HasForeignKey(uf => uf.UserId);
+            
+            // Vehicle - UserFavorite (one-to-many)
+            modelBuilder.Entity<UserFavorite>()
+                .HasOne(uf => uf.Vehicle)
+                .WithMany(v => v.FavoritedBy)
+                .HasForeignKey(uf => uf.VehicleId);
+            
+            // User - UserPreference (one-to-many)
+            modelBuilder.Entity<UserPreference>()
+                .HasOne(up => up.User)
+                .WithMany(u => u.Preferences)
+                .HasForeignKey(up => up.UserId);
+            
+            // User - BrowsingHistory (one-to-many)
+            modelBuilder.Entity<BrowsingHistory>()
+                .HasOne(bh => bh.User)
+                .WithMany(u => u.BrowsingHistory)
+                .HasForeignKey(bh => bh.UserId);
+            
+            // Vehicle - BrowsingHistory (one-to-many)
+            modelBuilder.Entity<BrowsingHistory>()
+                .HasOne(bh => bh.Vehicle)
+                .WithMany()
+                .HasForeignKey(bh => bh.VehicleId);
+            
+            // User - Inquiry (one-to-many)
+            modelBuilder.Entity<Inquiry>()
+                .HasOne(i => i.User)
+                .WithMany(u => u.SentInquiries)
+                .HasForeignKey(i => i.UserId);
+            
+            // Vehicle - Inquiry (one-to-many)
+            modelBuilder.Entity<Inquiry>()
+                .HasOne(i => i.Vehicle)
+                .WithMany()
+                .HasForeignKey(i => i.VehicleId);
+        }
+    }
+}
+
+================
+File: backend/Models/Inquiry.cs
+================
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace SmartAutoTrader.API.Models
+{
+    public enum InquiryStatus
+    {
+        New,
+        Read,
+        Replied,
+        Closed
+    }
+
+    public class Inquiry
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int UserId { get; set; }
+        public User User { get; set; }
+        
+        public int VehicleId { get; set; }
+        public Vehicle Vehicle { get; set; }
+        
+        [Required]
+        public string Subject { get; set; }
+        
+        [Required]
+        public string Message { get; set; }
+        
+        public string Response { get; set; }
+        
+        public DateTime DateSent { get; set; } = DateTime.Now;
+        
+        public DateTime? DateReplied { get; set; }
+        
+        public InquiryStatus Status { get; set; } = InquiryStatus.New;
+    }
+}
+
+================
+File: backend/Models/User.cs
+================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace SmartAutoTrader.API.Models
+{
+    public class User
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        public string Username { get; set; }
+        
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+        
+        [Required]
+        public string PasswordHash { get; set; }
+        
+        public string FirstName { get; set; }
+        
+        public string LastName { get; set; }
+        
+        public string PhoneNumber { get; set; }
+        
+        public DateTime DateRegistered { get; set; } = DateTime.Now;
+        
+        // Navigation properties
+        public ICollection<UserFavorite> Favorites { get; set; }
+        public ICollection<UserPreference> Preferences { get; set; }
+        public ICollection<BrowsingHistory> BrowsingHistory { get; set; }
+        public ICollection<Inquiry> SentInquiries { get; set; }
+    }
+
+    public class UserFavorite
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int UserId { get; set; }
+        public User User { get; set; }
+        
+        public int VehicleId { get; set; }
+        public Vehicle Vehicle { get; set; }
+        
+        public DateTime DateAdded { get; set; } = DateTime.Now;
+    }
+
+    public class UserPreference
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int UserId { get; set; }
+        public User User { get; set; }
+        
+        [Required]
+        public string PreferenceType { get; set; } // e.g., "PriceRange", "VehicleType", "FuelType"
+        
+        [Required]
+        public string Value { get; set; } // Store as JSON if needed for complex values
+        
+        public float Weight { get; set; } = 1.0f; // Default weight = 1
+    }
+
+    public class BrowsingHistory
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int UserId { get; set; }
+        public User User { get; set; }
+        
+        public int VehicleId { get; set; }
+        public Vehicle Vehicle { get; set; }
+        
+        public DateTime ViewDate { get; set; } = DateTime.Now;
+        
+        public int ViewDurationSeconds { get; set; }
+    }
+}
+
+================
+File: backend/Services/AuthService.cs
+================
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+using BC = BCrypt.Net.BCrypt;
+
+namespace SmartAutoTrader.API.Services
+{
+    public interface IAuthService
+    {
+        Task<User> RegisterAsync(string username, string email, string password, string firstName, string lastName, string phoneNumber);
+        Task<(string token, User user)> LoginAsync(string email, string password);
+        string GenerateJwtToken(User user);
+    }
+
+    public class AuthService : IAuthService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
+
+        public AuthService(ApplicationDbContext context, IConfiguration configuration)
+        {
+            _context = context;
+            _configuration = configuration;
+        }
+
+        public async Task<User> RegisterAsync(string username, string email, string password, string firstName, string lastName, string phoneNumber)
+        {
+            // Check if user already exists
+            if (await _context.Users.AnyAsync(u => u.Email == email || u.Username == username))
+            {
+                throw new Exception("User with this email or username already exists.");
+            }
+
+            // Create new user
+            var user = new User
+            {
+                Username = username,
+                Email = email,
+                PasswordHash = BC.HashPassword(password),
+                FirstName = firstName,
+                LastName = lastName,
+                PhoneNumber = phoneNumber,
+                DateRegistered = DateTime.Now
+            };
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            return user;
+        }
+
+        public async Task<(string token, User user)> LoginAsync(string email, string password)
+        {
+            // Find user by email
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            
+            // Check if user exists and password is correct
+            if (user == null || !BC.Verify(password, user.PasswordHash))
+            {
+                throw new Exception("Invalid email or password.");
+            }
+
+            // Generate JWT token
+            var token = GenerateJwtToken(user);
+
+            return (token, user);
+        }
+
+        public string GenerateJwtToken(User user)
+        {
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.Email, user.Email)
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"]
+            };
+            
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            
+            return tokenHandler.WriteToken(token);
+        }
+    }
+}
+
+================
+File: backend/appsettings.Development.json
+================
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
+
+================
+File: backend/appsettings.json
+================
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=smartautotrader.db"
+  },
+  "Jwt": {
+    "Key": "YourSuperSecretKeyHereMakeItLongAndComplex",
+    "Issuer": "SmartAutoTrader",
+    "Audience": "SmartAutoTraderClients"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "CorsOrigins": [
+    "http://localhost:5173"
+  ],
+  "AI": {
+    "Provider": "huggingface",
+    "FallbackOnError": true
+  },
+  "HuggingFace": {
+    "ApiKey": "",
+    "EmbeddingModel": "sentence-transformers/all-MiniLM-L6-v2"
+  }
+}
+
+================
+File: backend/SmartAutoTrader.API.csproj
+================
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
+  </ItemGroup>
+
+</Project>
+
+================
+File: backend/SmartAutoTrader.API.http
+================
+@SmartAutoTrader.API_HostAddress = http://localhost:5171
+
+GET {{SmartAutoTrader.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+================
+File: frontend/.vscode/settings.json
+================
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  }
+}
+
+================
+File: frontend/public/vite.svg
+================
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+
+================
+File: frontend/src/assets/react.svg
+================
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+
+================
+File: frontend/src/components/layout/Footer.tsx
+================
+import { Box, Container, Grid, Typography, Link } from '@mui/material'
+import {
+  Facebook as FacebookIcon,
+  Twitter as TwitterIcon,
+  Instagram as InstagramIcon,
+  Email as EmailIcon,
+  Phone as PhoneIcon,
+  LocationOn as LocationIcon,
+} from '@mui/icons-material'
+import { Link as RouterLink } from 'react-router-dom'
+
+const Footer = () => {
+  const currentYear = new Date().getFullYear()
+
+  return (
+    <Box
+      component="footer"
+      sx={{ bgcolor: 'primary.dark', color: 'white', py: 6, mt: 'auto' }}
+    >
+      <Container>
+        <Grid container spacing={4}>
+          <Grid item xs={12} md={3}>
+            <Typography variant="h6" gutterBottom>
+              Smart Auto Trader
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+            >
+              Find your perfect vehicle with our AI-powered recommendation
+              system.
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Typography variant="h6" gutterBottom>
+              Quick Links
+            </Typography>
+            <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+              <Box component="li" sx={{ mb: 1 }}>
+                <Link
+                  component={RouterLink}
+                  to="/"
+                  color="inherit"
+                  underline="hover"
+                >
+                  Home
+                </Link>
+              </Box>
+              <Box component="li" sx={{ mb: 1 }}>
+                <Link
+                  component={RouterLink}
+                  to="/vehicles"
+                  color="inherit"
+                  underline="hover"
+                >
+                  Vehicles
+                </Link>
+              </Box>
+              <Box component="li" sx={{ mb: 1 }}>
+                <Link
+                  component={RouterLink}
+                  to="/login"
+                  color="inherit"
+                  underline="hover"
+                >
+                  Login
+                </Link>
+              </Box>
+              <Box component="li" sx={{ mb: 1 }}>
+                <Link
+                  component={RouterLink}
+                  to="/register"
+                  color="inherit"
+                  underline="hover"
+                >
+                  Register
+                </Link>
+              </Box>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Typography variant="h6" gutterBottom>
+              Contact Us
+            </Typography>
+            <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+              <Box
+                component="li"
+                sx={{ mb: 1, display: 'flex', alignItems: 'center' }}
+              >
+                <EmailIcon fontSize="small" sx={{ mr: 1 }} />
+                info@smartautotrader.com
+              </Box>
+              <Box
+                component="li"
+                sx={{ mb: 1, display: 'flex', alignItems: 'center' }}
+              >
+                <PhoneIcon fontSize="small" sx={{ mr: 1 }} />
+                (555) 123-4567
+              </Box>
+              <Box
+                component="li"
+                sx={{ mb: 1, display: 'flex', alignItems: 'center' }}
+              >
+                <LocationIcon fontSize="small" sx={{ mr: 1 }} />
+                123 Auto Lane, Vehicle City
+              </Box>
+            </Box>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <Typography variant="h6" gutterBottom>
+              Follow Us
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Link href="#" color="inherit">
+                <FacebookIcon />
+              </Link>
+              <Link href="#" color="inherit">
+                <TwitterIcon />
+              </Link>
+              <Link href="#" color="inherit">
+                <InstagramIcon />
+              </Link>
+            </Box>
+          </Grid>
+        </Grid>
+
+        <Box
+          sx={{
+            borderTop: 1,
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            mt: 4,
+            pt: 2,
+            textAlign: 'center',
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+          >
+            &copy; {currentYear} Smart Auto Trader. All rights reserved.
+          </Typography>
+        </Box>
+      </Container>
+    </Box>
+  )
+}
+
+export default Footer
+
+================
+File: frontend/src/components/layout/Header.tsx
+================
+import { useContext } from 'react'
+import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Container,
+} from '@mui/material'
+import {
+  DirectionsCar as CarIcon,
+  Person as PersonIcon,
+  ExitToApp as LogoutIcon,
+} from '@mui/icons-material'
+import { AuthContext } from '../../contexts/AuthContext'
+
+const Header = () => {
+  const { isAuthenticated, logout } = useContext(AuthContext)
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
+  return (
+    <AppBar position="static">
+      <Container>
+        <Toolbar>
+          {/* Logo */}
+          <Typography
+            variant="h6"
+            component={RouterLink}
+            to="/"
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              textDecoration: 'none',
+              color: 'inherit',
+              flexGrow: 1,
+            }}
+          >
+            <CarIcon sx={{ mr: 1 }} />
+            Smart Auto Trader
+          </Typography>
+
+          {/* Navigation Links */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <Button color="inherit" component={RouterLink} to="/">
+              Home
+            </Button>
+            <Button color="inherit" component={RouterLink} to="/vehicles">
+              Vehicles
+            </Button>
+          </Box>
+
+          {/* Auth Actions */}
+          <Box>
+            {isAuthenticated ? (
+              <>
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/profile"
+                  startIcon={<PersonIcon />}
+                >
+                  My Profile
+                </Button>
+                <Button
+                  color="inherit"
+                  onClick={handleLogout}
+                  startIcon={<LogoutIcon />}
+                >
+                  Log Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button color="inherit" component={RouterLink} to="/login">
+                  Log In
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  component={RouterLink}
+                  to="/register"
+                  sx={{ ml: 1 }}
+                >
+                  Register
+                </Button>
+              </>
+            )}
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
+  )
+}
+
+export default Header
+
+================
+File: frontend/src/components/vehicles/VehicleFilters.tsx
+================
+// src/components/vehicles/VehicleFilters.tsx
+import { useState, useEffect } from 'react'
+
+interface FilterProps {
+  filters: {
+    make?: string
+    model?: string
+    minYear?: number
+    maxYear?: number
+    minPrice?: number
+    maxPrice?: number
+    fuelType?: string
+    transmission?: string
+    vehicleType?: string
+    sortBy: string
+    ascending: boolean
+  }
+  onFilterChange: (filters: Partial<FilterProps['filters']>) => void
+}
+
+const VehicleFilters = ({ filters, onFilterChange }: FilterProps) => {
+  const [localFilters, setLocalFilters] = useState(filters)
+
+  // Update local state when props change
+  useEffect(() => {
+    setLocalFilters(filters)
+  }, [filters])
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target as HTMLInputElement
+
+    let parsedValue: string | number | boolean | undefined = value
+
+    // Convert numeric values
+    if (type === 'number' && value) {
+      parsedValue = Number(value)
+    }
+
+    // Handle empty values
+    if (value === '') {
+      parsedValue = undefined
+    }
+
+    setLocalFilters((prev) => ({
+      ...prev,
+      [name]: parsedValue,
+    }))
+  }
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { value } = e.target
+    setLocalFilters((prev) => ({
+      ...prev,
+      sortBy: value,
+    }))
+  }
+
+  const handleSortDirectionChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      ascending: e.target.checked,
+    }))
+  }
+
+  const applyFilters = () => {
+    onFilterChange(localFilters)
+  }
+
+  const resetFilters = () => {
+    const resetValues = {
+      make: undefined,
+      model: undefined,
+      minYear: undefined,
+      maxYear: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      fuelType: undefined,
+      transmission: undefined,
+      vehicleType: undefined,
+      sortBy: 'DateListed',
+      ascending: false,
+    }
+    setLocalFilters(resetValues)
+    onFilterChange(resetValues)
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4">
+      <h2 className="text-xl font-semibold mb-4">Filters</h2>
+
+      <div className="space-y-4">
+        {/* Make */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Make
+          </label>
+          <input
+            type="text"
+            name="make"
+            value={localFilters.make || ''}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 rounded"
+            placeholder="Any make"
+          />
+        </div>
+
+        {/* Model */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Model
+          </label>
+          <input
+            type="text"
+            name="model"
+            value={localFilters.model || ''}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 rounded"
+            placeholder="Any model"
+          />
+        </div>
+
+        {/* Year Range */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Min Year
+            </label>
+            <input
+              type="number"
+              name="minYear"
+              value={localFilters.minYear || ''}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="From"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Max Year
+            </label>
+            <input
+              type="number"
+              name="maxYear"
+              value={localFilters.maxYear || ''}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="To"
+            />
+          </div>
+        </div>
+
+        {/* Price Range */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Min Price
+            </label>
+            <input
+              type="number"
+              name="minPrice"
+              value={localFilters.minPrice || ''}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="From"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Max Price
+            </label>
+            <input
+              type="number"
+              name="maxPrice"
+              value={localFilters.maxPrice || ''}
+              onChange={handleInputChange}
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="To"
+            />
+          </div>
+        </div>
+
+        {/* Fuel Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fuel Type
+          </label>
+          <select
+            name="fuelType"
+            value={localFilters.fuelType || ''}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="">Any fuel type</option>
+            <option value="0">Petrol</option>
+            <option value="1">Diesel</option>
+            <option value="2">Electric</option>
+            <option value="3">Hybrid</option>
+            <option value="4">Plugin</option>
+          </select>
+        </div>
+
+        {/* Transmission */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Transmission
+          </label>
+          <select
+            name="transmission"
+            value={localFilters.transmission || ''}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="">Any transmission</option>
+            <option value="0">Manual</option>
+            <option value="1">Automatic</option>
+            <option value="2">Semi-Automatic</option>
+          </select>
+        </div>
+
+        {/* Vehicle Type */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Vehicle Type
+          </label>
+          <select
+            name="vehicleType"
+            value={localFilters.vehicleType || ''}
+            onChange={handleInputChange}
+            className="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="">Any type</option>
+            <option value="0">Sedan</option>
+            <option value="1">SUV</option>
+            <option value="2">Hatchback</option>
+            <option value="3">Estate</option>
+            <option value="4">Coupe</option>
+            <option value="5">Convertible</option>
+            <option value="6">Pickup</option>
+            <option value="7">Van</option>
+          </select>
+        </div>
+
+        {/* Sort By */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sort By
+          </label>
+          <select
+            name="sortBy"
+            value={localFilters.sortBy}
+            onChange={handleSortChange}
+            className="w-full p-2 border border-gray-300 rounded"
+          >
+            <option value="DateListed">Date Listed</option>
+            <option value="Price">Price</option>
+            <option value="Year">Year</option>
+            <option value="Mileage">Mileage</option>
+            <option value="Make">Make</option>
+          </select>
+        </div>
+
+        {/* Sort Direction */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="ascending"
+            checked={localFilters.ascending}
+            onChange={handleSortDirectionChange}
+            className="h-4 w-4 text-blue-600 rounded"
+          />
+          <label htmlFor="ascending" className="ml-2 text-sm text-gray-700">
+            Ascending order
+          </label>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex space-x-2 pt-2">
+          <button
+            onClick={applyFilters}
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
+          >
+            Apply
+          </button>
+          <button
+            onClick={resetFilters}
+            className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default VehicleFilters
+
+================
+File: frontend/src/contexts/AuthContext.tsx
+================
+import { createContext } from 'react'
+
+// Define the User interface
+export interface User {
+  id: number
+  username: string
+  email: string
+  firstName?: string
+  lastName?: string
+}
+
+// Define a UserRegistration interface for the register function
+export interface UserRegistration {
+  username: string
+  email: string
+  password: string
+  firstName?: string
+  lastName?: string
+  phoneNumber?: string
+}
+
+// Define the AuthContextType interface
+export interface AuthContextType {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+  loading: boolean
+  login: (email: string, password: string) => Promise<void>
+  register: (userData: UserRegistration) => Promise<void>
+  logout: () => void
+}
+
+// Create the context with default values
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  loading: true,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+})
+
+================
+File: frontend/src/contexts/AuthProvider.tsx
+================
+import { useState, useEffect, ReactNode } from 'react'
+import { authService } from '../services/api'
+import { AuthContext, User, UserRegistration } from './AuthContext'
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem('token')
+  )
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check if token exists in localStorage and validate it
+    const checkAuth = async () => {
+      const storedToken = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+
+      if (storedToken && storedUser) {
+        setToken(storedToken)
+        setUser(JSON.parse(storedUser))
+      }
+
+      setLoading(false)
+    }
+
+    checkAuth()
+  }, [])
+
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await authService.login(email, password)
+
+      setToken(response.token)
+      setUser(response.user)
+
+      localStorage.setItem('token', response.token)
+      localStorage.setItem('user', JSON.stringify(response.user))
+    } catch (error) {
+      console.error('Login error:', error)
+      throw error
+    }
+  }
+
+  const register = async (userData: UserRegistration) => {
+    try {
+      await authService.register(userData)
+      // Automatically login after registration
+      await login(userData.email, userData.password)
+    } catch (error) {
+      console.error('Registration error:', error)
+      throw error
+    }
+  }
+
+  const logout = () => {
+    setToken(null)
+    setUser(null)
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!token,
+        loading,
+        login,
+        register,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+================
+File: frontend/src/contexts/index.ts
+================
+// src/contexts/index.ts
+export * from './AuthContext'
+export * from './AuthProvider'
+
+================
+File: frontend/src/pages/LoginPage.tsx
+================
+// src/pages/LoginPage.tsx (completing the component)
+import { useState, useContext } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
+
+const LoginPage = () => {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const { login } = useContext(AuthContext)
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Get redirect path from location state or default to home
+  const from = (location.state as { from?: string })?.from || '/'
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!email || !password) {
+      setError('Please enter your email and password')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await login(email, password)
+      navigate(from, { replace: true })
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Failed to login. Please check your credentials.'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-8">
+        <h2 className="text-2xl font-bold text-center mb-6">Log In</h2>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <label
+                htmlFor="password"
+                className="block text-gray-700 font-medium"
+              >
+                Password
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {loading ? 'Logging in...' : 'Log In'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Register
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default LoginPage
+
+================
+File: frontend/src/pages/RegisterPage.tsx
+================
+// src/pages/RegisterPage.tsx
+import { useState, useContext } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
+import { UserRegistration } from '../contexts/AuthContext'
+
+const RegisterPage = () => {
+  const [formData, setFormData] = useState<UserRegistration>({
+    username: '',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+  })
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const { register } = useContext(AuthContext)
+  const navigate = useNavigate()
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Basic validation
+    if (!formData.username || !formData.email || !formData.password) {
+      setError('Username, email and password are required')
+      return
+    }
+
+    if (formData.password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await register(formData)
+      navigate('/') // Redirect to home after successful registration
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : 'Registration failed. Please try again.'
+      setError(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-8">
+        <h2 className="text-2xl font-bold text-center mb-6">
+          Create an Account
+        </h2>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="username"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Username*
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Choose a username"
+              required
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Email*
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="your@email.com"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                First Name
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="First name"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-gray-700 font-medium mb-2"
+              >
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Last name"
+              />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="phoneNumber"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Phone number"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label
+              htmlFor="password"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Password*
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Create a password"
+              required
+            />
+          </div>
+
+          <div className="mb-6">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-gray-700 font-medium mb-2"
+            >
+              Confirm Password*
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Confirm your password"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+          >
+            {loading ? 'Creating Account...' : 'Register'}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            Already have an account?{' '}
+            <Link
+              to="/login"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Log In
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default RegisterPage
+
+================
+File: frontend/src/pages/VehicleListingPage.tsx
+================
+// src/pages/VehicleListingPage.tsx
+import { useState, useEffect } from 'react'
+import { vehicleService } from '../services/api'
+import VehicleCard from '../components/vehicles/VehicleCard'
+import VehicleFilters from '../components/vehicles/VehicleFilters'
+
+interface Vehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  fuelType: string
+  transmission: string
+  vehicleType: string
+  images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>
+}
+
+interface FilterState {
+  make?: string
+  model?: string
+  minYear?: number
+  maxYear?: number
+  minPrice?: number
+  maxPrice?: number
+  fuelType?: string
+  transmission?: string
+  vehicleType?: string
+  sortBy: string
+  ascending: boolean
+}
+
+const VehicleListingPage = () => {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [filters, setFilters] = useState<FilterState>({
+    sortBy: 'DateListed',
+    ascending: false,
+  })
+
+  useEffect(() => {
+    const loadVehicles = async () => {
+      setLoading(true)
+      try {
+        const response = await vehicleService.getVehicles({
+          ...filters,
+          pageNumber: page,
+          pageSize: 8,
+        })
+
+        setVehicles(response)
+
+        // Axios response headers need to be accessed differently
+        // If your API isn't returning headers correctly, you can adjust this:
+        const totalCount = 20 // Default value or calculate from total vehicles
+        const calculatedTotalPages = Math.ceil(totalCount / 8)
+        setTotalPages(calculatedTotalPages || 1)
+      } catch (error) {
+        console.error('Error loading vehicles:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadVehicles()
+  }, [filters, page])
+
+  const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }))
+    setPage(1) // Reset to first page when filters change
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Available Vehicles</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Filters sidebar */}
+        <div className="lg:col-span-1">
+          <VehicleFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
+
+        {/* Vehicle grid */}
+        <div className="lg:col-span-3">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <p>Loading vehicles...</p>
+            </div>
+          ) : vehicles.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg p-8 text-center">
+              <h3 className="text-xl font-semibold mb-2">No vehicles found</h3>
+              <p className="text-gray-600">
+                Try adjusting your filters to see more results.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {vehicles.map((vehicle) => (
+                  <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex justify-center mt-8">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`mx-1 px-4 py-2 rounded ${
+                        pageNum === page
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 hover:bg-gray-300'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default VehicleListingPage
+
+================
+File: frontend/src/App.css
+================
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+================
+File: frontend/src/App.tsx
+================
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import {
+  Container,
+  CssBaseline,
+  ThemeProvider,
+  createTheme,
+} from '@mui/material'
+import HomePage from './pages/HomePage'
+import VehicleListingPage from './pages/VehicleListingPage'
+import VehicleDetailPage from './pages/VehicleDetailPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import ProfilePage from './pages/ProfilePage'
+import Header from './components/layout/Header'
+import Footer from './components/layout/Footer'
+import { AuthProvider } from './contexts'
+
+// Create a theme instance
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#1976d2', // Blue color
+    },
+    secondary: {
+      main: '#dc004e', // Pink color
+    },
+  },
+})
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline /> {/* This normalizes CSS across browsers */}
+      <BrowserRouter>
+        <AuthProvider>
+          <div className="app">
+            <Header />
+            <Container component="main" sx={{ py: 4 }}>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/vehicles" element={<VehicleListingPage />} />
+                <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                {/* Add the recommendations routes */}
+                <Route
+                  path="/recommendations"
+                  element={<VehicleListingPage />}
+                />{' '}
+                {/* Temporarily using VehicleListingPage */}
+                <Route
+                  path="/recommendations/:userId"
+                  element={<VehicleListingPage />}
+                />{' '}
+                {/* Temporarily using VehicleListingPage */}
+              </Routes>
+            </Container>
+            <Footer />
+          </div>
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  )
+}
+
+export default App
+
+================
+File: frontend/src/index.css
+================
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+================
+File: frontend/src/main.tsx
+================
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import './index.css'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+)
+
+================
+File: frontend/src/vite-env.d.ts
+================
+/// <reference types="vite/client" />
+
+================
+File: frontend/.env
+================
+VITE_API_URL=https://localhost:7001/api
+
+================
+File: frontend/.eslintrc.json
+================
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "plugins": ["react", "react-hooks", "@typescript-eslint"],
+  "rules": {
+    "react/prop-types": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "prettier/prettier": "error"
+  }
+}
+
+================
+File: frontend/.prettierrc
+================
+{
+  "singleQuote": true,
+  "semi": false,
+  "trailingComma": "es5",
+  "printWidth": 80,
+  "tabWidth": 2
+}
+
+================
+File: frontend/eslint.config.js
+================
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+
+export default tseslint.config(
+  { ignores: ['dist'] },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+    },
+  }
+)
+
+================
+File: frontend/index.html
+================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+================
+File: frontend/package.json
+================
+{
+  "name": "smart-auto-trader-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^6.4.7",
+    "@mui/material": "^6.4.7",
+    "axios": "^1.8.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.21.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/parser": "^8.26.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.22.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^15.15.0",
+    "prettier": "^3.5.3",
+    "typescript": "~5.7.2",
+    "typescript-eslint": "^8.24.1",
+    "vite": "^6.2.0"
+  }
+}
+
+================
+File: frontend/README.md
+================
+# React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default tseslint.config({
+  extends: [
+    // Remove ...tseslint.configs.recommended and replace with this
+    ...tseslint.configs.recommendedTypeChecked,
+    // Alternatively, use this for stricter rules
+    ...tseslint.configs.strictTypeChecked,
+    // Optionally, add this for stylistic rules
+    ...tseslint.configs.stylisticTypeChecked,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
+```
+
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default tseslint.config({
+  plugins: {
+    // Add the react-x and react-dom plugins
+    'react-x': reactX,
+    'react-dom': reactDom,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended typescript rules
+    ...reactX.configs['recommended-typescript'].rules,
+    ...reactDom.configs.recommended.rules,
+  },
+})
+```
+
+================
+File: frontend/tsconfig.app.json
+================
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+
+================
+File: frontend/tsconfig.json
+================
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
+================
+File: frontend/tsconfig.node.json
+================
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+================
+File: frontend/vite.config.ts
+================
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://localhost:7001',
+        secure: false,
+        changeOrigin: true,
+      },
+    },
+  },
+})
+
+================
+File: README.md
+================
+cat > README.md << 'EOL'
+# Smart Auto Trader
+
+An AI-powered vehicle marketplace that offers personalized recommendations and streamlines the car buying experience.
+
+## Project Structure
+
+This repository is organized as a monorepo containing both frontend and backend components:
+
+- `/frontend`: React application with Material UI
+- `/backend`: .NET Core API with SQLite database
+
+## Features
+
+- User authentication and profile management
+- Vehicle browsing with advanced filtering
+- AI-driven recommendations based on user preferences
+- Inquiry messaging system between buyers and sellers
+- Favorites management
+
+## Getting Started
+
+### Backend Setup
+
+1. Navigate to the backend directory:
+
+================
+File: backend/DataSeeding/VehicleSeederScript.cs
+================
+using SmartAutoTrader.API.Models; // Updated to match your namespace
+using SmartAutoTrader.API.Data; // Assuming this is where your DbContext is
+
+namespace SmartAutoTrader.API.DataSeeding
+{
+    public class VehicleSeeder
+    {
+        public void SeedVehicles(IServiceProvider serviceProvider, int count = 200)
+        {
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(); // Replace with your actual DbContext name
+
+                if (!context.Vehicles.Any())
+                {
+                    var vehicles = GenerateVehicles(count);
+                    context.Vehicles.AddRange(vehicles);
+                    context.SaveChanges();
+                    Console.WriteLine($"Added {count} vehicles to the database.");
+                }
+                else
+                {
+                    Console.WriteLine("Database already contains vehicles. Skipping seed.");
+                }
+            }
+        }
+
+        private static List<Vehicle> GenerateVehicles(int count)
+        {
+            var random = new Random();
+            var vehicles = new List<Vehicle>();
+
+            // Lists for random data generation
+            var makes = new[] { "Toyota", "Honda", "Ford", "Volkswagen", "BMW", "Mercedes-Benz", "Audi", "Nissan", "Hyundai", "Kia", "Tesla", "Mazda", "Subaru", "Chevrolet", "Lexus" };
+            var colors = new[] { "Black", "White", "Silver", "Grey", "Blue", "Red", "Green", "Yellow", "Brown", "Orange" };
+            var countries = new[] { "Japan", "Germany", "USA", "South Korea", "Italy", "France", "Sweden", "UK", "China" };
+
+            // Model mappings
+            var modelsByMake = new Dictionary<string, string[]>
+            {
+                { "Toyota", new[] { "Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner" } },
+                { "Honda", new[] { "Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey" } },
+                { "Ford", new[] { "F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger" } },
+                { "Volkswagen", new[] { "Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon" } },
+                { "BMW", new[] { "3 Series", "5 Series", "X3", "X5", "7 Series", "i4", "iX" } },
+                { "Mercedes-Benz", new[] { "C-Class", "E-Class", "GLC", "GLE", "S-Class", "A-Class", "EQC" } },
+                { "Audi", new[] { "A4", "A6", "Q5", "Q7", "e-tron", "A3", "Q3" } },
+                { "Nissan", new[] { "Altima", "Rogue", "Sentra", "Pathfinder", "Murano", "Leaf", "Kicks" } },
+                { "Hyundai", new[] { "Elantra", "Tucson", "Santa Fe", "Kona", "Sonata", "Palisade", "Ioniq" } },
+                { "Kia", new[] { "Forte", "Sportage", "Sorento", "Telluride", "Soul", "Seltos", "EV6" } },
+                { "Tesla", new[] { "Model 3", "Model Y", "Model S", "Model X", "Cybertruck" } },
+                { "Mazda", new[] { "Mazda3", "CX-5", "CX-9", "MX-5", "CX-30", "Mazda6", "CX-50" } },
+                { "Subaru", new[] { "Outback", "Forester", "Crosstrek", "Impreza", "Legacy", "Ascent", "WRX" } },
+                { "Chevrolet", new[] { "Silverado", "Equinox", "Malibu", "Traverse", "Tahoe", "Bolt", "Camaro" } },
+                { "Lexus", new[] { "RX", "ES", "NX", "IS", "GX", "UX", "LS" } }
+            };
+
+            // Common features
+            var featuresList = new[]
+            {
+                "Leather Seats", "Sunroof", "Navigation System", "Bluetooth", "Backup Camera",
+                "Heated Seats", "Cruise Control", "Parking Sensors", "Blind Spot Monitor",
+                "Lane Departure Warning", "Keyless Entry", "Push Button Start", "Apple CarPlay",
+                "Android Auto", "Premium Sound System", "Third Row Seating", "Tow Package",
+                "Roof Rack", "Alloy Wheels", "Adaptive Cruise Control", "Remote Start",
+                "Ventilated Seats", "Heads-up Display", "360 Camera", "Wireless Charging"
+            };
+
+            // Generate vehicles
+            for (int i = 0; i < count; i++)
+            {
+                var make = makes[random.Next(makes.Length)];
+                var models = modelsByMake[make];
+                var model = models[random.Next(models.Length)];
+                var year = random.Next(2010, 2026);
+                var country = GetCountryForMake(make);
+
+                // Create vehicle
+                var vehicle = new Vehicle
+                {
+                    Make = make,
+                    Model = model,
+                    Year = year,
+                    Price = random.Next(5000, 100001), // $5,000 to $100,000
+                    Mileage = year == 2025 ? random.Next(0, 1000) : random.Next(1000, 150001), // Low mileage for new cars
+                    FuelType = (FuelType)random.Next(Enum.GetValues(typeof(FuelType)).Length),
+                    Transmission = (TransmissionType)random.Next(Enum.GetValues(typeof(TransmissionType)).Length),
+                    VehicleType = (VehicleType)random.Next(Enum.GetValues(typeof(VehicleType)).Length),
+                    EngineSize = Math.Round(random.NextDouble() * 4 + 1, 1), // 1.0L to 5.0L
+                    HorsePower = random.Next(100, 601), // 100hp to 600hp
+                    Country = country,
+                    Description = GenerateDescription(make, model, year),
+                    DateListed = DateTime.Now.AddDays(-random.Next(1, 60)), // Random listing date within last 60 days
+                    Status = GetRandomStatusWithWeights(random),
+                    // Initialize collections
+                    Images = new List<VehicleImage>(),
+                    Features = new List<VehicleFeature>(),
+                    FavoritedBy = new List<Models.UserFavorite>()
+                };
+
+                // Add images
+                int imageCount = random.Next(1, 6); // 1-5 images per vehicle
+                for (int j = 0; j < imageCount; j++)
+                {
+                    int imageId = random.Next(1, 20); // Assuming you have 20 placeholder images
+                    vehicle.Images.Add(new VehicleImage
+                    {
+                        ImageUrl = $"https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
+                        IsPrimary = j == 0, // First image is primary
+                        Vehicle = vehicle
+                    });
+                }
+
+                // Add features (3-8 random features)
+                var featureCount = random.Next(3, 9);
+                var selectedFeatures = featuresList.OrderBy(x => random.Next()).Take(featureCount);
+                foreach (var feature in selectedFeatures)
+                {
+                    vehicle.Features.Add(new VehicleFeature
+                    {
+                        Name = feature,
+                        Vehicle = vehicle
+                    });
+                }
+
+                vehicles.Add(vehicle);
+            }
+
+            return vehicles;
+        }
+
+        private static string GetCountryForMake(string make)
+        {
+            // Return appropriate country of origin for each make
+            return make switch
+            {
+                "Toyota" or "Honda" or "Nissan" or "Mazda" or "Subaru" or "Lexus" => "Japan",
+                "BMW" or "Mercedes-Benz" or "Audi" or "Volkswagen" => "Germany",
+                "Ford" or "Chevrolet" or "Tesla" => "USA",
+                "Hyundai" or "Kia" => "South Korea",
+                _ => "Other"
+            };
+        }
+
+        private static VehicleStatus GetRandomStatusWithWeights(Random random)
+        {
+            // Weight probabilities: 80% Available, 15% Reserved, 5% Sold
+            int value = random.Next(1, 101);
+            if (value <= 80)
+                return VehicleStatus.Available;
+            else if (value <= 95)
+                return VehicleStatus.Reserved;
+            else
+                return VehicleStatus.Sold;
+        }
+
+        private static string GenerateDescription(string make, string model, int year)
+        {
+            var random = new Random();
+            var descriptions = new[]
+            {
+                $"Excellent condition {year} {make} {model}. Well maintained with service history available. Must see to appreciate.",
+                $"Beautiful {year} {make} {model} with low mileage. No accidents, clean title.",
+                $"One owner {year} {make} {model}. Garage kept and regularly serviced at dealership.",
+                $"Immaculate {year} {make} {model}. All highway miles, never been in an accident.",
+                $"Like new {year} {make} {model}. Still under manufacturer warranty with all service up to date.",
+                $"Pristine {year} {make} {model}. Adult owned and driven, smoke-free interior.",
+                $"Well-maintained {year} {make} {model}. Recent service completed, ready for new owner.",
+                $"Sporty {year} {make} {model} in great condition. Fun to drive with excellent fuel economy.",
+                $"Luxury {year} {make} {model} loaded with features. Premium package included.",
+                $"Family-friendly {year} {make} {model} with spacious interior and excellent safety ratings."
+            };
+
+            return descriptions[random.Next(descriptions.Length)];
+        }
+    }
+    
+}
+
+================
+File: backend/Models/Vehicle.cs
+================
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+namespace SmartAutoTrader.API.Models
+{
+    public enum FuelType
+    {
+        Petrol,
+        Diesel,
+        Electric,
+        Hybrid,
+        Plugin
+    }
+
+    public enum TransmissionType
+    {
+        Manual,
+        Automatic,
+        SemiAutomatic
+    }
+
+    public enum VehicleType
+    {
+        Sedan,
+        SUV,
+        Hatchback,
+        Estate,
+        Coupe,
+        Convertible,
+        Pickup,
+        Van
+    }
+
+    public enum VehicleStatus
+    {
+        Available,
+        Reserved,
+        Sold
+    }
+
+    public class Vehicle
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        public string Make { get; set; }
+        
+        [Required]
+        public string Model { get; set; }
+        
+        [Required]
+        public int Year { get; set; }
+        
+        [Required]
+        public decimal Price { get; set; }
+        
+        public int Mileage { get; set; }
+        
+        public FuelType FuelType { get; set; }
+        
+        public TransmissionType Transmission { get; set; }
+        
+        public VehicleType VehicleType { get; set; }
+        
+        public double EngineSize { get; set; }
+        
+        public int HorsePower { get; set; }
+        
+        public string Country { get; set; }
+        
+        [Required]
+        public string Description { get; set; }
+        
+        public DateTime DateListed { get; set; } = DateTime.Now;
+        
+        public VehicleStatus Status { get; set; } = VehicleStatus.Available;
+        
+        // Navigation properties
+        public ICollection<VehicleImage> Images { get; set; }
+        public ICollection<VehicleFeature> Features { get; set; }
+        [JsonIgnore]
+        public IEnumerable<UserFavorite>? FavoritedBy { get; set; }
+    }
+
+    public class VehicleImage
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        public string ImageUrl { get; set; }
+        
+        public bool IsPrimary { get; set; }
+        
+        public int VehicleId { get; set; }
+        [JsonIgnore]
+        public Vehicle Vehicle { get; set; }
+    }
+
+    public class VehicleFeature
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        public string Name { get; set; }
+        
+        public int VehicleId { get; set; }
+        [JsonIgnore]
+        public Vehicle Vehicle { get; set; }
+    }
+}
+
+================
+File: backend/Properties/launchSettings.json
+================
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:57823",
+      "sslPort": 44350
+    }
+  },
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7001;",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7001;",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+
+================
+File: backend/Program.cs
+================
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Services;
+using System.Text;
+using Microsoft.OpenApi.Models;
+using SmartAutoTrader.API.DataSeeding;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+
+// Configure SQLite
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Configure Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+
+// Register services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<VehicleSeeder>();
+
+builder.Services.AddHttpClient(); // For HttpClient
+builder.Services.AddAIRecommendationServices(builder.Configuration);
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+//JSON Image self reference issue fix
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+        // Or to ignore cycles completely:
+        // options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
+// Configure Swagger
+builder.Services.AddEndpointsApiExplorer();
+// Add this in your services configuration section
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Smart Auto Trader API", Version = "v1" });
+    
+    // Define the JWT Bearer authentication scheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors("AllowFrontend");
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+
+// Create the database if it doesn't exist
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    context.Database.EnsureCreated();
+    var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
+    vehicleSeeder.SeedVehicles(services, 200);
+}
+
+app.Run();
+
+================
+File: frontend/src/components/vehicles/VehicleCard.tsx
+================
+// src/components/vehicles/VehicleCard.tsx
+import { Link } from 'react-router-dom'
+
+interface VehicleImage {
+  id: number
+  imageUrl: string
+  isPrimary: boolean
+}
+
+interface VehicleProps {
+  vehicle: {
+    id: number
+    make: string
+    model: string
+    year: number
+    price: number
+    mileage: number
+    images: VehicleImage[] | any // added 'any' to handle potential non-array format
+  }
+}
+
+const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
+  // Debug logging
+  console.log('Vehicle ID:', vehicle.id);
+  console.log('Images property:', vehicle.images);
+  console.log('Images type:', typeof vehicle.images);
+  console.log('Is images an array?', Array.isArray(vehicle.images));
+  
+  // Handle different possible formats of the images property
+  let primaryImage = 'https://via.placeholder.com/300x200?text=No+Image';
+  
+  if (vehicle.images) {
+    // If images is already an array
+    if (Array.isArray(vehicle.images)) {
+      console.log('Images array content:', vehicle.images);
+      // Use a more defensive approach
+      try {
+        const primaryImg = vehicle.images.find(img => img && img.isPrimary === true);
+        primaryImage = primaryImg?.imageUrl || (vehicle.images[0] && vehicle.images[0].imageUrl) || primaryImage;
+      } catch (error) {
+        console.error('Error processing images array:', error);
+      }
+    } 
+    // If images has $values property (ASP.NET reference handling format)
+    else if (vehicle.images.$values && Array.isArray(vehicle.images.$values)) {
+      console.log('Images $values content:', vehicle.images.$values);
+      // Use a more defensive approach
+      try {
+        // Log first item to see its structure
+        if (vehicle.images.$values.length > 0) {
+          console.log('First image item:', vehicle.images.$values[0]);
+        }
+        
+        // Check each item before using find
+        let primaryImg = null;
+        for (const img of vehicle.images.$values) {
+          if (img && typeof img === 'object' && 'isPrimary' in img && img.isPrimary === true) {
+            primaryImg = img;
+            break;
+          }
+        }
+        
+        primaryImage = primaryImg?.imageUrl || 
+                      (vehicle.images.$values[0] && vehicle.images.$values[0].imageUrl) || 
+                      primaryImage;
+      } catch (error) {
+        console.error('Error processing images.$values array:', error);
+      }
+    }
+    // Log unexpected format for debugging
+    else {
+      console.error('Unexpected images format:', vehicle.images);
+    }
+  }
+  return (
+    <Link to={`/vehicles/${vehicle.id}`} className="block">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+        <div className="aspect-w-16 aspect-h-9">
+          <img
+            src={primaryImage}
+            alt={`${vehicle.make} ${vehicle.model}`}
+            className="object-cover w-full h-full"
+          />
+        </div>
+        <div className="p-4">
+          <h3 className="text-lg font-semibold">
+            {vehicle.year} {vehicle.make} {vehicle.model}
+          </h3>
+          <div className="mt-2 flex justify-between">
+            <span className="text-blue-600 font-bold">
+              ${vehicle.price.toLocaleString()}
+            </span>
+            <span className="text-gray-600">
+              {vehicle.mileage.toLocaleString()} miles
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+export default VehicleCard
+
+================
+File: frontend/src/pages/HomePage.tsx
+================
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { vehicleService } from '../services/api'
+import VehicleCard from '../components/vehicles/VehicleCard'
+
+interface Vehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>
+}
+
+const HomePage = () => {
+  const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadFeaturedVehicles = async () => {
+      try {
+        // Get the latest 4 vehicles
+        console.log('Fetching vehicles...');
+        const response = await vehicleService.getVehicles({
+          pageSize: 4,
+          sortBy: 'DateListed',
+          ascending: false,
+        });
+        
+        console.log('API response type:', typeof response);
+        console.log('Is array?', Array.isArray(response));
+        console.log('Raw response:', response);
+        
+        // Safe check before setting state
+        if (Array.isArray(response)) {
+          setFeaturedVehicles(response);
+        } else {
+          console.error('Response is not an array:', response);
+          setFeaturedVehicles([]); // Use empty array as fallback
+        }
+      } catch (error) {
+        console.error('Error loading featured vehicles:', error);
+        setFeaturedVehicles([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    loadFeaturedVehicles();
+  }, []);
+
+  return (
+    <div>
+      <section className="hero bg-blue-600 text-white py-16">
+        <div className="container mx-auto px-4">
+          <h1 className="text-4xl font-bold mb-4">
+            Welcome to Smart Auto Trader
+          </h1>
+          <p className="text-xl mb-8">
+            Find your perfect vehicle with our AI-powered recommendations
+          </p>
+          <Link
+            to="/vehicles"
+            className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+          >
+            Browse Vehicles
+          </Link>
+        </div>
+      </section>
+
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-8 text-center">
+            Featured Vehicles
+          </h2>
+
+          {loading ? (
+            <p className="text-center">Loading featured vehicles...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredVehicles.map((vehicle) => (
+                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+              ))}
+            </div>
+          )}
+
+          <div className="text-center mt-8">
+            <Link
+              to="/vehicles"
+              className="inline-block border border-blue-600 text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+            >
+              View All Vehicles
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default HomePage
+
+================
+File: frontend/src/pages/ProfilePage.tsx
+================
+// src/pages/ProfilePage.tsx
+import { useState, useEffect, useContext } from 'react'
+import { Link, Navigate } from 'react-router-dom'
+import { AuthContext } from '../contexts/AuthContext'
+import { favoriteService, inquiryService } from '../services/api'
+import VehicleCard from '../components/vehicles/VehicleCard'
+
+// Define VehicleImage interface
+interface VehicleImage {
+  id: number
+  imageUrl: string
+  isPrimary: boolean
+}
+
+// Define ReferenceWrapper for ASP.NET serialization
+interface ReferenceWrapper<T> {
+  $id?: string
+  $values: T[]
+}
+
+// Define Vehicle interface
+interface Vehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | any
+}
+
+// Define Inquiry interface
+interface Inquiry {
+  id: number
+  vehicleId: number
+  subject: string
+  message: string
+  response?: string
+  dateSent: string
+  dateReplied?: string
+  status: string
+  vehicle?: Vehicle
+}
+
+// Define what the arrays might look like with ASP.NET serialization
+type SerializedData<T> = T[] | ReferenceWrapper<T> | any
+
+// Helper function to extract arrays from ASP.NET reference format
+const extractArray = <T,>(data: SerializedData<T>): T[] => {
+  if (!data) return []
+
+  if (Array.isArray(data)) {
+    return data
+  } else if (typeof data === 'object' && data !== null && '$values' in data) {
+    return (data as ReferenceWrapper<T>).$values
+  }
+
+  return []
+}
+
+const ProfilePage = () => {
+  const {
+    user,
+    isAuthenticated,
+    loading: authLoading,
+  } = useContext(AuthContext)
+  const [favoriteVehicles, setFavoriteVehicles] = useState<
+    SerializedData<Vehicle>
+  >([])
+  const [inquiries, setInquiries] = useState<SerializedData<Inquiry>>([])
+  const [activeTab, setActiveTab] = useState('favorites')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!isAuthenticated) return
+
+      setLoading(true)
+
+      try {
+        if (activeTab === 'favorites') {
+          const favorites = await favoriteService.getFavorites()
+          setFavoriteVehicles(favorites)
+        } else if (activeTab === 'inquiries') {
+          const userInquiries = await inquiryService.getInquiries()
+          setInquiries(userInquiries)
+        }
+      } catch (error) {
+        console.error(`Error fetching ${activeTab}:`, error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [isAuthenticated, activeTab])
+
+  // Redirect if not authenticated
+  if (!authLoading && !isAuthenticated) {
+    return <Navigate to="/login" state={{ from: '/profile' }} />
+  }
+
+  if (authLoading) {
+    return <div className="text-center py-12">Loading profile...</div>
+  }
+
+  // Extract arrays from potentially reference-wrapped data
+  const favoritesArray = extractArray<Vehicle>(favoriteVehicles)
+  const inquiriesArray = extractArray<Inquiry>(inquiries)
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        {/* Profile header */}
+        <div className="bg-blue-600 px-6 py-8 text-white">
+          <h1 className="text-2xl font-bold mb-2">My Profile</h1>
+          <p>
+            {user?.firstName} {user?.lastName} ({user?.username})
+          </p>
+          <p className="text-blue-100">{user?.email}</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b">
+          <nav className="flex">
+            <button
+              onClick={() => setActiveTab('favorites')}
+              className={`px-6 py-4 font-medium ${
+                activeTab === 'favorites'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              My Favorites
+            </button>
+            <button
+              onClick={() => setActiveTab('inquiries')}
+              className={`px-6 py-4 font-medium ${
+                activeTab === 'inquiries'
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              My Inquiries
+            </button>
+          </nav>
+        </div>
+
+        {/* Tab content */}
+        <div className="p-6">
+          {/* Favorites tab */}
+          {activeTab === 'favorites' && (
+            <>
+              {loading ? (
+                <div className="text-center py-8">
+                  Loading your favorites...
+                </div>
+              ) : favoritesArray.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    You haven't added any vehicles to your favorites yet.
+                  </p>
+                  <Link
+                    to="/vehicles"
+                    className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Browse Vehicles
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favoritesArray.map((vehicle: Vehicle) => (
+                    <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Inquiries tab */}
+          {activeTab === 'inquiries' && (
+            <>
+              {loading ? (
+                <div className="text-center py-8">
+                  Loading your inquiries...
+                </div>
+              ) : inquiriesArray.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">
+                    You haven't sent any inquiries yet.
+                  </p>
+                  <Link
+                    to="/vehicles"
+                    className="inline-block bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+                  >
+                    Browse Vehicles
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {inquiriesArray.map((inquiry: Inquiry) => (
+                    <div
+                      key={inquiry.id}
+                      className="border rounded-lg overflow-hidden"
+                    >
+                      <div className="bg-gray-50 px-4 py-3 border-b">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-semibold">{inquiry.subject}</h3>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              inquiry.status === 'New'
+                                ? 'bg-blue-100 text-blue-800'
+                                : inquiry.status === 'Read'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : inquiry.status === 'Replied'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {inquiry.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(inquiry.dateSent).toLocaleDateString()} •
+                          {inquiry.vehicle &&
+                            ` regarding ${inquiry.vehicle.year} ${inquiry.vehicle.make} ${inquiry.vehicle.model}`}
+                        </p>
+                      </div>
+                      <div className="p-4">
+                        <div className="mb-4">
+                          <h4 className="text-sm font-medium text-gray-500 mb-1">
+                            Your message:
+                          </h4>
+                          <p className="text-gray-700">{inquiry.message}</p>
+                        </div>
+
+                        {inquiry.response && (
+                          <div className="bg-blue-50 p-4 rounded-md">
+                            <h4 className="text-sm font-medium text-blue-700 mb-1">
+                              Response:
+                            </h4>
+                            <p className="text-gray-700">{inquiry.response}</p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Replied on{' '}
+                              {inquiry.dateReplied &&
+                                new Date(
+                                  inquiry.dateReplied
+                                ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+
+                        {inquiry.status !== 'Closed' && (
+                          <div className="mt-4 text-right">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await inquiryService.closeInquiry(inquiry.id)
+                                  setInquiries((prev: any) => {
+                                    const prevArray =
+                                      extractArray<Inquiry>(prev)
+                                    return prevArray.map((i) =>
+                                      i.id === inquiry.id
+                                        ? { ...i, status: 'Closed' }
+                                        : i
+                                    )
+                                  })
+                                } catch (error) {
+                                  console.error('Error closing inquiry:', error)
+                                }
+                              }}
+                              className="text-sm text-gray-600 hover:text-gray-800"
+                            >
+                              Mark as Closed
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ProfilePage
+
+================
+File: frontend/src/pages/VehicleDetailPage.tsx
+================
+// src/pages/VehicleDetailPage.tsx
+import { useState, useEffect, useContext } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { vehicleService, favoriteService } from '../services/api'
+import { AuthContext } from '../contexts/AuthContext'
+
+// Define what your API actually returns
+interface VehicleImage {
+  id: number
+  imageUrl: string
+  isPrimary: boolean
+}
+
+// Define a type for the ASP.NET Core reference format
+interface ReferenceWrapper {
+  $id?: string
+  $values: VehicleImage[]
+}
+
+interface ApiVehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  fuelType: string
+  transmission: string
+  vehicleType: string
+  description: string
+  // Define more precisely to help TypeScript
+  images: VehicleImage[] | ReferenceWrapper | any
+}
+
+const VehicleDetailPage = () => {
+  const { id } = useParams<{ id: string }>()
+  const [vehicle, setVehicle] = useState<ApiVehicle | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [checkingFavorite, setCheckingFavorite] = useState(false)
+  const { isAuthenticated } = useContext(AuthContext)
+
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      if (!id) return
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const data = await vehicleService.getVehicle(parseInt(id))
+        setVehicle(data)
+
+        // Handle both array formats for images
+        let imageArray: VehicleImage[] = []
+
+        // Check if images exists
+        if (data.images) {
+          // Check if images is an array
+          if (Array.isArray(data.images)) {
+            imageArray = data.images
+          }
+          // Check if images has $values property using a type guard
+          else if (
+            typeof data.images === 'object' &&
+            data.images !== null &&
+            '$values' in data.images
+          ) {
+            // Use a safe type assertion
+            const imagesWithValues = data.images as { $values: VehicleImage[] }
+            imageArray = imagesWithValues.$values
+          }
+        }
+
+        // Set primary image as active
+        if (imageArray.length > 0) {
+          const primaryIndex = imageArray.findIndex((img) => img.isPrimary)
+          setActiveImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
+        }
+      } catch (err) {
+        console.error('Error fetching vehicle:', err)
+        setError('Failed to load vehicle details')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVehicle()
+  }, [id])
+
+  useEffect(() => {
+    // Check if vehicle is in favorites
+    const checkFavorite = async () => {
+      if (!isAuthenticated || !id) return
+
+      setCheckingFavorite(true)
+      try {
+        const favoriteStatus = await favoriteService.checkFavorite(parseInt(id))
+        setIsFavorite(favoriteStatus)
+      } catch (err) {
+        console.error('Error checking favorite status:', err)
+      } finally {
+        setCheckingFavorite(false)
+      }
+    }
+
+    checkFavorite()
+  }, [id, isAuthenticated])
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated || !id) return
+
+    try {
+      if (isFavorite) {
+        await favoriteService.removeFavorite(parseInt(id))
+      } else {
+        await favoriteService.addFavorite(parseInt(id))
+      }
+      setIsFavorite(!isFavorite)
+    } catch (err) {
+      console.error('Error toggling favorite:', err)
+    }
+  }
+
+  // Helper function to get image array regardless of format
+  const getImageArray = (): VehicleImage[] => {
+    if (!vehicle) return []
+
+    if (Array.isArray(vehicle.images)) {
+      return vehicle.images
+    } else if (
+      typeof vehicle.images === 'object' &&
+      vehicle.images !== null &&
+      '$values' in vehicle.images
+    ) {
+      // Use a safe type assertion
+      const imagesWithValues = vehicle.images as { $values: VehicleImage[] }
+      return imagesWithValues.$values
+    }
+    return []
+  }
+
+  // Helper function to get image URL with fallback
+  const getImageUrl = (image: VehicleImage | undefined) => {
+    if (!image || !image.imageUrl) {
+      return `https://via.placeholder.com/800x450/3498db/ffffff?text=No+Image`
+    }
+
+    const isPlaceholderUrl = image.imageUrl.includes('placeholder.com/vehicles')
+    if (isPlaceholderUrl && vehicle) {
+      return `https://via.placeholder.com/800x450/3498db/ffffff?text=${vehicle.make}+${vehicle.model}`
+    }
+
+    return image.imageUrl
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">Loading vehicle details...</div>
+      </div>
+    )
+  }
+
+  if (error || !vehicle) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 text-center">
+          {error || 'Vehicle not found'}
+          <div className="mt-4">
+            <Link
+              to="/vehicles"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Back to Vehicles
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const imageArray = getImageArray()
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Breadcrumb */}
+      <div className="text-sm text-gray-500 mb-6">
+        <Link to="/" className="hover:text-blue-600">
+          Home
+        </Link>{' '}
+        &gt;
+        <Link to="/vehicles" className="hover:text-blue-600 mx-1">
+          Vehicles
+        </Link>{' '}
+        &gt;
+        <span className="text-gray-700">
+          {vehicle.year} {vehicle.make} {vehicle.model}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Images and details */}
+        <div className="lg:col-span-3">
+          {/* Main image */}
+          <div className="relative mb-4 bg-gray-100 rounded-lg overflow-hidden aspect-w-16 aspect-h-9">
+            {imageArray.length > 0 ? (
+              <img
+                src={getImageUrl(imageArray[activeImageIndex])}
+                alt={`${vehicle.make} ${vehicle.model}`}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <span className="text-gray-400">No image available</span>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail images */}
+          {imageArray.length > 1 && (
+            <div className="grid grid-cols-5 gap-2">
+              {imageArray.map((image, index) => (
+                <button
+                  key={image.id}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`border-2 rounded overflow-hidden aspect-w-1 aspect-h-1 ${
+                    index === activeImageIndex
+                      ? 'border-blue-500'
+                      : 'border-transparent hover:border-gray-300'
+                  }`}
+                >
+                  <img
+                    src={getImageUrl(image)}
+                    alt={`${vehicle.make} ${vehicle.model} thumbnail ${index + 1}`}
+                    className="object-cover w-full h-full"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Description */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">Description</h2>
+            <div className="bg-white rounded-lg shadow p-4">
+              <p className="text-gray-700 whitespace-pre-line">
+                {vehicle.description}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar with summary and actions */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-lg shadow p-6 sticky top-4">
+            <h1 className="text-2xl font-bold mb-2">
+              {vehicle.year} {vehicle.make} {vehicle.model}
+            </h1>
+
+            <div className="text-3xl font-bold text-blue-600 mb-4">
+              ${vehicle.price.toLocaleString()}
+            </div>
+
+            <div className="mb-6 space-y-2">
+              <div className="flex justify-between text-gray-700">
+                <span>Mileage:</span>
+                <span className="font-semibold">
+                  {vehicle.mileage.toLocaleString()} miles
+                </span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Fuel Type:</span>
+                <span className="font-semibold">{vehicle.fuelType}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Transmission:</span>
+                <span className="font-semibold">{vehicle.transmission}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Body Type:</span>
+                <span className="font-semibold">{vehicle.vehicleType}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-3">
+              <Link
+                to={`/inquiries/new?vehicleId=${vehicle.id}`}
+                className="block w-full bg-blue-600 text-white text-center py-3 px-4 rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Send Inquiry
+              </Link>
+
+              {isAuthenticated ? (
+                <button
+                  onClick={handleToggleFavorite}
+                  disabled={checkingFavorite}
+                  className={`block w-full py-3 px-4 rounded-lg font-semibold border ${
+                    isFavorite
+                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {checkingFavorite
+                    ? 'Loading...'
+                    : isFavorite
+                      ? 'Remove from Favorites'
+                      : 'Add to Favorites'}
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="block w-full bg-gray-50 text-gray-700 text-center py-3 px-4 rounded-lg font-semibold border border-gray-200 hover:bg-gray-100"
+                >
+                  Login to Save to Favorites
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default VehicleDetailPage
+
+================
+File: frontend/src/services/api.ts
+================
+import axios from 'axios'
+
+// Basic types that match backend models
+export interface Vehicle {
+  id: number
+  make: string
+  model: string
+  year: number
+  price: number
+  mileage: number
+  fuelType: string // This is a string, not a number
+  transmission: string // This is a string, not a number
+  vehicleType: string // This is a string, not a number
+  description: string
+  images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>
+}
+
+// Simple params type for filtering
+type VehicleParams = Record<string, string | number | boolean | undefined>
+
+const API_URL = import.meta.env.VITE_API_URL || '/api'
+
+// Create axios instance
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+// Add a request interceptor to attach the JWT token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Authentication service
+export const authService = {
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password })
+    return response.data
+  },
+  register: async (userData: {
+    username: string
+    email: string
+    password: string
+    firstName?: string
+    lastName?: string
+    phoneNumber?: string
+  }) => {
+    const response = await api.post('/auth/register', userData)
+    return response.data
+  },
+}
+
+// Vehicle service
+export const vehicleService = {
+  // In api.ts, update the getVehicles method:
+getVehicles: async (params?: VehicleParams): Promise<Vehicle[]> => {
+  try {
+    const response = await api.get('/vehicles', { params });
+    
+    // Check if response.data is the reference-preserved format
+    if (response.data && response.data.$values && Array.isArray(response.data.$values)) {
+      return response.data.$values;
+    }
+    // Check if it's already an array
+    else if (Array.isArray(response.data)) {
+      return response.data;
+    } 
+    // Fallback to empty array
+    else {
+      console.error('API did not return an array:', response.data);
+      return [];
+    }
+  } catch (error) {
+    console.error('Error fetching vehicles:', error);
+    return [];
+  }
+},
+  getVehicle: async (id: number) => {
+    const response = await api.get<Vehicle>(`/vehicles/${id}`)
+    return response.data
+  },
+}
+
+// Favorites service
+export const favoriteService = {
+  getFavorites: async () => {
+    const response = await api.get<Vehicle[]>('/favorites')
+    return response.data
+  },
+  addFavorite: async (vehicleId: number) => {
+    const response = await api.post(`/favorites/${vehicleId}`)
+    return response.data
+  },
+  removeFavorite: async (vehicleId: number) => {
+    const response = await api.delete(`/favorites/${vehicleId}`)
+    return response.data
+  },
+  checkFavorite: async (vehicleId: number) => {
+    const response = await api.get<boolean>(`/favorites/check/${vehicleId}`)
+    return response.data
+  },
+  getFavoritesCount: async () => {
+    const response = await api.get<number>('/favorites/count')
+    return response.data
+  },
+}
+
+// Inquiry service
+export const inquiryService = {
+  getInquiries: async () => {
+    const response = await api.get('/inquiries')
+    return response.data
+  },
+  getInquiry: async (id: number) => {
+    const response = await api.get(`/inquiries/${id}`)
+    return response.data
+  },
+  createInquiry: async (inquiryData: {
+    vehicleId: number
+    subject: string
+    message: string
+  }) => {
+    const response = await api.post('/inquiries', inquiryData)
+    return response.data
+  },
+  closeInquiry: async (id: number) => {
+    await api.put(`/inquiries/${id}/close`)
+  },
+}
+
+export default api
+
+================
+File: .gitignore
+================
+cat > .gitignore << 'EOL'
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/.vs/
+backend/**/*.user
+backend/**/.vscode/
+backend/**/Migrations/
+
+# React
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/build/
+frontend/dist/
+frontend/coverage/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# IDEs and editors
+**/.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+EOL
+
+
+
+================================================================
+End of Codebase
+================================================================

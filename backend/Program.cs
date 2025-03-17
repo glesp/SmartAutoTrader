@@ -36,6 +36,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<VehicleSeeder>();
 
+builder.Services.AddHttpClient(); // For HttpClient
+builder.Services.AddAIRecommendationServices(builder.Configuration);
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

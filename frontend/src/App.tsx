@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import { AuthProvider } from './contexts'
+import RecommendationsPage from './pages/RecommendationsPage'
 
 // Create a theme instance
 const theme = createTheme({
@@ -43,6 +44,17 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                {/* Add the recommendations routes */}
+                <Route
+                  path="/recommendations"
+                  element={<RecommendationsPage />}
+                />{' '}
+                {/* Temporarily using VehicleListingPage */}
+                <Route
+                  path="/recommendations/:userId"
+                  element={<RecommendationsPage />}
+                />{' '}
+                {/* Temporarily using VehicleListingPage */}
               </Routes>
             </Container>
             <Footer />
