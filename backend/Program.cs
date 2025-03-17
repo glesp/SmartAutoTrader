@@ -6,6 +6,7 @@ using SmartAutoTrader.API.Services;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using SmartAutoTrader.API.DataSeeding;
+using ZLogger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,15 @@ builder.Services.AddCors(options =>
               .AllowCredentials();
     });
 });
+
+// Ensure Logs folder exists
+Directory.CreateDirectory("Logs");
+
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddZLoggerFile("Logs/app_log.txt");
 
 // Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
