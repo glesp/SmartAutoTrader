@@ -54,57 +54,68 @@ namespace SmartAutoTrader.API.Services
         }
         
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
+{
+    try
+    {
+        _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
+        
+        // Get user context for personalization - MODIFIED TO AVOID APPLY
+        var user = await _context.Users
+            .Include(u => u.Preferences)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        
+        if (user == null)
         {
-            try
-            {
-                _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
-                
-                // Get user context for personalization
-                var user = await _context.Users
-                    .Include(u => u.Preferences)
-                    .Include(u => u.Favorites)
-                        .ThenInclude(f => f.Vehicle)
-                    .Include(u => u.BrowsingHistory.OrderByDescending(h => h.ViewDate).Take(5))
-                        .ThenInclude(h => h.Vehicle)
-                    .FirstOrDefaultAsync(u => u.Id == userId);
-                
-                if (user == null)
-                {
-                    _logger.LogWarning("User with ID {UserId} not found", userId);
-                    return new ChatResponse { Message = "Sorry, I couldn't process your request. Please try again later." };
-                }
-                
-                // Build user context for AI
-                var userContext = BuildUserContext(user);
-                
-                // Process with AI to understand intent and extract parameters
-                var processingResult = await ProcessWithAIAsync(message.Content, userContext);
-                
-                // Convert AI response to recommendation parameters
-                var parameters = ConvertToRecommendationParameters(processingResult, user);
-                
-                // Save the chat history for future context
-                await SaveChatHistoryAsync(userId, message, processingResult.Message);
-                
-                // Get recommendations based on the parameters
-                var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
-                
-                return new ChatResponse
-                {
-                    Message = processingResult.Message,
-                    RecommendedVehicles = recommendations.ToList(),
-                    UpdatedParameters = parameters
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
-                return new ChatResponse
-                {
-                    Message = "I'm sorry, but I encountered an error processing your request. Please try again later."
-                };
-            }
+            _logger.LogWarning("User with ID {UserId} not found", userId);
+            return new ChatResponse { Message = "Sorry, I couldn't process your request. Please try again later." };
         }
+
+        // Load related entities separately to avoid APPLY operation in SQLite
+        user.Favorites = await _context.UserFavorites
+            .Where(f => f.UserId == userId)
+            .Include(f => f.Vehicle)
+            .ToListAsync();
+
+        user.BrowsingHistory = await _context.BrowsingHistory
+            .Where(h => h.UserId == userId)
+            .OrderByDescending(h => h.ViewDate)
+            .Take(5)
+            .Include(h => h.Vehicle)
+            .ToListAsync();
+        
+        // Build user context for AI
+        var userContext = BuildUserContext(user);
+        
+        // Process with AI to understand intent and extract parameters
+        var processingResult = await ProcessWithAIAsync(message.Content, userContext);
+        
+        // Convert AI response to recommendation parameters
+        var parameters = ConvertToRecommendationParameters(processingResult, user);
+        
+        // Save the chat history for future context
+        await SaveChatHistoryAsync(userId, message, processingResult.Message);
+        
+        // Get recommendations based on the parameters
+        var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+        
+        return new ChatResponse
+        {
+            Message = processingResult.Message,
+            RecommendedVehicles = recommendations.ToList(),
+            UpdatedParameters = parameters
+        };
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+        return new ChatResponse
+        {
+            Message = "I'm sorry, but I encountered an error processing your request. Please try again later.",
+            RecommendedVehicles = new List<Vehicle>(),
+            UpdatedParameters = new RecommendationParameters() // Ensure we return a non-null value
+        };
+    }
+}
         
         private string BuildUserContext(User user)
         {

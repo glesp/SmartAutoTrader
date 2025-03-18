@@ -32,3 +32,6 @@ frontend/yarn-error.log*
 .AppleDouble
 .LSOverride
 EOL
+
+# other
+repomix-output.txt

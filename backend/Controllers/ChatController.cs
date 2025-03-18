@@ -27,72 +27,77 @@ namespace SmartAutoTrader.API.Controllers
         }
         
         [HttpPost("message")]
-        public async Task<IActionResult> SendMessage([FromBody] ChatMessageDto message)
+public async Task<IActionResult> SendMessage([FromBody] ChatMessageDto message)
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(message.Content))
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(message.Content))
-                {
-                    return BadRequest("Message content cannot be empty");
-                }
-                
-                // Get the user ID from the claims
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
-                {
-                    _logger.LogWarning("Failed to extract user ID from claims");
-                    return Unauthorized();
-                }
-                
-                _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
-                
-                // Process the message
-                var chatMessage = new ChatMessage
-                {
-                    Content = message.Content,
-                    Timestamp = DateTime.UtcNow
-                };
-                
-                var response = await _chatService.ProcessMessageAsync(userId, chatMessage);
-                
-                // Map the response to a DTO
-                // Update this section in ChatController.cs
-                var responseDto = new ChatResponseDto
-                {
-                    Message = response.Message,
-                    RecommendedVehicles = response.RecommendedVehicles.Select(v => new VehicleDto
-                    {
-                        Id = v.Id,
-                        Make = v.Make,
-                        Model = v.Model,
-                        Year = v.Year,
-                        Price = v.Price,
-                        Mileage = v.Mileage,
-                        VehicleType = v.VehicleType.ToString(),
-                        FuelType = v.FuelType.ToString(),
-                        ImageUrl = v.Images.FirstOrDefault()?.ImageUrl ?? "/assets/default-car.jpg" // Changed from Url to ImageUrl
-                    }).ToList(),
-                    Parameters = new RecommendationParametersDto
-                    {
-                        MinPrice = response.UpdatedParameters.MinPrice,
-                        MaxPrice = response.UpdatedParameters.MaxPrice,
-                        MinYear = response.UpdatedParameters.MinYear,
-                        MaxYear = response.UpdatedParameters.MaxYear,
-                        PreferredMakes = response.UpdatedParameters.PreferredMakes,
-                        PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?.Select(t => t.ToString()).ToList(),
-                        PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?.Select(f => f.ToString()).ToList(),
-                        DesiredFeatures = response.UpdatedParameters.DesiredFeatures
-                    }
-                };
-                
-                return Ok(responseDto);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing chat message");
-                return StatusCode(500, "An error occurred while processing your message. Please try again later.");
-            }
+            return BadRequest("Message content cannot be empty");
         }
+        
+        // Get the user ID from the claims
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            _logger.LogWarning("Failed to extract user ID from claims");
+            return Unauthorized();
+        }
+        
+        _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
+        
+        // Process the message
+        var chatMessage = new ChatMessage
+        {
+            Content = message.Content,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        var response = await _chatService.ProcessMessageAsync(userId, chatMessage);
+        
+        // Check for null values to avoid NullReferenceException
+        if (response == null)
+        {
+            return StatusCode(500, "Failed to process message");
+        }
+
+        // Map the response to a DTO with null checks
+        var responseDto = new ChatResponseDto
+        {
+            Message = response.Message ?? "Sorry, I couldn't understand that.",
+            RecommendedVehicles = response.RecommendedVehicles?.Select(v => new VehicleDto
+            {
+                Id = v.Id,
+                Make = v.Make ?? string.Empty,
+                Model = v.Model ?? string.Empty,
+                Year = v.Year,
+                Price = v.Price,
+                Mileage = v.Mileage,
+                VehicleType = v.VehicleType.ToString(),
+                FuelType = v.FuelType.ToString(),
+                ImageUrl = v.Images?.FirstOrDefault()?.ImageUrl ?? "/assets/default-car.jpg"
+            })?.ToList() ?? new List<VehicleDto>(),
+            Parameters = new RecommendationParametersDto
+            {
+                MinPrice = response.UpdatedParameters?.MinPrice,
+                MaxPrice = response.UpdatedParameters?.MaxPrice,
+                MinYear = response.UpdatedParameters?.MinYear,
+                MaxYear = response.UpdatedParameters?.MaxYear,
+                PreferredMakes = response.UpdatedParameters?.PreferredMakes,
+                PreferredVehicleTypes = response.UpdatedParameters?.PreferredVehicleTypes?.Select(t => t.ToString())?.ToList(),
+                PreferredFuelTypes = response.UpdatedParameters?.PreferredFuelTypes?.Select(f => f.ToString())?.ToList(),
+                DesiredFeatures = response.UpdatedParameters?.DesiredFeatures
+            }
+        };
+        
+        return Ok(responseDto);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error processing chat message");
+        return StatusCode(500, "An error occurred while processing your message. Please try again later.");
+    }
+}
         
         [HttpGet("history")]
         public async Task<IActionResult> GetChatHistory([FromQuery] int limit = 10)
