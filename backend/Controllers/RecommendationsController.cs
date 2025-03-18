@@ -49,8 +49,15 @@ namespace SmartAutoTrader.API.Controllers
                     PreferredVehicleTypes = request.VehicleTypes,
                     PreferredMakes = request.Makes,
                     DesiredFeatures = request.Features,
+                    TextPrompt = request.TextPrompt, // Added text prompt
                     MaxResults = request.MaxResults ?? 5
                 };
+
+                // Log the text prompt for debugging
+                if (!string.IsNullOrEmpty(request.TextPrompt))
+                {
+                    _logger.LogInformation("Text prompt received: {TextPrompt}", request.TextPrompt);
+                }
 
                 // Get recommendations from service
                 var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
@@ -83,6 +90,7 @@ namespace SmartAutoTrader.API.Controllers
                     PreferredVehicleTypes = request.VehicleTypes,
                     PreferredMakes = request.Makes,
                     DesiredFeatures = request.Features,
+                    TextPrompt = request.TextPrompt, // Added text prompt
                     MaxResults = request.MaxResults ?? 5
                 };
 
@@ -110,6 +118,7 @@ namespace SmartAutoTrader.API.Controllers
         public List<VehicleType>? VehicleTypes { get; set; }
         public List<string>? Makes { get; set; }
         public List<string>? Features { get; set; }
+        public string? TextPrompt { get; set; } // Added text prompt
         public int? MaxResults { get; set; }
     }
 }

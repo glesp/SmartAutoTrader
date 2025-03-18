@@ -15,6 +15,7 @@ namespace SmartAutoTrader.API.Services
         public List<VehicleType>? PreferredVehicleTypes { get; set; }
         public List<string>? PreferredMakes { get; set; }
         public List<string>? DesiredFeatures { get; set; }
+        public string? TextPrompt { get; set; } // Add text prompt field
         public int? MaxResults { get; set; } = 5; // Default to 5 recommendations
     }
 

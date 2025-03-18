@@ -59,7 +59,7 @@ namespace SmartAutoTrader.API.Services
     {
         _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
         
-        // Get user context for personalization - MODIFIED TO AVOID APPLY
+        // Get user context for personalization 
         var user = await _context.Users
             .Include(u => u.Preferences)
             .FirstOrDefaultAsync(u => u.Id == userId);
@@ -70,7 +70,7 @@ namespace SmartAutoTrader.API.Services
             return new ChatResponse { Message = "Sorry, I couldn't process your request. Please try again later." };
         }
 
-        // Load related entities separately to avoid APPLY operation in SQLite
+        // Load related entities separately 
         user.Favorites = await _context.UserFavorites
             .Where(f => f.UserId == userId)
             .Include(f => f.Vehicle)
@@ -83,24 +83,23 @@ namespace SmartAutoTrader.API.Services
             .Include(h => h.Vehicle)
             .ToListAsync();
         
-        // Build user context for AI
-        var userContext = BuildUserContext(user);
+        // Create basic recommendation parameters with just the text prompt
+        var parameters = new RecommendationParameters
+        {
+            TextPrompt = message.Content,
+            MaxResults = 5
+        };
         
-        // Process with AI to understand intent and extract parameters
-        var processingResult = await ProcessWithAIAsync(message.Content, userContext);
-        
-        // Convert AI response to recommendation parameters
-        var parameters = ConvertToRecommendationParameters(processingResult, user);
-        
-        // Save the chat history for future context
-        await SaveChatHistoryAsync(userId, message, processingResult.Message);
+        // Save the chat history
+        await SaveChatHistoryAsync(userId, message, 
+            $"I'm looking for vehicles that match: {message.Content}");
         
         // Get recommendations based on the parameters
         var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
         
         return new ChatResponse
         {
-            Message = processingResult.Message,
+            Message = $"Here are some vehicles that match your request for: {message.Content}",
             RecommendedVehicles = recommendations.ToList(),
             UpdatedParameters = parameters
         };
@@ -112,7 +111,7 @@ namespace SmartAutoTrader.API.Services
         {
             Message = "I'm sorry, but I encountered an error processing your request. Please try again later.",
             RecommendedVehicles = new List<Vehicle>(),
-            UpdatedParameters = new RecommendationParameters() // Ensure we return a non-null value
+            UpdatedParameters = new RecommendationParameters()
         };
     }
 }

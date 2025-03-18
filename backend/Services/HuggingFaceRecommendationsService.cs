@@ -155,62 +155,88 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
     }
 
     private async Task<float[]> GenerateUserEmbeddingAsync(User user, RecommendationParameters parameters)
+{
+    // Prepare text that represents the user preferences and history
+    var userText = new StringBuilder();
+
+    // If a text prompt is provided, give it more weight by adding it multiple times
+    // and formatting it to stand out in the embedding text
+    if (!string.IsNullOrEmpty(parameters.TextPrompt))
     {
-        // Prepare text that represents the user preferences and history
-        var userText = new StringBuilder();
-
-        // Add explicit parameters
-        userText.AppendLine("User is looking for a car with these preferences:");
-        if (parameters.MinPrice.HasValue) userText.AppendLine($"Minimum price: {parameters.MinPrice:C0}");
-        if (parameters.MaxPrice.HasValue) userText.AppendLine($"Maximum price: {parameters.MaxPrice:C0}");
-        if (parameters.MinYear.HasValue) userText.AppendLine($"Minimum year: {parameters.MinYear}");
-        if (parameters.MaxYear.HasValue) userText.AppendLine($"Maximum year: {parameters.MaxYear}");
-
-        if (parameters.PreferredFuelTypes?.Any() == true)
-            userText.AppendLine($"Fuel types: {string.Join(", ", parameters.PreferredFuelTypes)}");
-
-        if (parameters.PreferredVehicleTypes?.Any() == true)
-            userText.AppendLine($"Vehicle types: {string.Join(", ", parameters.PreferredVehicleTypes)}");
-
-        if (parameters.PreferredMakes?.Any() == true)
-            userText.AppendLine($"Makes: {string.Join(", ", parameters.PreferredMakes)}");
-
-        if (parameters.DesiredFeatures?.Any() == true)
-            userText.AppendLine($"Desired features: {string.Join(", ", parameters.DesiredFeatures)}");
-
-        // Add browsing history
-        var recentlyViewed = user.BrowsingHistory?.OrderByDescending(h => h.ViewDate).Take(5).ToList();
-        if (recentlyViewed?.Any() == true)
-        {
-            userText.AppendLine("\nUser recently viewed these vehicles:");
-            foreach (var history in recentlyViewed)
-                userText.AppendLine($"{history.Vehicle.Year} {history.Vehicle.Make} {history.Vehicle.Model}, " +
-                                    $"Price: {history.Vehicle.Price:C0}, Type: {history.Vehicle.VehicleType}, " +
-                                    $"Fuel: {history.Vehicle.FuelType}, View duration: {history.ViewDurationSeconds}s");
-        }
-
-        // Add favorites
-        var favorites = user.Favorites?.Select(f => f.Vehicle).ToList();
-        if (favorites?.Any() == true)
-        {
-            userText.AppendLine("\nUser favorited these vehicles:");
-            foreach (var favorite in favorites)
-                userText.AppendLine($"{favorite.Year} {favorite.Make} {favorite.Model}, " +
-                                    $"Price: {favorite.Price:C0}, Type: {favorite.VehicleType}, " +
-                                    $"Fuel: {favorite.FuelType}");
-        }
-
-        // Get user preferences
-        if (user.Preferences?.Any() == true)
-        {
-            userText.AppendLine("\nUser has these saved preferences:");
-            foreach (var pref in user.Preferences)
-                userText.AppendLine($"{pref.PreferenceType}: {pref.Value} (Weight: {pref.Weight})");
-        }
-
-        // Generate embedding via Hugging Face
-        return await GetEmbeddingFromHuggingFaceAsync(userText.ToString());
+        userText.AppendLine("USER DIRECT REQUEST (HIGH PRIORITY):");
+        userText.AppendLine(parameters.TextPrompt);
+        userText.AppendLine();
+        
+        // Repeat the prompt to increase its weight in the embedding
+        userText.AppendLine("IMPORTANT USER NEEDS:");
+        userText.AppendLine(parameters.TextPrompt);
+        userText.AppendLine();
+        
+        // Add a third repetition with variations to help the embedding model
+        userText.AppendLine("KEY SEARCH CRITERIA:");
+        userText.AppendLine(parameters.TextPrompt);
+        userText.AppendLine();
     }
+
+    // Add explicit parameters
+    userText.AppendLine("User is looking for a car with these preferences:");
+    if (parameters.MinPrice.HasValue) userText.AppendLine($"Minimum price: {parameters.MinPrice:C0}");
+    if (parameters.MaxPrice.HasValue) userText.AppendLine($"Maximum price: {parameters.MaxPrice:C0}");
+    if (parameters.MinYear.HasValue) userText.AppendLine($"Minimum year: {parameters.MinYear}");
+    if (parameters.MaxYear.HasValue) userText.AppendLine($"Maximum year: {parameters.MaxYear}");
+
+    if (parameters.PreferredFuelTypes?.Any() == true)
+        userText.AppendLine($"Fuel types: {string.Join(", ", parameters.PreferredFuelTypes)}");
+
+    if (parameters.PreferredVehicleTypes?.Any() == true)
+        userText.AppendLine($"Vehicle types: {string.Join(", ", parameters.PreferredVehicleTypes)}");
+
+    if (parameters.PreferredMakes?.Any() == true)
+        userText.AppendLine($"Makes: {string.Join(", ", parameters.PreferredMakes)}");
+
+    if (parameters.DesiredFeatures?.Any() == true)
+        userText.AppendLine($"Desired features: {string.Join(", ", parameters.DesiredFeatures)}");
+
+    // Add browsing history (with lower weight than the direct prompt)
+    var recentlyViewed = user.BrowsingHistory?.OrderByDescending(h => h.ViewDate).Take(5).ToList();
+    if (recentlyViewed?.Any() == true)
+    {
+        userText.AppendLine("\nUser recently viewed these vehicles:");
+        foreach (var history in recentlyViewed)
+            userText.AppendLine($"{history.Vehicle.Year} {history.Vehicle.Make} {history.Vehicle.Model}, " +
+                                $"Price: {history.Vehicle.Price:C0}, Type: {history.Vehicle.VehicleType}, " +
+                                $"Fuel: {history.Vehicle.FuelType}, View duration: {history.ViewDurationSeconds}s");
+    }
+
+    // Add favorites (with lower weight than the direct prompt)
+    var favorites = user.Favorites?.Select(f => f.Vehicle).ToList();
+    if (favorites?.Any() == true)
+    {
+        userText.AppendLine("\nUser favorited these vehicles:");
+        foreach (var favorite in favorites)
+            userText.AppendLine($"{favorite.Year} {favorite.Make} {favorite.Model}, " +
+                                $"Price: {favorite.Price:C0}, Type: {favorite.VehicleType}, " +
+                                $"Fuel: {favorite.FuelType}");
+    }
+
+    // Get user preferences (with lower weight than the direct prompt)
+    if (user.Preferences?.Any() == true)
+    {
+        userText.AppendLine("\nUser has these saved preferences:");
+        foreach (var pref in user.Preferences)
+            userText.AppendLine($"{pref.PreferenceType}: {pref.Value} (Weight: {pref.Weight})");
+    }
+
+    // If text prompt was provided, repeat it once more at the end to reinforce its importance
+    if (!string.IsNullOrEmpty(parameters.TextPrompt))
+    {
+        userText.AppendLine("\nCURRENT SEARCH REQUEST (HIGHEST PRIORITY):");
+        userText.AppendLine(parameters.TextPrompt);
+    }
+
+    // Generate embedding via Hugging Face
+    return await GetEmbeddingFromHuggingFaceAsync(userText.ToString());
+}
 
     private async Task<Dictionary<int, float[]>> GenerateVehicleEmbeddingsAsync(List<Vehicle> vehicles)
     {
