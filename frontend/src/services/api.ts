@@ -62,28 +62,32 @@ export const authService = {
 // Vehicle service
 export const vehicleService = {
   // In api.ts, update the getVehicles method:
-getVehicles: async (params?: VehicleParams): Promise<Vehicle[]> => {
-  try {
-    const response = await api.get('/vehicles', { params });
-    
-    // Check if response.data is the reference-preserved format
-    if (response.data && response.data.$values && Array.isArray(response.data.$values)) {
-      return response.data.$values;
+  getVehicles: async (params?: VehicleParams): Promise<Vehicle[]> => {
+    try {
+      const response = await api.get('/vehicles', { params })
+
+      // Check if response.data is the reference-preserved format
+      if (
+        response.data &&
+        response.data.$values &&
+        Array.isArray(response.data.$values)
+      ) {
+        return response.data.$values
+      }
+      // Check if it's already an array
+      else if (Array.isArray(response.data)) {
+        return response.data
+      }
+      // Fallback to empty array
+      else {
+        console.error('API did not return an array:', response.data)
+        return []
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error)
+      return []
     }
-    // Check if it's already an array
-    else if (Array.isArray(response.data)) {
-      return response.data;
-    } 
-    // Fallback to empty array
-    else {
-      console.error('API did not return an array:', response.data);
-      return [];
-    }
-  } catch (error) {
-    console.error('Error fetching vehicles:', error);
-    return [];
-  }
-},
+  },
   getVehicle: async (id: number) => {
     const response = await api.get<Vehicle>(`/vehicles/${id}`)
     return response.data
