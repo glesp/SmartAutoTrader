@@ -39,6 +39,7 @@ builder.Services.AddScoped<VehicleSeeder>();
 
 builder.Services.AddHttpClient(); // For HttpClient
 builder.Services.AddAIRecommendationServices(builder.Configuration);
+builder.Services.AddScoped<IChatRecommendationService, ChatRecommendationService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

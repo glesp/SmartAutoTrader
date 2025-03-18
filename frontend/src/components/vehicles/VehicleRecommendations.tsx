@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import axios from 'axios'
+import { AuthContext } from '../../contexts/AuthContext'
 
 // Simple interfaces for the component
 interface VehicleImage {
@@ -32,27 +33,33 @@ const VehicleRecommendations = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user, token } = useContext(AuthContext)
 
   useEffect(() => {
     const fetchRecommendations = async () => {
+      if (!user || !token) {
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
+        console.log(`Fetching recommendations for user ID: ${user.id}`)
 
-        // Use a test user ID for demonstration
-        const userId = 1
-        const response = await axios.get(`/api/recommendations/test/${userId}`)
+        const response = await axios.get('/api/recommendations', {
+          params: { userId: user.id },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
 
-        // Handle both possible response formats
-        let vehiclesData: Vehicle[] = []
-        if (Array.isArray(response.data)) {
-          vehiclesData = response.data
-        } else if (response.data && '$values' in response.data) {
-          vehiclesData = response.data.$values
-        }
+        console.log('API Response:', response.data)
 
+        const vehiclesData: Vehicle[] = extractArray(response.data)
         setVehicles(vehiclesData)
         setError(null)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching recommendations:', err)
         setError('Failed to load recommendations')
       } finally {
@@ -61,7 +68,7 @@ const VehicleRecommendations = () => {
     }
 
     fetchRecommendations()
-  }, [])
+  }, [user]) // Re-fetch when user changes
 
   // Helper function to get image URL
   const getImageUrl = (vehicle: Vehicle) => {
@@ -76,6 +83,16 @@ const VehicleRecommendations = () => {
     )
   }
 
+  // Alternative content when user is not authenticated
+  if (!user) {
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2>AI-Powered Recommendations</h2>
+        <p>Please sign in to view personalized recommendations.</p>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: '20px' }}>
       <h2>AI-Powered Recommendations</h2>
@@ -85,7 +102,10 @@ const VehicleRecommendations = () => {
       ) : error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : vehicles.length === 0 ? (
-        <p>No recommendations found</p>
+        <p>
+          No recommendations found. Browse more vehicles to get personalized
+          suggestions.
+        </p>
       ) : (
         <div
           style={{
