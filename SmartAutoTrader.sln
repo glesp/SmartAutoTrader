@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartAutoTrader.API", "backend\SmartAutoTrader.API.csproj", "{749BFE63-67F6-86DB-6EDD-2A6465A85247}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FCC1E599-0131-48C3-B325-DB3C17A7D9D4}
+	EndGlobalSection
+EndGlobal
