@@ -83,12 +83,14 @@ namespace SmartAutoTrader.API.Services
             .Include(h => h.Vehicle)
             .ToListAsync();
         
-        // Create basic recommendation parameters with just the text prompt
-        var parameters = new RecommendationParameters
-        {
-            TextPrompt = message.Content,
-            MaxResults = 5
-        };
+        // Extract parameters from the message using the parameter extraction service
+        var parameters = await ExtractParametersAsync(message.Content);
+        
+        // Ensure the TextPrompt is set for embedding similarity
+        parameters.TextPrompt = message.Content;
+        
+        // Log the extracted parameters
+        _logger.LogInformation("Extracted parameters: {@Parameters}", parameters);
         
         // Save the chat history
         await SaveChatHistoryAsync(userId, message, 
@@ -386,5 +388,85 @@ namespace SmartAutoTrader.API.Services
                 // Continue even if saving history fails
             }
         }
+        
+        private async Task<RecommendationParameters> ExtractParametersAsync(string message)
+{
+    try
+    {
+        // Get the parameter extraction endpoint from configuration
+        var endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ?? "http://localhost:5006/extract_parameters";
+        var timeoutSeconds = int.TryParse(_configuration["Services:ParameterExtraction:Timeout"], out var timeout) ? timeout : 30;
+        
+        _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
+        
+        // Prepare the request
+        var request = new
+        {
+            query = message
+        };
+        
+        var content = new StringContent(
+            JsonSerializer.Serialize(request),
+            Encoding.UTF8,
+            "application/json");
+        
+        // Configure timeout
+        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+        
+        // Call the parameter extraction service
+        var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}", 
+                response.StatusCode, errorContent);
+            
+            // Return empty parameters, but keep the TextPrompt
+            return new RecommendationParameters 
+            { 
+                TextPrompt = message,
+                MaxResults = 5
+            };
+        }
+        
+        // Parse the response
+        var responseContent = await response.Content.ReadAsStringAsync();
+        _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+        
+        var parameters = JsonSerializer.Deserialize<RecommendationParameters>(
+            responseContent, 
+            new JsonSerializerOptions 
+            { 
+                PropertyNameCaseInsensitive = true 
+            });
+        
+        // Ensure we have a valid object even if deserialization fails
+        if (parameters == null)
+        {
+            _logger.LogWarning("Failed to deserialize parameters response. Using default parameters.");
+            parameters = new RecommendationParameters();
+        }
+        
+        // Always set the max results and ensure TextPrompt is set
+        parameters.MaxResults = 5;
+        parameters.TextPrompt = message;
+        _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
+
+        
+        return parameters;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error extracting parameters from message");
+        
+        // Return empty parameters in case of error, but keep the TextPrompt
+        return new RecommendationParameters 
+        { 
+            TextPrompt = message,
+            MaxResults = 5
+        };
+    }
+}
     }
 }

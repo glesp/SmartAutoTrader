@@ -24,6 +24,11 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
         _logger = logger;
         _httpClient = httpClient;
     }
+    
+    private static Dictionary<int, float[]> _vehicleEmbeddingsCache = new Dictionary<int, float[]>();
+    private static SemaphoreSlim _embeddingSemaphore = new SemaphoreSlim(1, 1);
+    private static DateTime _lastEmbeddingCall = DateTime.MinValue;
+    private static readonly TimeSpan _minTimeBetweenCalls = TimeSpan.FromMilliseconds(100);
 
     public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
     {
@@ -42,77 +47,37 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
                 return new List<Vehicle>();
             }
 
-            // Fetch related entities separately
-            user.Favorites = await _context.UserFavorites
-                .Where(f => f.UserId == userId)
-                .Include(f => f.Vehicle)
-                .ToListAsync();
+            // Apply filters based on the parameters directly
+            _logger.LogInformation("Applying filters based on extracted parameters: {@Parameters}", parameters);
+            var filteredVehicles = await GetFilteredVehiclesAsync(parameters);
 
-            user.BrowsingHistory = await _context.BrowsingHistory
-                .Where(h => h.UserId == userId)
-                .OrderByDescending(h => h.ViewDate)
-                .Take(10)
-                .Include(h => h.Vehicle)
-                .ToListAsync();
-
-            _logger.LogInformation("User data fetched, retrieving available vehicles.");
-            var availableVehicles = await GetFilteredVehiclesAsync(parameters);
-
-            if (!availableVehicles.Any())
+            if (!filteredVehicles.Any())
             {
                 _logger.LogWarning("No available vehicles found for filtering criteria.");
                 return new List<Vehicle>();
             }
 
-            // 3. Generate embeddings for user preferences and history
-            _logger.LogInformation("Generating user embedding for user ID {UserId}", userId);
-            var userEmbedding = await GenerateUserEmbeddingAsync(user, parameters);
-            _logger.LogInformation("Generated user embedding: {Embedding}", string.Join(", ", userEmbedding));
-
-            // 4. Generate embeddings for vehicles
-            _logger.LogInformation("Generating vehicle embeddings...");
-            var vehicleEmbeddings = await GenerateVehicleEmbeddingsAsync(availableVehicles);
-            _logger.LogInformation("Generated vehicle embeddings for {Count} vehicles", vehicleEmbeddings.Count);
-
-            // 5. Calculate similarity and rank vehicles
-            _logger.LogInformation("Ranking vehicles by similarity score...");
-            var recommendedVehicleIds = RankVehiclesBySimilarity(
-                userEmbedding,
-                vehicleEmbeddings,
-                availableVehicles.Select(v => v.Id).ToList(),
-                parameters.MaxResults ?? 5);
-
-            _logger.LogInformation("Top {Count} recommended vehicle IDs: {VehicleIds}", recommendedVehicleIds.Count,
-                string.Join(", ", recommendedVehicleIds));
-
-            // 6. Get recommended vehicles with details
-            var recommendedVehicles = await _context.Vehicles
-                .Where(v => recommendedVehicleIds.Contains(v.Id))
-                .Include(v => v.Images)
-                .Include(v => v.Features)
-                .ToListAsync();
-
-            // 7. Add fallback recommendations if needed
-            if (recommendedVehicles.Count < (parameters.MaxResults ?? 5))
+            // If we have too many vehicles, get a reasonable subset 
+            // based on most recent listings or best match to preferences
+            if (filteredVehicles.Count > parameters.MaxResults)
             {
-                _logger.LogWarning(
-                    "Insufficient recommendations found ({Count}/{Max}), fetching fallback recommendations.",
-                    recommendedVehicles.Count, parameters.MaxResults ?? 5);
-                var additionalVehicles = await GetFallbackRecommendationsAsync(
-                    userId,
-                    parameters,
-                    recommendedVehicles.Select(v => v.Id).ToList(),
-                    (parameters.MaxResults ?? 5) - recommendedVehicles.Count);
-
-                recommendedVehicles.AddRange(additionalVehicles);
+                // Sort by most recently listed
+                filteredVehicles = filteredVehicles
+                    .OrderByDescending(v => v.DateListed)
+                    .Take(parameters.MaxResults ?? 5)
+                    .ToList();
             }
-
-            _logger.LogInformation("Final recommendation list contains {Count} vehicles.", recommendedVehicles.Count);
-            return recommendedVehicles;
+            //log sql query for debugging
+            
+            _logger.LogInformation("Returning {Count} vehicles based on parameter filtering", filteredVehicles.Count);
+            
+        
+            // Return the filtered vehicles
+            return filteredVehicles;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving Hugging Face recommendations for user ID {UserId}", userId);
+            _logger.LogError(ex, "Error retrieving recommendations for user ID {UserId}", userId);
             return await GetFallbackRecommendationsAsync(userId, parameters, new List<int>(),
                 parameters.MaxResults ?? 5);
         }
@@ -120,39 +85,90 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
 
 
     private async Task<List<Vehicle>> GetFilteredVehiclesAsync(RecommendationParameters parameters)
+{
+    var query = _context.Vehicles.AsQueryable();
+
+    // Apply basic filters from parameters
+    if (parameters.MinPrice.HasValue)
     {
-        var query = _context.Vehicles.AsQueryable();
-
-        // Apply basic filters from parameters
-        if (parameters.MinPrice.HasValue)
-            query = query.Where(v => v.Price >= parameters.MinPrice.Value);
-
-        if (parameters.MaxPrice.HasValue)
-            query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
-
-        if (parameters.MinYear.HasValue)
-            query = query.Where(v => v.Year >= parameters.MinYear.Value);
-
-        if (parameters.MaxYear.HasValue)
-            query = query.Where(v => v.Year <= parameters.MaxYear.Value);
-
-        if (parameters.PreferredFuelTypes?.Any() == true)
-            query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
-
-        if (parameters.PreferredVehicleTypes?.Any() == true)
-            query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
-
-        if (parameters.PreferredMakes?.Any() == true)
-            query = query.Where(v => parameters.PreferredMakes.Contains(v.Make));
-
-        // Only available vehicles
-        query = query.Where(v => v.Status == VehicleStatus.Available);
-
-        // Include features for more detailed filtering
-        return await query
-            .Include(v => v.Features)
-            .ToListAsync();
+        _logger.LogInformation("Filtering by MinPrice: {MinPrice}", parameters.MinPrice.Value);
+        query = query.Where(v => v.Price >= parameters.MinPrice.Value);
     }
+
+    if (parameters.MaxPrice.HasValue)
+    {
+        _logger.LogInformation("Filtering by MaxPrice: {MaxPrice}", parameters.MaxPrice.Value);
+        query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
+    }
+
+    if (parameters.MinYear.HasValue)
+    {
+        _logger.LogInformation("Filtering by MinYear: {MinYear}", parameters.MinYear.Value);
+        query = query.Where(v => v.Year >= parameters.MinYear.Value);
+    }
+
+    if (parameters.MaxYear.HasValue)
+    {
+        _logger.LogInformation("Filtering by MaxYear: {MaxYear}", parameters.MaxYear.Value);
+        query = query.Where(v => v.Year <= parameters.MaxYear.Value);
+    }
+
+    if (parameters.PreferredFuelTypes?.Any() == true)
+    {
+        _logger.LogInformation("Filtering by FuelTypes: {@FuelTypes}", parameters.PreferredFuelTypes);
+        query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
+    }
+
+    if (parameters.PreferredVehicleTypes?.Any() == true)
+    {
+        _logger.LogInformation("Filtering by VehicleTypes: {@VehicleTypes}", parameters.PreferredVehicleTypes);
+        query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
+    }
+
+    if (parameters.PreferredMakes?.Any() == true)
+    {
+        _logger.LogInformation("Filtering by Makes: {@Makes}", parameters.PreferredMakes);
+        query = query.Where(v => parameters.PreferredMakes.Contains(v.Make));
+    }
+
+    // If we have desired features, filter by those
+    if (parameters.DesiredFeatures?.Any() == true)
+    {
+        _logger.LogInformation("Filtering by DesiredFeatures: {@Features}", parameters.DesiredFeatures);
+        query = query.Where(v => v.Features.Any(f => parameters.DesiredFeatures.Contains(f.Name)));
+    }
+
+    // Only available vehicles
+    query = query.Where(v => v.Status == VehicleStatus.Available);
+
+    // If no specific parameters are provided but we have a text prompt,
+    // just return recent vehicles as we're now skipping embedding similarity
+    if (!parameters.MinPrice.HasValue && 
+        !parameters.MaxPrice.HasValue && 
+        !parameters.MinYear.HasValue && 
+        !parameters.MaxYear.HasValue &&
+        !(parameters.PreferredFuelTypes?.Any() == true) &&
+        !(parameters.PreferredVehicleTypes?.Any() == true) &&
+        !(parameters.PreferredMakes?.Any() == true) &&
+        !(parameters.DesiredFeatures?.Any() == true) &&
+        !string.IsNullOrEmpty(parameters.TextPrompt))
+    {
+        _logger.LogInformation("No specific parameters extracted from text prompt. Returning recent vehicles.");
+        // Order by most recently listed
+        query = query.OrderByDescending(v => v.DateListed);
+    }
+
+    // Include needed relationships
+    query = query.Include(v => v.Features)
+                 .Include(v => v.Images);
+
+    // Log the SQL query for debugging (if needed)
+    _logger.LogDebug("SQL Query: {Query}", query.ToQueryString());
+    _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
+
+
+    return await query.ToListAsync();
+}
 
     private async Task<float[]> GenerateUserEmbeddingAsync(User user, RecommendationParameters parameters)
 {
@@ -241,16 +257,43 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
     private async Task<Dictionary<int, float[]>> GenerateVehicleEmbeddingsAsync(List<Vehicle> vehicles)
     {
         var embeddings = new Dictionary<int, float[]>();
+        var vehiclesToProcess = new List<Vehicle>();
 
-        // Process in batches to avoid rate limits
-        var batchSize = 10;
-        for (var i = 0; i < vehicles.Count; i += batchSize)
+        // Check cache first
+        foreach (var vehicle in vehicles)
         {
-            var batch = vehicles.Skip(i).Take(batchSize).ToList();
-            var tasks = batch.Select(vehicle => GetVehicleEmbedding(vehicle)).ToList();
-            var results = await Task.WhenAll(tasks);
+            if (_vehicleEmbeddingsCache.TryGetValue(vehicle.Id, out var embedding))
+            {
+                embeddings[vehicle.Id] = embedding;
+            }
+            else
+            {
+                vehiclesToProcess.Add(vehicle);
+            }
+        }
 
-            for (var j = 0; j < batch.Count; j++) embeddings[batch[j].Id] = results[j];
+        // Only generate embeddings for vehicles not in cache
+        if (vehiclesToProcess.Any())
+        {
+            _logger.LogInformation("Generating embeddings for {Count} vehicles not in cache", vehiclesToProcess.Count);
+        
+            // Process in batches to avoid rate limits
+            var batchSize = 10;
+            for (var i = 0; i < vehiclesToProcess.Count; i += batchSize)
+            {
+                var batch = vehiclesToProcess.Skip(i).Take(batchSize).ToList();
+                var tasks = batch.Select(vehicle => GetVehicleEmbedding(vehicle)).ToList();
+                var results = await Task.WhenAll(tasks);
+
+                for (var j = 0; j < batch.Count; j++)
+                {
+                    var vehicleId = batch[j].Id;
+                    var embedding = results[j];
+                
+                    embeddings[vehicleId] = embedding;
+                    _vehicleEmbeddingsCache[vehicleId] = embedding;  // Add to cache
+                }
+            }
         }
 
         return embeddings;
@@ -281,9 +324,19 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
     }
 
     private async Task<float[]> GetEmbeddingFromHuggingFaceAsync(string text)
+{
+    try
     {
+        // Rate limiting to prevent overwhelming the embedding service
+        await _embeddingSemaphore.WaitAsync();
         try
         {
+            var timeSinceLastCall = DateTime.UtcNow - _lastEmbeddingCall;
+            if (timeSinceLastCall < _minTimeBetweenCalls)
+            {
+                await Task.Delay(_minTimeBetweenCalls - timeSinceLastCall);
+            }
+
             // Create a request for the local embedding service
             var request = new
             {
@@ -296,12 +349,16 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
                 Encoding.UTF8,
                 "application/json");
 
+            // Create cancellation token for timeout
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)); // 5 second timeout
+
             // Call local Flask service instead of Hugging Face
             _logger.LogInformation("Calling local embedding service");
 
             var response = await _httpClient.PostAsync(
                 "http://localhost:5005/embeddings", // Local Flask service 
-                content);
+                content,
+                cts.Token);
 
             _logger.LogInformation("Received response from local embedding service: {StatusCode}", response.StatusCode);
 
@@ -316,14 +373,26 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
             // Parse response - the local service returns a simple float array
             var responseContent = await response.Content.ReadAsStringAsync();
             var embeddings = JsonSerializer.Deserialize<float[]>(responseContent);
+            
+            _lastEmbeddingCall = DateTime.UtcNow;
             return embeddings ?? new float[384];
         }
-        catch (Exception ex)
+        finally
         {
-            _logger.LogError(ex, "Error getting embedding from local service");
-            return new float[384]; // Return empty embedding as fallback
+            _embeddingSemaphore.Release();
         }
     }
+    catch (OperationCanceledException)
+    {
+        _logger.LogWarning("Embedding request timed out");
+        return new float[384]; // Return empty embedding on timeout
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error getting embedding from local service");
+        return new float[384]; // Return empty embedding as fallback
+    }
+}
 
     private async Task<float[]> FallbackToFeatureExtractionAsync(string text, string apiKey)
     {
