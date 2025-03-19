@@ -1,5 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from 'react'
-import axios from 'axios'
+import { useState, useEffect, useContext } from 'react'
 import { AuthContext } from '../../contexts/AuthContext'
 
 // Simple interfaces for the component
@@ -16,23 +15,24 @@ interface Vehicle {
   year: number
   price: number
   mileage: number
-  fuelType: number
-  vehicleType: number
+  fuelType: number | string
+  vehicleType: number | string
   images?: VehicleImage[] | { $values: VehicleImage[] }
 }
 
-// New interface for recommendation parameters
-interface RecommendationParams {
-  userId: string
-  textPrompt?: string
-  minPrice?: number
-  maxPrice?: number
-  fuelType?: number
-  vehicleType?: number
-  year?: number
-  minYear?: number
-  maxYear?: number
-  mileageMax?: number
+// Interface for component props
+interface VehicleRecommendationsProps {
+  recommendedVehicles?: Vehicle[]
+  parameters?: {
+    minPrice?: number
+    maxPrice?: number
+    minYear?: number
+    maxYear?: number
+    preferredMakes?: string[]
+    preferredVehicleTypes?: string[]
+    preferredFuelTypes?: string[]
+    desiredFeatures?: string[]
+  }
 }
 
 // Helper function to extract arrays from ASP.NET response format
@@ -43,91 +43,35 @@ const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
   return []
 }
 
-const VehicleRecommendations = () => {
+const VehicleRecommendations = ({ 
+  recommendedVehicles = [], 
+  parameters = {}
+}: VehicleRecommendationsProps) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { user, token } = useContext(AuthContext)
+  const { user } = useContext(AuthContext)
   const [prompt, setPrompt] = useState<string>('')
-  const [filters, setFilters] = useState<Partial<RecommendationParams>>({})
   const [showFilters, setShowFilters] = useState(false)
 
-  const fetchRecommendations = useCallback(
-    async (params: RecommendationParams) => {
-      if (!user || !token) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        console.log(`Fetching recommendations with params:`, params)
-
-        const response = await axios.get('/api/recommendations', {
-          params,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-
-        console.log('API Response:', response.data)
-
-        const vehiclesData: Vehicle[] = extractArray(response.data)
-        setVehicles(vehiclesData)
-        setError(null)
-      } catch (err: any) {
-        console.error('Error fetching recommendations:', err)
-        setError('Failed to load recommendations')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [user, token]
-  )
-
+  // Fix for infinite loop - only update if vehicles actually changed
   useEffect(() => {
-    if (user) {
-      fetchRecommendations({ userId: user.id.toString() })
-    } else {
+    if (recommendedVehicles && recommendedVehicles.length > 0) {
+      // Use JSON.stringify for deep comparison to prevent unnecessary updates
+      const currentVehiclesJson = JSON.stringify(vehicles.map(v => v.id));
+      const newVehiclesJson = JSON.stringify(recommendedVehicles.map(v => v.id));
+      
+      if (currentVehiclesJson !== newVehiclesJson) {
+        setVehicles(recommendedVehicles)
+        setLoading(false)
+        setError(null)
+      }
+    } else if (vehicles.length > 0) {
+      // Only clear vehicles if there's something to clear
+      setVehicles([])
       setLoading(false)
     }
-  }, [user, fetchRecommendations])
-
-  const handlePromptSearch = () => {
-    if (!user) return
-
-    fetchRecommendations({
-      userId: user.id.toString(),
-      textPrompt: prompt,
-      ...filters,
-    })
-  }
-
-  const handleFilterChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target as HTMLInputElement
-    const numberFields = [
-      'minPrice',
-      'maxPrice',
-      'minYear',
-      'maxYear',
-      'mileageMax',
-      'fuelType',
-      'vehicleType',
-    ]
-
-    let parsedValue: string | number = value
-    if (numberFields.includes(name) && value) {
-      parsedValue = parseFloat(value)
-    }
-
-    setFilters((prev) => ({
-      ...prev,
-      [name]: parsedValue === '' ? undefined : parsedValue,
-    }))
-  }
+  }, [recommendedVehicles, vehicles])
 
   // Helper function to get image URL
   const getImageUrl = (vehicle: Vehicle) => {
@@ -142,8 +86,14 @@ const VehicleRecommendations = () => {
     )
   }
 
-  // Map fuelType number to string
-  const getFuelTypeName = (fuelType: number): string => {
+  // Map fuelType to string
+  const getFuelTypeName = (fuelType: number | string): string => {
+    // If it's already a string, return it directly
+    if (typeof fuelType === 'string') {
+      return fuelType
+    }
+    
+    // If it's a number, map it
     const fuelTypes: Record<number, string> = {
       0: 'Petrol',
       1: 'Diesel',
@@ -152,6 +102,27 @@ const VehicleRecommendations = () => {
       4: 'Plugin Hybrid',
     }
     return fuelTypes[fuelType] || 'Unknown'
+  }
+
+  // Map vehicleType to string
+  const getVehicleTypeName = (vehicleType: number | string): string => {
+    // If it's already a string, return it directly
+    if (typeof vehicleType === 'string') {
+      return vehicleType
+    }
+    
+    // If it's a number, map it
+    const vehicleTypes: Record<number, string> = {
+      0: 'Sedan',
+      1: 'SUV',
+      2: 'Hatchback',
+      3: 'Coupe',
+      4: 'Convertible',
+      5: 'Wagon',
+      6: 'Van',
+      7: 'Truck',
+    }
+    return vehicleTypes[vehicleType] || 'Unknown'
   }
 
   // Alternative content when user is not authenticated
@@ -174,24 +145,26 @@ const VehicleRecommendations = () => {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your needs (e.g., 'cheap cars only', 'family SUV with good mileage')"
+            placeholder="Ask the assistant for recommendations in the chat above"
             style={{
               flex: 1,
               padding: '8px 12px',
               borderRadius: '4px',
               border: '1px solid #ccc',
             }}
+            disabled={true}
           />
           <button
-            onClick={handlePromptSearch}
             style={{
               backgroundColor: '#1976d2',
               color: 'white',
               border: 'none',
               padding: '8px 16px',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: 'not-allowed',
+              opacity: 0.7,
             }}
+            disabled={true}
           >
             Search
           </button>
@@ -209,115 +182,40 @@ const VehicleRecommendations = () => {
             padding: 0,
           }}
         >
-          {showFilters ? 'Hide Filters' : 'Show Additional Filters'}
+          {showFilters ? 'Hide Filters' : 'Show Active Filters'}
         </button>
 
-        {showFilters && (
+        {showFilters && parameters && (
           <div
             style={{
               marginTop: '10px',
               padding: '15px',
               backgroundColor: '#f5f5f5',
               borderRadius: '4px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-              gap: '10px',
             }}
           >
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                Price Range
-              </label>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <input
-                  type="number"
-                  name="minPrice"
-                  placeholder="Min"
-                  onChange={handleFilterChange}
-                  style={{ width: '100%', padding: '5px' }}
-                />
-                <input
-                  type="number"
-                  name="maxPrice"
-                  placeholder="Max"
-                  onChange={handleFilterChange}
-                  style={{ width: '100%', padding: '5px' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                Year Range
-              </label>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <input
-                  type="number"
-                  name="minYear"
-                  placeholder="Min"
-                  onChange={handleFilterChange}
-                  style={{ width: '100%', padding: '5px' }}
-                />
-                <input
-                  type="number"
-                  name="maxYear"
-                  placeholder="Max"
-                  onChange={handleFilterChange}
-                  style={{ width: '100%', padding: '5px' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                Max Mileage
-              </label>
-              <input
-                type="number"
-                name="mileageMax"
-                placeholder="Maximum mileage"
-                onChange={handleFilterChange}
-                style={{ width: '100%', padding: '5px' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                Fuel Type
-              </label>
-              <select
-                name="fuelType"
-                onChange={handleFilterChange}
-                style={{ width: '100%', padding: '5px' }}
-              >
-                <option value="">Any</option>
-                <option value="0">Petrol</option>
-                <option value="1">Diesel</option>
-                <option value="2">Electric</option>
-                <option value="3">Hybrid</option>
-                <option value="4">Plugin Hybrid</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px' }}>
-                Vehicle Type
-              </label>
-              <select
-                name="vehicleType"
-                onChange={handleFilterChange}
-                style={{ width: '100%', padding: '5px' }}
-              >
-                <option value="">Any</option>
-                <option value="0">Sedan</option>
-                <option value="1">SUV</option>
-                <option value="2">Hatchback</option>
-                <option value="3">Coupe</option>
-                <option value="4">Convertible</option>
-                <option value="5">Van</option>
-                <option value="6">Truck</option>
-              </select>
-            </div>
+            <h3 style={{ marginTop: 0 }}>Current Active Filters</h3>
+            <ul style={{ margin: 0, padding: '0 0 0 20px' }}>
+              {parameters.minPrice !== undefined && <li>Min Price: €{parameters.minPrice.toLocaleString()}</li>}
+              {parameters.maxPrice !== undefined && <li>Max Price: €{parameters.maxPrice.toLocaleString()}</li>}
+              {parameters.minYear !== undefined && <li>Min Year: {parameters.minYear}</li>}
+              {parameters.maxYear !== undefined && <li>Max Year: {parameters.maxYear}</li>}
+              {parameters.preferredMakes && parameters.preferredMakes.length > 0 && (
+                <li>Makes: {parameters.preferredMakes.join(', ')}</li>
+              )}
+              {parameters.preferredFuelTypes && parameters.preferredFuelTypes.length > 0 && (
+                <li>Fuel Types: {parameters.preferredFuelTypes.join(', ')}</li>
+              )}
+              {parameters.preferredVehicleTypes && parameters.preferredVehicleTypes.length > 0 && (
+                <li>Vehicle Types: {parameters.preferredVehicleTypes.join(', ')}</li>
+              )}
+              {parameters.desiredFeatures && parameters.desiredFeatures.length > 0 && (
+                <li>Features: {parameters.desiredFeatures.join(', ')}</li>
+              )}
+            </ul>
+            <p style={{ marginTop: '10px', fontSize: '0.9em', fontStyle: 'italic' }}>
+              Use the chat assistant above to update your search parameters.
+            </p>
           </div>
         )}
       </div>
@@ -327,10 +225,14 @@ const VehicleRecommendations = () => {
       ) : error ? (
         <p style={{ color: 'red' }}>{error}</p>
       ) : vehicles.length === 0 ? (
-        <p>
-          No recommendations found. Try adjusting your filters or prompt, or
-          browse more vehicles to get personalized suggestions.
-        </p>
+        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+          <p>
+            No recommendations available yet. Chat with our AI assistant above to get personalized vehicle suggestions.
+          </p>
+          <p style={{ fontSize: '0.9em', marginTop: '10px' }}>
+            Try asking: "Show me electric SUVs" or "I need a family car under €25,000"
+          </p>
+        </div>
       ) : (
         <div
           style={{
