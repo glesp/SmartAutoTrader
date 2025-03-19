@@ -12,8 +12,8 @@ interface Vehicle {
   year: number
   price: number
   mileage: number
-  fuelType: number
-  vehicleType: number
+  fuelType: number | string
+  vehicleType: number | string
   images?: any
 }
 
@@ -23,8 +23,8 @@ interface RecommendationParameters {
   minYear?: number
   maxYear?: number
   preferredMakes?: string[]
-  preferredVehicleTypes?: number[]
-  preferredFuelTypes?: number[]
+  preferredVehicleTypes?: string[] | number[]
+  preferredFuelTypes?: string[] | number[]
   desiredFeatures?: string[]
 }
 
@@ -51,6 +51,7 @@ const RecommendationsPage = () => {
     vehicles: Vehicle[],
     newParams: RecommendationParameters
   ) => {
+    console.log("Received recommendations:", vehicles.length, "vehicles");
     setRecommendedVehicles(vehicles)
     setParameters(newParams)
     setActiveTab('recommendations')
@@ -99,36 +100,11 @@ const RecommendationsPage = () => {
       {/* Tab Content */}
       <div className="mb-8">
         {activeTab === 'recommendations' ? (
-          recommendedVehicles.length > 0 ? (
-            // If we have chat-recommended vehicles, show those
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedVehicles.map((vehicle) => (
-                <div
-                  key={vehicle.id}
-                  className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                >
-                  {/* Add your vehicle card content here */}
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg">
-                      {vehicle.year} {vehicle.make} {vehicle.model}
-                    </h3>
-                    <p className="font-bold text-blue-600 mt-1">
-                      €{vehicle.price.toLocaleString()}
-                    </p>
-                    <a
-                      href={`/vehicles/${vehicle.id}`}
-                      className="mt-3 inline-block bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
-                    >
-                      View Details
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            // Otherwise show the standard recommendations component
-            <VehicleRecommendations />
-          )
+          // Always use VehicleRecommendations and pass the vehicles as props
+          <VehicleRecommendations 
+            recommendedVehicles={recommendedVehicles} 
+            parameters={parameters} 
+          />
         ) : (
           // Show chat interface when on assistant tab
           <div
