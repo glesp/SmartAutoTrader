@@ -400,10 +400,7 @@ namespace SmartAutoTrader.API.Services
         _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
         
         // Prepare the request
-        var request = new
-        {
-            query = message
-        };
+        var request = new { query = message };
         
         var content = new StringContent(
             JsonSerializer.Serialize(request),
@@ -422,7 +419,6 @@ namespace SmartAutoTrader.API.Services
             _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}", 
                 response.StatusCode, errorContent);
             
-            // Return empty parameters, but keep the TextPrompt
             return new RecommendationParameters 
             { 
                 TextPrompt = message,
@@ -433,34 +429,82 @@ namespace SmartAutoTrader.API.Services
         // Parse the response
         var responseContent = await response.Content.ReadAsStringAsync();
         _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
-        
-        var parameters = JsonSerializer.Deserialize<RecommendationParameters>(
-            responseContent, 
-            new JsonSerializerOptions 
-            { 
-                PropertyNameCaseInsensitive = true 
-            });
-        
-        // Ensure we have a valid object even if deserialization fails
-        if (parameters == null)
+
+        using var jsonDoc = JsonDocument.Parse(responseContent);
+        var parameters = new RecommendationParameters
         {
-            _logger.LogWarning("Failed to deserialize parameters response. Using default parameters.");
-            parameters = new RecommendationParameters();
+            TextPrompt = message,
+            MaxResults = 5
+        };
+
+        // ✅ Parse numerical values safely
+        parameters.MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out var minPriceElement) && minPriceElement.ValueKind == JsonValueKind.Number
+            ? minPriceElement.GetDecimal()
+            : (decimal?)null;
+
+        parameters.MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out var maxPriceElement) && maxPriceElement.ValueKind == JsonValueKind.Number
+            ? maxPriceElement.GetDecimal()
+            : (decimal?)null;
+
+        parameters.MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out var minYearElement) && minYearElement.ValueKind == JsonValueKind.Number
+            ? minYearElement.GetInt32()
+            : (int?)null;
+
+        parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) && maxYearElement.ValueKind == JsonValueKind.Number
+            ? maxYearElement.GetInt32()
+            : (int?)null;
+
+        // ✅ Parse array values safely
+        parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) && makesElement.ValueKind == JsonValueKind.Array
+            ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
+            : new List<string>();
+
+        parameters.DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out var featuresElement) && featuresElement.ValueKind == JsonValueKind.Array
+            ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
+            : new List<string>();
+
+        // ✅ Parse Enums correctly (Fixes `null` conversion issue)
+        if (jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out var fuelTypesElement) && fuelTypesElement.ValueKind == JsonValueKind.Array)
+        {
+            parameters.PreferredFuelTypes = fuelTypesElement.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.String)
+                .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out var fuel) ? fuel : (FuelType?)null)
+                .Where(f => f.HasValue)
+                .Select(f => f.Value)
+                .ToList();
+        }
+        else
+        {
+            parameters.PreferredFuelTypes = new List<FuelType>();
+        }
+
+        if (jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out var vehicleTypesElement) && vehicleTypesElement.ValueKind == JsonValueKind.Array)
+        {
+            parameters.PreferredVehicleTypes = vehicleTypesElement.EnumerateArray()
+                .Where(e => e.ValueKind == JsonValueKind.String)
+                .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out var vehicle) ? vehicle : (VehicleType?)null)
+                .Where(v => v.HasValue)
+                .Select(v => v.Value)
+                .ToList();
+        }
+        else
+        {
+            parameters.PreferredVehicleTypes = new List<VehicleType>();
+        }
+
+        // ✅ Validate the parameters
+        if (!Validators.RecommendationParameterValidator.Validate(parameters, out var errorMessage))
+        {
+            _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
         }
         
-        // Always set the max results and ensure TextPrompt is set
-        parameters.MaxResults = 5;
-        parameters.TextPrompt = message;
         _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
-
-        
         return parameters;
     }
     catch (Exception ex)
     {
         _logger.LogError(ex, "Error extracting parameters from message");
-        
-        // Return empty parameters in case of error, but keep the TextPrompt
+
         return new RecommendationParameters 
         { 
             TextPrompt = message,
@@ -468,5 +512,6 @@ namespace SmartAutoTrader.API.Services
         };
     }
 }
+
     }
 }
