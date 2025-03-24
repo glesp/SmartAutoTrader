@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -98,10 +99,30 @@ namespace SmartAutoTrader.API.Services
                     _logger.LogInformation("Processing clarification. Combined message: {Message}", messageToProcess);
                 }
                 
-                // Extract parameters using the existing working service
                 _logger.LogInformation("About to call parameter extraction for message: {MessageContent}", messageToProcess);
+
+                var sw = Stopwatch.StartNew();
                 var parameters = await ExtractParametersAsync(messageToProcess);
-                _logger.LogInformation("Parameter extraction completed: {HasParameters}", parameters != null);
+                sw.Stop();
+
+                _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
+
+                if (parameters == null)
+                {
+                    _logger.LogError("🛑 ExtractParametersAsync returned NULL — possible timeout, LLM failure, or parsing issue.");
+                    _logger.LogError("[LLM_NULL_PARAMETERS] User message: {Message}", messageToProcess);
+
+                    return new ChatResponse
+                    {
+                        Message = "Sorry, I couldn't process your request. Could you try rephrasing or be a bit more specific?",
+                        UpdatedParameters = new RecommendationParameters(), // fallback object
+                        ClarificationNeeded = true,
+                        OriginalUserInput = message.Content
+                    };
+                }
+
+                _logger.LogInformation("Parameter extraction completed successfully: {HasParameters}", parameters != null);
+
                 
                 // Determine if we need further clarification based on parameters
                 bool needsClarification = NeedsClarification(parameters, messageToProcess);
