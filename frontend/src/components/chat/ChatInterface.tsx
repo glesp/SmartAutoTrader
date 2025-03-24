@@ -44,6 +44,7 @@ interface RecommendationParameters {
   maxPrice?: number
   minYear?: number
   maxYear?: number
+  maxMileage?: number
   preferredMakes?: string[]
   preferredVehicleTypes?: number[]
   preferredFuelTypes?: number[]
@@ -235,6 +236,9 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         }
 
         setMessages((prev) => [...prev, aiMessage])
+
+        console.log('📦 Chat response parameters:', responseData.parameters)
+
 
         // If clarification is needed, update the clarification state
         if (responseData.clarificationNeeded) {
