@@ -25,7 +25,7 @@ namespace SmartAutoTrader.API.Services
         public string Content { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public bool IsClarification { get; set; } = false;
-        public string OriginalUserInput { get; set; }
+        public string? OriginalUserInput { get; set; } // Make nullable
     }
 
     public class ChatResponse

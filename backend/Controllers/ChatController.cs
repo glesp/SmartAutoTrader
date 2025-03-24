@@ -138,8 +138,8 @@ namespace SmartAutoTrader.API.Controllers
     public class ChatMessageDto
     {
         public string Content { get; set; }
-        public bool IsClarification { get; set; }
-        public string OriginalUserInput { get; set; }
+        public bool IsClarification { get; set; } = false;
+        public string? OriginalUserInput { get; set; } // Make nullable to avoid validation errors
     }
     
     public class ChatResponseDto
