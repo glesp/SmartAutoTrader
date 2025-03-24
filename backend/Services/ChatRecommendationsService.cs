@@ -4,12 +4,14 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Validators;
 
 namespace SmartAutoTrader.API.Services
 {
@@ -22,6 +24,8 @@ namespace SmartAutoTrader.API.Services
     {
         public string Content { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public bool IsClarification { get; set; } = false;
+        public string OriginalUserInput { get; set; }
     }
 
     public class ChatResponse
@@ -29,6 +33,8 @@ namespace SmartAutoTrader.API.Services
         public string Message { get; set; }
         public List<Vehicle> RecommendedVehicles { get; set; } = new List<Vehicle>();
         public RecommendationParameters UpdatedParameters { get; set; }
+        public bool ClarificationNeeded { get; set; } = false;
+        public string OriginalUserInput { get; set; }
     }
 
     public class ChatRecommendationService : IChatRecommendationService
@@ -54,69 +60,100 @@ namespace SmartAutoTrader.API.Services
         }
         
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
-{
-    try
-    {
-        _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
-        
-        // Get user context for personalization 
-        var user = await _context.Users
-            .Include(u => u.Preferences)
-            .FirstOrDefaultAsync(u => u.Id == userId);
-        
-        if (user == null)
         {
-            _logger.LogWarning("User with ID {UserId} not found", userId);
-            return new ChatResponse { Message = "Sorry, I couldn't process your request. Please try again later." };
+            try
+            {
+                _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
+                
+                // Get user context for personalization 
+                var user = await _context.Users
+                    .Include(u => u.Preferences)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                
+                if (user == null)
+                {
+                    _logger.LogWarning("User with ID {UserId} not found", userId);
+                    return new ChatResponse { Message = "Sorry, I couldn't process your request. Please try again later." };
+                }
+
+                // Load related entities separately 
+                user.Favorites = await _context.UserFavorites
+                    .Where(f => f.UserId == userId)
+                    .Include(f => f.Vehicle)
+                    .ToListAsync();
+
+                user.BrowsingHistory = await _context.BrowsingHistory
+                    .Where(h => h.UserId == userId)
+                    .OrderByDescending(h => h.ViewDate)
+                    .Take(5)
+                    .Include(h => h.Vehicle)
+                    .ToListAsync();
+                
+                // Build context for the AI
+                var userContext = BuildUserContext(user);
+
+                // Handle clarification vs new message processing
+                (string responseMessage, Dictionary<string, object> extractedParams) = message.IsClarification && !string.IsNullOrEmpty(message.OriginalUserInput)
+                    ? await ProcessWithAIClarificationAsync(message.Content, message.OriginalUserInput, userContext)
+                    : await ProcessWithAIAsync(message.Content, userContext);
+
+                // Convert parameters to a format the recommendation service can use
+                var parameters = ConvertToRecommendationParameters(
+                    new ValueTuple<string, Dictionary<string, object>>(responseMessage, extractedParams), 
+                    user);
+
+                // Ensure the TextPrompt is set for embedding similarity
+                parameters.TextPrompt = message.Content;
+
+                // Determine if we need to ask for more clarification or can proceed
+                bool needsClarification = responseMessage.Contains("Can you please clarify") || 
+                                        responseMessage.Contains("I need more information") ||
+                                        responseMessage.Contains("Could you specify") ||
+                                        responseMessage.Contains("Can you tell me more");
+
+                if (needsClarification)
+                {
+                    // If clarification is needed, don't fetch recommendations yet
+                    _logger.LogInformation("Clarification needed for user query");
+                    
+                    // Save the chat history
+                    await SaveChatHistoryAsync(userId, message, responseMessage);
+                    
+                    return new ChatResponse
+                    {
+                        Message = responseMessage,
+                        UpdatedParameters = parameters,
+                        ClarificationNeeded = true,
+                        OriginalUserInput = message.IsClarification ? message.OriginalUserInput : message.Content
+                    };
+                }
+                else
+                {
+                    // Get recommendations based on the parameters
+                    var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+                    
+                    // Save the chat history
+                    await SaveChatHistoryAsync(userId, message, responseMessage);
+                    
+                    return new ChatResponse
+                    {
+                        Message = responseMessage,
+                        RecommendedVehicles = recommendations.ToList(),
+                        UpdatedParameters = parameters,
+                        ClarificationNeeded = false
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+                return new ChatResponse
+                {
+                    Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
+                    UpdatedParameters = new RecommendationParameters()
+                };
+            }
         }
-
-        // Load related entities separately 
-        user.Favorites = await _context.UserFavorites
-            .Where(f => f.UserId == userId)
-            .Include(f => f.Vehicle)
-            .ToListAsync();
-
-        user.BrowsingHistory = await _context.BrowsingHistory
-            .Where(h => h.UserId == userId)
-            .OrderByDescending(h => h.ViewDate)
-            .Take(5)
-            .Include(h => h.Vehicle)
-            .ToListAsync();
-        
-        // Extract parameters from the message using the parameter extraction service
-        var parameters = await ExtractParametersAsync(message.Content);
-        
-        // Ensure the TextPrompt is set for embedding similarity
-        parameters.TextPrompt = message.Content;
-        
-        // Log the extracted parameters
-        _logger.LogInformation("Extracted parameters: {@Parameters}", parameters);
-        
-        // Save the chat history
-        await SaveChatHistoryAsync(userId, message, 
-            $"I'm looking for vehicles that match: {message.Content}");
-        
-        // Get recommendations based on the parameters
-        var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
-        
-        return new ChatResponse
-        {
-            Message = $"Here are some vehicles that match your request for: {message.Content}",
-            RecommendedVehicles = recommendations.ToList(),
-            UpdatedParameters = parameters
-        };
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
-        return new ChatResponse
-        {
-            Message = "I'm sorry, but I encountered an error processing your request. Please try again later.",
-            RecommendedVehicles = new List<Vehicle>(),
-            UpdatedParameters = new RecommendationParameters()
-        };
-    }
-}
         
         private string BuildUserContext(User user)
         {
@@ -175,8 +212,8 @@ namespace SmartAutoTrader.API.Services
                 prompt.AppendLine(userContext);
                 prompt.AppendLine("\nUser Message:");
                 prompt.AppendLine(message);
-                prompt.AppendLine("\nPlease respond conversationally to the user's request.");
-                prompt.AppendLine("After your response, include structured information about their preferences in a JSON format to update search parameters:");
+                prompt.AppendLine("\nIf the user's request is vague or missing critical details (like budget, vehicle type, or specific requirements), ask clarifying questions to better understand their needs.");
+                prompt.AppendLine("Otherwise, please respond conversationally to the user's request and include structured information about their preferences in a JSON format to update search parameters:");
                 prompt.AppendLine(@"{
   ""minPrice"": null,
   ""maxPrice"": null,
@@ -264,6 +301,120 @@ namespace SmartAutoTrader.API.Services
             {
                 _logger.LogError(ex, "Error processing with AI");
                 return ("I'm sorry, I encountered an error while processing your request. Could you please try again?", new Dictionary<string, object>());
+            }
+        }
+        
+        private async Task<(string Message, Dictionary<string, object> Parameters)> ProcessWithAIClarificationAsync(
+            string clarificationMessage, 
+            string originalMessage, 
+            string userContext)
+        {
+            try
+            {
+                // Get the API configuration
+                var apiKey = _configuration["ChatAI:ApiKey"];
+                var endpoint = _configuration["ChatAI:Endpoint"];
+                
+                // Prepare the combined message with original + follow-up
+                var fullMessage = $"Original question: {originalMessage}\nFollow-up details: {clarificationMessage}";
+                
+                // Prepare the prompt
+                var prompt = new StringBuilder();
+                prompt.AppendLine("You are an automotive assistant helping a customer find their ideal vehicle.");
+                prompt.AppendLine("The user has provided additional details to clarify their original request.");
+                prompt.AppendLine("\nUser Context:");
+                prompt.AppendLine(userContext);
+                prompt.AppendLine("\nUser Message:");
+                prompt.AppendLine(fullMessage);
+                prompt.AppendLine("\nIf you still need more information, ask another clarifying question.");
+                prompt.AppendLine("Otherwise, provide a comprehensive response to their clarified request and include structured information about their preferences in a JSON format to update search parameters:");
+                prompt.AppendLine(@"{
+  ""minPrice"": null,
+  ""maxPrice"": null,
+  ""minYear"": null,
+  ""maxYear"": null,
+  ""preferredMakes"": [],
+  ""preferredVehicleTypes"": [],
+  ""preferredFuelTypes"": [],
+  ""desiredFeatures"": []
+}");
+                
+                // Prepare the request
+                var request = new
+                {
+                    model = _configuration["ChatAI:Model"] ?? "gpt-3.5-turbo",
+                    messages = new[]
+                    {
+                        new { role = "system", content = prompt.ToString() },
+                        new { role = "user", content = fullMessage }
+                    },
+                    temperature = 0.7,
+                    max_tokens = 500
+                };
+                
+                // Send the request to the AI service
+                _httpClient.DefaultRequestHeaders.Clear();
+                if (!string.IsNullOrEmpty(apiKey))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+                }
+                
+                var content = new StringContent(
+                    JsonSerializer.Serialize(request),
+                    Encoding.UTF8,
+                    "application/json");
+                
+                var response = await _httpClient.PostAsync(endpoint, content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("AI service error: {StatusCode}, {ErrorContent}", response.StatusCode, errorContent);
+                    return ("I'm sorry, I couldn't process your additional information. Could you please try again with your complete requirements?", new Dictionary<string, object>());
+                }
+                
+                // Parse the response
+                var responseContent = await response.Content.ReadAsStringAsync();
+                using var document = JsonDocument.Parse(responseContent);
+                
+                // Extract the message content
+                var choices = document.RootElement.GetProperty("choices");
+                var messageContent = choices[0].GetProperty("message").GetProperty("content").GetString();
+                
+                // Split the response to extract parameters
+                var parts = messageContent.Split("```json", StringSplitOptions.RemoveEmptyEntries);
+                
+                string responseMessage;
+                Dictionary<string, object> parameters = new Dictionary<string, object>();
+                
+                if (parts.Length >= 2)
+                {
+                    // Extract the conversational response
+                    responseMessage = parts[0].Trim();
+                    
+                    // Extract and parse the JSON parameters
+                    var jsonPart = parts[1].Split("```", StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                    try
+                    {
+                        parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonPart);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error parsing JSON parameters from AI clarification response");
+                    }
+                }
+                else
+                {
+                    // If the response doesn't contain structured data, use the whole message
+                    responseMessage = messageContent.Trim();
+                }
+                
+                return (responseMessage, parameters);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing clarification with AI");
+                return ("I'm sorry, I encountered an error while processing your additional information. Could you please try again?", new Dictionary<string, object>());
             }
         }
         
@@ -390,128 +541,127 @@ namespace SmartAutoTrader.API.Services
         }
         
         private async Task<RecommendationParameters> ExtractParametersAsync(string message)
-{
-    try
-    {
-        // Get the parameter extraction endpoint from configuration
-        var endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ?? "http://localhost:5006/extract_parameters";
-        var timeoutSeconds = int.TryParse(_configuration["Services:ParameterExtraction:Timeout"], out var timeout) ? timeout : 30;
-        
-        _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
-        
-        // Prepare the request
-        var request = new { query = message };
-        
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json");
-        
-        // Configure timeout
-        var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-        
-        // Call the parameter extraction service
-        var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
-        
-        if (!response.IsSuccessStatusCode)
         {
-            var errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}", 
-                response.StatusCode, errorContent);
-            
-            return new RecommendationParameters 
-            { 
-                TextPrompt = message,
-                MaxResults = 5
-            };
+            try
+            {
+                // Get the parameter extraction endpoint from configuration
+                var endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ?? "http://localhost:5006/extract_parameters";
+                var timeoutSeconds = int.TryParse(_configuration["Services:ParameterExtraction:Timeout"], out var timeout) ? timeout : 30;
+                
+                _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
+                
+                // Prepare the request
+                var request = new { query = message };
+                
+                var content = new StringContent(
+                    JsonSerializer.Serialize(request),
+                    Encoding.UTF8,
+                    "application/json");
+                
+                // Configure timeout
+                var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                
+                // Call the parameter extraction service
+                var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}", 
+                        response.StatusCode, errorContent);
+                    
+                    return new RecommendationParameters 
+                    { 
+                        TextPrompt = message,
+                        MaxResults = 5
+                    };
+                }
+                
+                // Parse the response
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+
+                using var jsonDoc = JsonDocument.Parse(responseContent);
+                var parameters = new RecommendationParameters
+                {
+                    TextPrompt = message,
+                    MaxResults = 5
+                };
+
+                // ✅ Parse numerical values safely
+                parameters.MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out var minPriceElement) && minPriceElement.ValueKind == JsonValueKind.Number
+                    ? minPriceElement.GetDecimal()
+                    : (decimal?)null;
+
+                parameters.MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out var maxPriceElement) && maxPriceElement.ValueKind == JsonValueKind.Number
+                    ? maxPriceElement.GetDecimal()
+                    : (decimal?)null;
+
+                parameters.MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out var minYearElement) && minYearElement.ValueKind == JsonValueKind.Number
+                    ? minYearElement.GetInt32()
+                    : (int?)null;
+
+                parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) && maxYearElement.ValueKind == JsonValueKind.Number
+                    ? maxYearElement.GetInt32()
+                    : (int?)null;
+
+                // ✅ Parse array values safely
+                parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) && makesElement.ValueKind == JsonValueKind.Array
+                    ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
+                    : new List<string>();
+
+                parameters.DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out var featuresElement) && featuresElement.ValueKind == JsonValueKind.Array
+                    ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
+                    : new List<string>();
+
+                // ✅ Parse Enums correctly (Fixes `null` conversion issue)
+                if (jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out var fuelTypesElement) && fuelTypesElement.ValueKind == JsonValueKind.Array)
+                {
+                    parameters.PreferredFuelTypes = fuelTypesElement.EnumerateArray()
+                        .Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out var fuel) ? fuel : (FuelType?)null)
+                        .Where(f => f.HasValue)
+                        .Select(f => f.Value)
+                        .ToList();
+                }
+                else
+                {
+                    parameters.PreferredFuelTypes = new List<FuelType>();
+                }
+
+                if (jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out var vehicleTypesElement) && vehicleTypesElement.ValueKind == JsonValueKind.Array)
+                {
+                    parameters.PreferredVehicleTypes = vehicleTypesElement.EnumerateArray()
+                        .Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out var vehicle) ? vehicle : (VehicleType?)null)
+                        .Where(v => v.HasValue)
+                        .Select(v => v.Value)
+                        .ToList();
+                }
+                else
+                {
+                    parameters.PreferredVehicleTypes = new List<VehicleType>();
+                }
+
+                // ✅ Validate the parameters
+                if (!RecommendationParameterValidator.Validate(parameters, out var errorMessage))
+                {
+                    _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
+                }
+                
+                _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
+                return parameters;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error extracting parameters from message");
+
+                return new RecommendationParameters 
+                { 
+                    TextPrompt = message,
+                    MaxResults = 5
+                };
+            }
         }
-        
-        // Parse the response
-        var responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
-
-        using var jsonDoc = JsonDocument.Parse(responseContent);
-        var parameters = new RecommendationParameters
-        {
-            TextPrompt = message,
-            MaxResults = 5
-        };
-
-        // ✅ Parse numerical values safely
-        parameters.MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out var minPriceElement) && minPriceElement.ValueKind == JsonValueKind.Number
-            ? minPriceElement.GetDecimal()
-            : (decimal?)null;
-
-        parameters.MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out var maxPriceElement) && maxPriceElement.ValueKind == JsonValueKind.Number
-            ? maxPriceElement.GetDecimal()
-            : (decimal?)null;
-
-        parameters.MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out var minYearElement) && minYearElement.ValueKind == JsonValueKind.Number
-            ? minYearElement.GetInt32()
-            : (int?)null;
-
-        parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) && maxYearElement.ValueKind == JsonValueKind.Number
-            ? maxYearElement.GetInt32()
-            : (int?)null;
-
-        // ✅ Parse array values safely
-        parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) && makesElement.ValueKind == JsonValueKind.Array
-            ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
-            : new List<string>();
-
-        parameters.DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out var featuresElement) && featuresElement.ValueKind == JsonValueKind.Array
-            ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
-            : new List<string>();
-
-        // ✅ Parse Enums correctly (Fixes `null` conversion issue)
-        if (jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out var fuelTypesElement) && fuelTypesElement.ValueKind == JsonValueKind.Array)
-        {
-            parameters.PreferredFuelTypes = fuelTypesElement.EnumerateArray()
-                .Where(e => e.ValueKind == JsonValueKind.String)
-                .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out var fuel) ? fuel : (FuelType?)null)
-                .Where(f => f.HasValue)
-                .Select(f => f.Value)
-                .ToList();
-        }
-        else
-        {
-            parameters.PreferredFuelTypes = new List<FuelType>();
-        }
-
-        if (jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out var vehicleTypesElement) && vehicleTypesElement.ValueKind == JsonValueKind.Array)
-        {
-            parameters.PreferredVehicleTypes = vehicleTypesElement.EnumerateArray()
-                .Where(e => e.ValueKind == JsonValueKind.String)
-                .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out var vehicle) ? vehicle : (VehicleType?)null)
-                .Where(v => v.HasValue)
-                .Select(v => v.Value)
-                .ToList();
-        }
-        else
-        {
-            parameters.PreferredVehicleTypes = new List<VehicleType>();
-        }
-
-        // ✅ Validate the parameters
-        if (!Validators.RecommendationParameterValidator.Validate(parameters, out var errorMessage))
-        {
-            _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
-        }
-        
-        _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
-        return parameters;
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error extracting parameters from message");
-
-        return new RecommendationParameters 
-        { 
-            TextPrompt = message,
-            MaxResults = 5
-        };
-    }
-}
-
     }
 }

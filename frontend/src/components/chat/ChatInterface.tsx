@@ -17,6 +17,8 @@ interface Message {
   timestamp: Date
   vehicles?: Vehicle[]
   parameters?: RecommendationParameters
+  clarificationNeeded?: boolean
+  originalUserInput?: string
 }
 
 interface Vehicle {
@@ -53,6 +55,14 @@ interface ChatHistoryItem {
   userMessage: string
   aiResponse: string
   timestamp: string
+}
+
+interface ChatResponseDTO {
+  message: string
+  recommendedVehicles?: Vehicle[]
+  parameters?: RecommendationParameters
+  clarificationNeeded?: boolean
+  originalUserInput?: string
 }
 
 // Helper function to extract arrays from ASP.NET response format
@@ -117,6 +127,10 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [clarificationState, setClarificationState] = useState<{
+    awaiting: boolean
+    originalUserInput: string
+  }>({ awaiting: false, originalUserInput: '' })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { token } = useContext(AuthContext)
 
@@ -187,35 +201,60 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     setIsLoading(true)
 
     try {
-      const response = await axios.post(
-        '/api/chat/message',
-        { content: input },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      // Prepare the message payload based on whether we're in clarification mode
+      const payload = clarificationState.awaiting
+        ? {
+            content: input,
+            originalUserInput: clarificationState.originalUserInput,
+            isClarification: true,
+          }
+        : { content: input }
+
+      const response = await axios.post('/api/chat/message', payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
 
       if (response.data) {
+        const responseData: ChatResponseDTO = response.data
+
+        // Create AI message with response data
         const aiMessage: Message = {
           id: `ai-${Date.now()}`,
-          content: response.data.message,
+          content: responseData.message,
           sender: 'ai',
           timestamp: new Date(),
-          vehicles: response.data.recommendedVehicles,
-          parameters: response.data.parameters,
+          vehicles: responseData.recommendedVehicles,
+          parameters: responseData.parameters,
+          clarificationNeeded: responseData.clarificationNeeded,
         }
 
         setMessages((prev) => [...prev, aiMessage])
 
-        // Update recommendations in parent component
-        if (onRecommendationsUpdated && response.data.recommendedVehicles) {
-          onRecommendationsUpdated(
-            response.data.recommendedVehicles,
-            response.data.parameters
-          )
+        // If clarification is needed, update the clarification state
+        if (responseData.clarificationNeeded) {
+          setClarificationState({
+            awaiting: true,
+            originalUserInput: clarificationState.awaiting
+              ? clarificationState.originalUserInput
+              : input,
+          })
+        } else {
+          // If we get a final answer, reset clarification state
+          setClarificationState({
+            awaiting: false,
+            originalUserInput: '',
+          })
+
+          // Update recommendations in parent component if available
+          if (onRecommendationsUpdated && responseData.recommendedVehicles) {
+            onRecommendationsUpdated(
+              responseData.recommendedVehicles,
+              responseData.parameters || {}
+            )
+          }
         }
       }
     } catch (error) {
@@ -230,6 +269,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
       }
 
       setMessages((prev) => [...prev, errorMessage])
+
+      // Reset clarification state on error
+      setClarificationState({
+        awaiting: false,
+        originalUserInput: '',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -310,6 +355,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                 </div>
               )}
 
+              {message.clarificationNeeded && message.sender === 'ai' && (
+                <div className="mt-2 text-sm font-medium text-blue-700">
+                  I need more information to help you find the perfect vehicle.
+                </div>
+              )}
+
               <p className="text-xs text-gray-500 mt-1">
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
@@ -342,7 +393,11 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about cars, features, or preferences..."
+            placeholder={
+              clarificationState.awaiting
+                ? 'Please provide more details...'
+                : 'Ask about cars, features, or preferences...'
+            }
             className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
@@ -354,6 +409,11 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             Send
           </button>
         </div>
+        {clarificationState.awaiting && (
+          <p className="text-xs text-blue-600 mt-1">
+            I'm asking follow-up questions to better understand your needs
+          </p>
+        )}
       </form>
     </div>
   )

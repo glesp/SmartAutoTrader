@@ -9,6 +9,7 @@ import {
   Container,
 } from '@mui/material'
 import {
+  Star as StarIcon,
   DirectionsCar as CarIcon,
   Person as PersonIcon,
   ExitToApp as LogoutIcon,
@@ -66,6 +67,14 @@ const Header = () => {
                   startIcon={<PersonIcon />}
                 >
                   My Profile
+                </Button>
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to="/recommendations"
+                  startIcon={<StarIcon />}
+                >
+                  Your Recommendations
                 </Button>
                 <Button
                   color="inherit"
