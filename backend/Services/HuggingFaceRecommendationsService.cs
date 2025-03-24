@@ -95,6 +95,12 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
         {
             query = query.Where(v => v.Year <= parameters.MaxYear.Value);
         }
+        
+        if (parameters.MaxMileage.HasValue)
+        {
+            query = query.Where(v => v.Mileage <= parameters.MaxMileage.Value);
+        }
+
 
         if (parameters.PreferredVehicleTypes?.Any() == true)
         {
@@ -126,16 +132,24 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
 
         if (parameters.DesiredFeatures?.Any() == true)
         {
-            _logger.LogInformation("Filtering by features: {Features}", 
+            _logger.LogInformation("Ranking by optional features: {Features}", 
                 string.Join(", ", parameters.DesiredFeatures));
-            
-            // For each desired feature, ensure the vehicle has it (case-insensitive)
-            foreach (var feature in parameters.DesiredFeatures)
-            {
-                var featureLower = feature.ToLower();
-                query = query.Where(v => v.Features.Any(f => f.Name.ToLower() == featureLower));
-            }
+
+            var featureSet = parameters.DesiredFeatures
+                .Select(f => f.ToLowerInvariant())
+                .ToHashSet();
+
+            query = query
+                .Select(v => new
+                {
+                    Vehicle = v,
+                    MatchCount = v.Features.Count(f => featureSet.Contains(f.Name.ToLower()))
+                })
+                .OrderByDescending(v => v.MatchCount)
+                .ThenBy(v => v.Vehicle.Price) // Optional: add tie-breakers like price
+                .Select(v => v.Vehicle);
         }
+
 
         query = query.Where(v => v.Status == VehicleStatus.Available)
                      .Include(v => v.Features)
