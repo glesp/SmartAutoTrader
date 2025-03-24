@@ -150,7 +150,10 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             ? response.data
             : response.data.$values || []
 
-          const formattedHistory = historyData
+          // Limit to last 5 history items to prevent UI overflow
+          const recentHistory = historyData.slice(-5)
+
+          const formattedHistory = recentHistory
             .map((msg: ChatHistoryItem) => ({
               id: msg.id,
               content: msg.userMessage,
@@ -158,7 +161,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               timestamp: new Date(msg.timestamp),
             }))
             .concat(
-              historyData.map((msg: ChatHistoryItem) => ({
+              recentHistory.map((msg: ChatHistoryItem) => ({
                 id: `ai-${msg.id}`,
                 content: msg.aiResponse,
                 sender: 'ai' as const,
