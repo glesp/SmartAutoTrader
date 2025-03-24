@@ -81,6 +81,7 @@ namespace SmartAutoTrader.API.Controllers
                         MaxPrice = response.UpdatedParameters?.MaxPrice,
                         MinYear = response.UpdatedParameters?.MinYear,
                         MaxYear = response.UpdatedParameters?.MaxYear,
+                        MaxMileage = response.UpdatedParameters?.MaxMileage,
                         PreferredMakes = response.UpdatedParameters?.PreferredMakes,
                         PreferredVehicleTypes = response.UpdatedParameters?.PreferredVehicleTypes?.Select(t => t.ToString())?.ToList(),
                         PreferredFuelTypes = response.UpdatedParameters?.PreferredFuelTypes?.Select(f => f.ToString())?.ToList(),
