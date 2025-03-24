@@ -99,7 +99,9 @@ namespace SmartAutoTrader.API.Services
                 }
                 
                 // Extract parameters using the existing working service
+                _logger.LogInformation("About to call parameter extraction for message: {MessageContent}", messageToProcess);
                 var parameters = await ExtractParametersAsync(messageToProcess);
+                _logger.LogInformation("Parameter extraction completed: {HasParameters}", parameters != null);
                 
                 // Determine if we need further clarification based on parameters
                 bool needsClarification = NeedsClarification(parameters, messageToProcess);
@@ -298,6 +300,7 @@ namespace SmartAutoTrader.API.Services
                 var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
                 
                 // Call the parameter extraction service
+                _logger.LogInformation("SENDING REQUEST to {Endpoint} with payload: {Query}", endpoint, message);
                 var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
                 
                 if (!response.IsSuccessStatusCode)
