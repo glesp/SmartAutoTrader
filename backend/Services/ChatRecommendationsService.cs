@@ -343,6 +343,11 @@ namespace SmartAutoTrader.API.Services
                 parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) && maxYearElement.ValueKind == JsonValueKind.Number
                     ? maxYearElement.GetInt32()
                     : (int?)null;
+                parameters.MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out var mileageElement) &&
+                                        mileageElement.ValueKind == JsonValueKind.Number
+                    ? mileageElement.GetInt32()
+                    : (int?)null;
+
 
                 // ✅ Parse array values safely
                 parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) && makesElement.ValueKind == JsonValueKind.Array

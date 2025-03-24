@@ -11,6 +11,7 @@ namespace SmartAutoTrader.API.Services
         public decimal? MaxPrice { get; set; }
         public int? MinYear { get; set; }
         public int? MaxYear { get; set; }
+        public int? MaxMileage { get; set; }
         public List<FuelType>? PreferredFuelTypes { get; set; }
         public List<VehicleType>? PreferredVehicleTypes { get; set; }
         public List<string>? PreferredMakes { get; set; }

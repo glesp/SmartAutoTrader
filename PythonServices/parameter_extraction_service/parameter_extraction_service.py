@@ -1,150 +1,210 @@
-
 from flask import Flask, request, jsonify
 import requests
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Ollama API endpoint (local)
 OLLAMA_API = "http://localhost:11434/api/generate"
 
 @app.route('/extract_parameters', methods=['POST'])
 def extract_parameters():
     try:
-        print("Received request: ", request.json)
+        logger.info("Received request: %s", request.json)
 
         data = request.json
         if not data or 'query' not in data:
-            print("ERROR: No 'query' provided in request.")
+            logger.error("No 'query' provided in request.")
             return jsonify({"error": "No query provided"}), 400
 
         user_query = data['query']
-        print("Processing query:", user_query)
+        logger.info("Processing query: %s", user_query)
+
+        # Define our valid values
+        valid_manufacturers = ["BMW", "Audi", "Mercedes", "Toyota", "Honda", "Ford",
+                             "Volkswagen", "Nissan", "Hyundai", "Kia", "Tesla", "Volvo", "Mazda"]
+        valid_fuel_types = ["Petrol", "Diesel", "Electric", "Hybrid"]
+        valid_vehicle_types = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Wagon", "Van", "Truck"]
 
         system_prompt = f"""
-You are an AI assistant for Smart Auto Trader, a vehicle marketplace application.
-Your task is to generate vehicle search recommendations based on user input.
+You are an automotive assistant for Smart Auto Trader, helping customers find their ideal vehicle.
+Extract ONLY the search parameters that are EXPLICITLY mentioned in the user's query.
 
-IMPORTANT: Your response must only contain valid JSON that conforms to these exact property names and structure:
+YOUR RESPONSE MUST ONLY CONTAIN VALID JSON with this exact format:
 
 {{
   "minPrice": null,
   "maxPrice": null,
   "minYear": null,
   "maxYear": null,
+  "maxMileage": null,
   "preferredMakes": [],
   "preferredFuelTypes": [],
   "preferredVehicleTypes": [],
   "desiredFeatures": []
 }}
 
-Field Requirements:
-- "minPrice" and "maxPrice" must be numbers or null.
-- "minYear" and "maxYear" must be integers or null.
-- "preferredMakes", "preferredFuelTypes", "preferredVehicleTypes", and "desiredFeatures" must be arrays of strings using only the allowed values.
-- All field names must match exactly.
+RULES:
+- ONLY include values that the user EXPLICITLY requests
+- All numeric values must be numbers or null
+- Leave arrays EMPTY unless specifically mentioned in the query
+- DO NOT guess or infer parameters that aren't clearly stated
+- For "low miles" or "low mileage" set maxMileage to 30000
+- For "new" or "recent" set minYear to 2020
+- For "older" or "used" set maxYear to 2018
+- For "cheap" or "affordable" set maxPrice to 15000
+- For "luxury" or "high-end" set minPrice to 30000
 
-Context Rules:
-- If the user mentions "cheap" or "affordable", set "maxPrice" to no more than 15000.
-- If the user mentions "expensive", set "minPrice" to at least 30000.
-- If the user mentions "new" or "recent", set "minYear" to at least 2020.
-- If the user mentions a specific year or range, reflect it in "minYear" or "maxYear".
-- If the user mentions "low mileage", optionally include "desiredFeatures": ["Low Mileage"].
+VALID VALUES:
+- preferredMakes: {json.dumps(valid_manufacturers)}
+- preferredFuelTypes: {json.dumps(valid_fuel_types)}
+- preferredVehicleTypes: {json.dumps(valid_vehicle_types)}
 
-Allowed categorical values:
-- preferredMakes: ["BMW", "Audi", "Mercedes", "Toyota", "Honda", "Ford", "Volkswagen", "Nissan", "Hyundai", "Kia", "Tesla", "Volvo", "Mazda"]
-- preferredFuelTypes: ["Petrol", "Diesel", "Electric", "Hybrid"]
-- preferredVehicleTypes: ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Wagon", "Van", "Truck"]
+EXAMPLES:
+- "electric car" → preferredFuelTypes: ["Electric"]
+- "BMW or Audi" → preferredMakes: ["BMW", "Audi"]
+- "SUV under 30000" → preferredVehicleTypes: ["SUV"], maxPrice: 30000
+- "low mileage Honda" → maxMileage: 30000, preferredMakes: ["Honda"]
+- "new Audi" → minYear: 2020, preferredMakes: ["Audi"]
 
-USER QUERY: {user_query}
+User query: {user_query}
 
-Return **only valid JSON** matching the specified format and nothing else — no comments, no explanation, no prose.
+IMPORTANT: Return ONLY the JSON object with no additional text.
 """
 
-        print("Sending request to Ollama...")
+        logger.info("Sending request to Ollama...")
         response = requests.post(
             OLLAMA_API,
             json={
                 "model": "deepseek-r1:7b",
                 "prompt": system_prompt,
                 "stream": False
-            }
+            },
+            timeout=30
         )
 
-        print("Ollama response status code:", response.status_code)
+        logger.info("Ollama response status code: %s", response.status_code)
 
         if response.status_code != 200:
-            print("ERROR: Failed to call Ollama API. Response:", response.text)
-            return jsonify(create_default_parameters()), 200
+            logger.error("Failed to call Ollama API. Response: %s", response.text)
+            return jsonify(create_default_parameters(valid_manufacturers, valid_fuel_types, valid_vehicle_types)), 200
 
         response_data = response.json()
         generated_text = response_data.get('response', '')
-        print("Raw Ollama response:", generated_text)
+        logger.info("Raw Ollama response: %s", generated_text)
 
         try:
             if '{' in generated_text and '}' in generated_text:
                 json_start = generated_text.find('{')
                 json_end = generated_text.rfind('}') + 1
                 json_str = generated_text[json_start:json_end].strip()
-                parameters = json.loads(json_str)
-                parameters = validate_and_format_parameters(parameters)
+                extracted_params = json.loads(json_str)
+                
+                # Get the final parameters with appropriate defaults
+                parameters = process_parameters(
+                    extracted_params, 
+                    valid_manufacturers, 
+                    valid_fuel_types, 
+                    valid_vehicle_types
+                )
+                
+                logger.info("Final extracted parameters: %s", parameters)
+                return jsonify(parameters), 200
             else:
-                print("ERROR: No JSON found in model response")
-                parameters = create_default_parameters()
-
-            print("Extracted parameters:", parameters)
-            return jsonify(parameters), 200
+                logger.error("No JSON found in model response")
+                return jsonify(create_default_parameters(valid_manufacturers, valid_fuel_types, valid_vehicle_types)), 200
 
         except json.JSONDecodeError as e:
-            print(f"ERROR: Failed to parse JSON from model response: {e}")
-            return jsonify(create_default_parameters()), 200
+            logger.error("Failed to parse JSON from model response: %s", e)
+            return jsonify(create_default_parameters(valid_manufacturers, valid_fuel_types, valid_vehicle_types)), 200
 
     except Exception as e:
-        print("Exception occurred:", str(e))
+        logger.exception("Exception occurred: %s", str(e))
         return jsonify(create_default_parameters()), 200
 
 
-def create_default_parameters():
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Simple health check endpoint to verify the service is running"""
+    return jsonify({"status": "ok", "message": "Parameter extraction service is running"}), 200
+
+
+def create_default_parameters(makes=None, fuel_types=None, vehicle_types=None):
+    """Create default parameters with all possible values for arrays"""
+    if makes is None:
+        makes = []
+    if fuel_types is None:
+        fuel_types = []
+    if vehicle_types is None:
+        vehicle_types = []
+        
     return {
         "minPrice": None,
         "maxPrice": None,
         "minYear": None,
         "maxYear": None,
+        "maxMileage": None,
+        "preferredMakes": makes,
+        "preferredFuelTypes": fuel_types,
+        "preferredVehicleTypes": vehicle_types,
+        "desiredFeatures": []
+    }
+
+
+def process_parameters(params, valid_makes, valid_fuel_types, valid_vehicle_types):
+    """Process extracted parameters and apply defaults where needed"""
+    # Start with clean parameters
+    result = {
+        "minPrice": None,
+        "maxPrice": None,
+        "minYear": None,
+        "maxYear": None,
+        "maxMileage": None,
         "preferredMakes": [],
         "preferredFuelTypes": [],
         "preferredVehicleTypes": [],
         "desiredFeatures": []
     }
-
-
-def validate_and_format_parameters(params):
-    valid_params = create_default_parameters()
-
-    for field in ["minPrice", "maxPrice", "minYear", "maxYear"]:
-        if field in params and (params[field] is None or isinstance(params[field], (int, float))):
-            valid_params[field] = params[field]
-
-    valid_manufacturers = ["BMW", "Audi", "Mercedes", "Toyota", "Honda", "Ford",
-                           "Volkswagen", "Nissan", "Hyundai", "Kia", "Tesla", "Volvo", "Mazda"]
-    valid_fuel_types = ["Petrol", "Diesel", "Electric", "Hybrid"]
-    valid_vehicle_types = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Wagon", "Van", "Truck"]
-
-    for field_name in ["manufacturers", "preferredMakes"]:
-        if field_name in params and isinstance(params[field_name], list):
-            valid_params["preferredMakes"] = [m for m in params[field_name] if isinstance(m, str) and m in valid_manufacturers]
-
-    for field_name in ["fuelType", "preferredFuelTypes"]:
-        if field_name in params and isinstance(params[field_name], list):
-            valid_params["preferredFuelTypes"] = [f for f in params[field_name] if isinstance(f, str) and f in valid_fuel_types]
-
-    for field_name in ["bodyType", "preferredVehicleTypes"]:
-        if field_name in params and isinstance(params[field_name], list):
-            valid_params["preferredVehicleTypes"] = [b for b in params[field_name] if isinstance(b, str) and b in valid_vehicle_types]
-
-    if "desiredFeatures" in params and isinstance(params["desiredFeatures"], list):
-        valid_params["desiredFeatures"] = [f for f in params["desiredFeatures"] if isinstance(f, str)]
-
-    return valid_params
+    
+    # Copy numerical values if present
+    for field in ["minPrice", "maxPrice", "minYear", "maxYear", "maxMileage"]:
+        if field in params and params[field] is not None and isinstance(params[field], (int, float)):
+            result[field] = params[field]
+    
+    # Process arrays with validation
+    if params.get("preferredMakes") and isinstance(params["preferredMakes"], list):
+        result["preferredMakes"] = [m for m in params["preferredMakes"] 
+                                   if isinstance(m, str) and m in valid_makes]
+    
+    if params.get("preferredFuelTypes") and isinstance(params["preferredFuelTypes"], list):
+        result["preferredFuelTypes"] = [f for f in params["preferredFuelTypes"] 
+                                       if isinstance(f, str) and f in valid_fuel_types]
+    
+    if params.get("preferredVehicleTypes") and isinstance(params["preferredVehicleTypes"], list):
+        result["preferredVehicleTypes"] = [v for v in params["preferredVehicleTypes"] 
+                                          if isinstance(v, str) and v in valid_vehicle_types]
+    
+    if params.get("desiredFeatures") and isinstance(params["desiredFeatures"], list):
+        result["desiredFeatures"] = [f for f in params["desiredFeatures"] if isinstance(f, str)]
+    
+    # Fill in defaults for empty arrays
+    if not result["preferredMakes"]:
+        result["preferredMakes"] = valid_makes.copy()
+    
+    if not result["preferredFuelTypes"]:
+        result["preferredFuelTypes"] = valid_fuel_types.copy()
+    
+    if not result["preferredVehicleTypes"]:
+        result["preferredVehicleTypes"] = valid_vehicle_types.copy()
+    
+    return result
 
 
 if __name__ == '__main__':
