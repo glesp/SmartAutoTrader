@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
@@ -6,11 +6,13 @@ import ChatInterface from '../components/chat/ChatInterface'
 // Import Material-UI components
 import Fab from '@mui/material/Fab';
 import ChatIcon from '@mui/icons-material/Chat';
-import CloseIcon from '@mui/icons-material/Close';
+import MinimizeIcon from '@mui/icons-material/Minimize';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
+import Slide from '@mui/material/Slide';
+import Badge from '@mui/material/Badge';
 
 // Types for the chat component integration
 interface Vehicle {
@@ -43,8 +45,9 @@ const RecommendationsPage = () => {
   )
   const [recommendedVehicles, setRecommendedVehicles] = useState<Vehicle[]>([])
   const [parameters, setParameters] = useState<RecommendationParameters>({})
-  const [showChatButton, setShowChatButton] = useState(true)
-  const [showChatInterface, setShowChatInterface] = useState(false)
+  const [isChatMinimized, setIsChatMinimized] = useState(true)
+  const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false)
+  const [showChatBadge, setShowChatBadge] = useState(false)
 
   // Show loading state while checking authentication
   if (loading) {
@@ -62,21 +65,30 @@ const RecommendationsPage = () => {
     newParams: RecommendationParameters
   ) => {
     console.log("Received recommendations:", vehicles.length, "vehicles");
-    setRecommendedVehicles(vehicles)
-    setParameters(newParams)
-    setActiveTab('recommendations')
+    setRecommendedVehicles(vehicles);
+    setParameters(newParams);
+    
+    // Set flag for animation
+    setNewRecommendationsFlag(true);
+    
+    // Show badge on minimized chat to indicate new recommendations
+    if (isChatMinimized) {
+      setShowChatBadge(true);
+    }
+    
+    // Reset flag after animation completes
+    setTimeout(() => {
+      setNewRecommendationsFlag(false);
+    }, 2000);
   }
 
-  // Open chat
-  const openChat = () => {
-    setShowChatButton(false)
-    setShowChatInterface(true)
-  }
-
-  // Close chat
-  const closeChat = () => {
-    setShowChatInterface(false)
-    setShowChatButton(true)
+  // Toggle chat minimized state
+  const toggleChat = () => {
+    setIsChatMinimized(!isChatMinimized);
+    if (!isChatMinimized) {
+      // When minimizing, clear any badge notification
+      setShowChatBadge(false);
+    }
   }
 
   return (
@@ -119,111 +131,109 @@ const RecommendationsPage = () => {
         </ul>
       </div>
 
-      {/* Tab Content */}
-      <div className="mb-8">
+      {/* Main Content Area - with recommendation highlight effect */}
+      <div className={`mb-8 transition-all duration-500 ${newRecommendationsFlag ? 'bg-blue-50 rounded-lg p-4' : ''}`}>
         {activeTab === 'recommendations' ? (
-          // Always use VehicleRecommendations and pass the vehicles as props
           <VehicleRecommendations 
             recommendedVehicles={recommendedVehicles} 
             parameters={parameters} 
           />
         ) : (
-          // Show chat interface when on assistant tab
           <div className="h-[600px] max-w-full">
-           <div className="relative w-full h-full bg-white border rounded-lg shadow-md overflow-hidden">
-             <ChatInterface
-              onRecommendationsUpdated={handleRecommendationsUpdate}
-           />
+            <div className="relative w-full h-full bg-white border rounded-lg shadow-md overflow-hidden">
+              <ChatInterface
+                onRecommendationsUpdated={handleRecommendationsUpdate}
+              />
             </div>
           </div>
         )}
       </div>
 
-      {/* If on recommendations tab, show assistant promo */}
-      {activeTab === 'recommendations' && (
+      {/* Show assistant promo only if there are no recommendations yet */}
+      {activeTab === 'recommendations' && recommendedVehicles.length === 0 && (
         <div className="bg-blue-50 p-5 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold text-blue-800">
             Need help finding your perfect car?
           </h2>
           <p className="mt-2 text-blue-700">
             Our AI assistant can help you discover vehicles based on your
-            specific requirements and preferences.
+            specific requirements and preferences. Use the chat in the bottom right corner!
           </p>
-          <button
-            onClick={() => setActiveTab('assistant')}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Chat with AI Assistant
-          </button>
         </div>
       )}
 
-      {/* Material-UI Messenger-style Chat Button */}
-      {activeTab === 'recommendations' && showChatButton && (
-        <Box sx={{ 
-          position: 'fixed', 
-          bottom: 24, 
-          right: 24, 
-          zIndex: 1050 
-        }}>
-          <Fab 
-            color="primary" 
-            aria-label="chat"
-            onClick={openChat}
-            className="pulse-animation"
-          >
-            <ChatIcon />
-          </Fab>
-        </Box>
-      )}
-
-      {/* Material-UI Messenger-style Chat Interface */}
-      {activeTab === 'recommendations' && showChatInterface && (
-        <Paper 
-          elevation={8}
+      {/* Facebook Messenger Style Chat - Header Always Visible */}
+      {activeTab === 'recommendations' && (
+        <Paper
+          elevation={3}
           sx={{
             position: 'fixed',
             bottom: 0,
             right: 24,
-            width: { xs: '320px', sm: '380px' },
-            height: '400px',
+            width: { xs: '320px', sm: '350px' },
+            height: isChatMinimized ? 'auto' : '400px',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
             zIndex: 1050,
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
-            borderBottomLeftRadius: 0,
-            borderBottomRightRadius: 0
+            overflow: 'hidden',
+            transition: 'all 0.2s ease'
           }}
         >
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
               justifyContent: 'space-between',
               backgroundColor: 'primary.main',
               color: 'white',
-              p: 1.5
+              p: 1.5,
+              cursor: 'pointer'
             }}
+            onClick={toggleChat}
           >
-            <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 500 }}>
-              Smart Auto Assistant
-            </Typography>
-            <IconButton 
-              size="small" 
-              onClick={closeChat}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Badge
+                color="error"
+                variant="dot"
+                invisible={!showChatBadge}
+                sx={{ mr: 1 }}
+              >
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    backgroundColor: '#4caf50',
+                    marginRight: 1
+                  }}
+                />
+              </Badge>
+              <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 500 }}>
+                Smart Auto Assistant
+              </Typography>
+            </Box>
+            <IconButton
+              size="small"
               sx={{ color: 'white' }}
-              aria-label="close chat"
+              aria-label={isChatMinimized ? "Expand chat" : "Minimize chat"}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleChat();
+              }}
             >
-              <CloseIcon fontSize="small" />
+              <MinimizeIcon fontSize="small" />
             </IconButton>
           </Box>
-          <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
-            <ChatInterface 
-              onRecommendationsUpdated={handleRecommendationsUpdate}
-            />
-          </Box>
+
+          <Slide direction="up" in={!isChatMinimized} mountOnEnter unmountOnExit>
+            <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+              <ChatInterface
+                onRecommendationsUpdated={handleRecommendationsUpdate}
+              />
+            </Box>
+          </Slide>
         </Paper>
       )}
     </div>

@@ -4,13 +4,15 @@ import { AuthContext } from '../../contexts/AuthContext'
 // Import Material-UI components
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
 import CircularProgress from '@mui/material/CircularProgress'
 import SendIcon from '@mui/icons-material/Send'
 import InputAdornment from '@mui/material/InputAdornment'
 import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import Chip from '@mui/material/Chip'
+import Zoom from '@mui/material/Zoom'
 
 // Type definitions
 interface ChatInterfaceProps {
@@ -140,12 +142,20 @@ const ChatInterface = ({
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [updatingRecommendations, setUpdatingRecommendations] = useState<boolean>(false)
   const [clarificationState, setClarificationState] = useState<{
     awaiting: boolean
     originalUserInput: string
   }>({ awaiting: false, originalUserInput: '' })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { token } = useContext(AuthContext)
+
+  // Suggested prompts
+  const suggestedPrompts = [
+    "I need an SUV under €30,000",
+    "Show me electric cars with good range",
+    "Family cars with low mileage"
+  ];
 
   // Load chat history on component mount
   useEffect(() => {
@@ -200,14 +210,15 @@ const ChatInterface = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendMessage = async (e: React.FormEvent | null = null, promptText: string | null = null) => {
+    if (e) e.preventDefault()
 
-    if (!input.trim()) return
+    const messageText = promptText || input;
+    if (!messageText.trim()) return
 
     const userMessage: Message = {
       id: Date.now(),
-      content: input,
+      content: messageText,
       sender: 'user',
       timestamp: new Date(),
     }
@@ -220,11 +231,11 @@ const ChatInterface = ({
       // Prepare the message payload based on whether we're in clarification mode
       const payload = clarificationState.awaiting
         ? {
-            content: input,
+            content: messageText,
             originalUserInput: clarificationState.originalUserInput,
             isClarification: true,
           }
-        : { content: input }
+        : { content: messageText }
 
       const response = await axios.post('/api/chat/message', payload, {
         headers: {
@@ -251,14 +262,13 @@ const ChatInterface = ({
 
         console.log('📦 Chat response parameters:', responseData.parameters)
 
-
         // If clarification is needed, update the clarification state
         if (responseData.clarificationNeeded) {
           setClarificationState({
             awaiting: true,
             originalUserInput: clarificationState.awaiting
               ? clarificationState.originalUserInput
-              : input,
+              : messageText,
           })
         } else {
           // If we get a final answer, reset clarification state
@@ -269,10 +279,19 @@ const ChatInterface = ({
 
           // Update recommendations in parent component if available
           if (onRecommendationsUpdated && responseData.recommendedVehicles) {
+            // Show updating indicator
+            setUpdatingRecommendations(true);
+            
+            // Update recommendations
             onRecommendationsUpdated(
               responseData.recommendedVehicles,
               responseData.parameters || {}
             )
+            
+            // Hide indicator after a delay
+            setTimeout(() => {
+              setUpdatingRecommendations(false);
+            }, 1500);
           }
         }
       }
@@ -299,6 +318,12 @@ const ChatInterface = ({
     }
   }
 
+  // Handle clicking a suggested prompt
+  const handleSuggestedPrompt = (prompt: string) => {
+    setInput(prompt);
+    handleSendMessage(null, prompt);
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -306,6 +331,31 @@ const ChatInterface = ({
       height: '100%',
       bgcolor: 'background.paper'
     }}>
+      {/* Recommendations updating indicator */}
+      {updatingRecommendations && (
+        <Zoom in={updatingRecommendations}>
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            textAlign: 'center',
+            py: 0.5,
+            bgcolor: 'primary.main',
+            color: 'white',
+            fontSize: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1
+          }}>
+            <CircularProgress size={14} thickness={4} sx={{ color: 'white' }} />
+            <Typography variant="caption">Updating recommendations...</Typography>
+          </Box>
+        </Zoom>
+      )}
+
       <Box 
         sx={{ 
           flexGrow: 1, 
@@ -340,25 +390,29 @@ const ChatInterface = ({
               height: '100%',
               textAlign: 'center',
               color: 'text.secondary',
-              py: 4
+              py: 2
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>
               Welcome to Smart Auto Assistant!
             </Typography>
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Ask me questions like:
+            
+            <Typography variant="caption" sx={{ mb: 2 }}>
+              Ask me questions or try these:
             </Typography>
-            <Box component="ul" sx={{ mt: 0.5, textAlign: 'left', p: 0 }}>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                "I'm looking for an SUV under €30,000"
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                "Show me electric cars with good range"
-              </Typography>
-              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                "What family cars would you recommend?"
-              </Typography>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+              {suggestedPrompts.map((prompt, index) => (
+                <Chip
+                  key={index}
+                  label={prompt}
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  onClick={() => handleSuggestedPrompt(prompt)}
+                  sx={{ cursor: 'pointer' }}
+                />
+              ))}
             </Box>
           </Box>
         )}
@@ -369,14 +423,14 @@ const ChatInterface = ({
             sx={{
               display: 'flex',
               justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-              mb: 1,
+              mb: 0.5,
               animation: 'fadeIn 0.3s ease-out forwards'
             }}
           >
             <Paper
               elevation={0}
               sx={{
-                maxWidth: '75%',
+                maxWidth: '85%',
                 p: 1.5,
                 backgroundColor: message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
                 borderRadius: 2
@@ -384,51 +438,31 @@ const ChatInterface = ({
             >
               <Typography 
                 variant="body2" 
-                sx={{ whiteSpace: 'pre-wrap' }}
+                sx={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}
               >
                 {message.content}
               </Typography>
 
               {message.vehicles && message.vehicles.length > 0 && (
-                <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                   <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
-                    Here are some recommendations:
+                    Found {message.vehicles.length} matching vehicles
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {message.vehicles.slice(0, 2).map((vehicle) => (
-                      <Paper
-                        key={vehicle.id}
-                        elevation={1}
-                        sx={{ p: 1, display: 'flex', alignItems: 'center' }}
-                      >
-                        <Box
-                          component="img"
-                          src={getImageUrl(vehicle)}
-                          alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-                          sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
-                        />
-                        <Box sx={{ ml: 1, flex: 1 }}>
-                          <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                            {vehicle.year} {vehicle.make} {vehicle.model}
-                          </Typography>
-                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                            {formatCurrency(vehicle.price)} · {getFuelTypeString(vehicle.fuelType)} · {getVehicleTypeString(vehicle.vehicleType)}
-                          </Typography>
-                        </Box>
-                      </Paper>
-                    ))}
-                    {message.vehicles.length > 2 && (
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
-                          textAlign: 'center', 
-                          color: 'primary.main'
-                        }}
-                      >
-                        + {message.vehicles.length - 2} more recommendations
-                      </Typography>
-                    )}
-                  </Box>
+                  <Tooltip title="Results shown in main content area">
+                    <Box 
+                      component="span" 
+                      sx={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        ml: 0.5,
+                        color: 'primary.main', 
+                        cursor: 'help',
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      ⓘ
+                    </Box>
+                  </Tooltip>
                 </Box>
               )}
 
@@ -451,7 +485,8 @@ const ChatInterface = ({
                 sx={{ 
                   display: 'block', 
                   mt: 0.5,
-                  color: 'text.secondary'
+                  color: 'text.secondary',
+                  fontSize: '0.7rem'
                 }}
               >
                 {message.timestamp.toLocaleTimeString([], {
@@ -468,7 +503,7 @@ const ChatInterface = ({
             <Paper
               elevation={0}
               sx={{
-                p: 2,
+                p: 1.5,
                 backgroundColor: '#f5f5f5',
                 borderRadius: 2,
                 display: 'flex',
@@ -476,12 +511,12 @@ const ChatInterface = ({
                 alignItems: 'center'
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
                 <CircularProgress size={8} sx={{ color: 'primary.main' }} />
                 <CircularProgress size={8} sx={{ color: 'primary.main' }} />
                 <CircularProgress size={8} sx={{ color: 'primary.main' }} />
               </Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, fontSize: '0.75rem' }}>
                 Thinking...
               </Typography>
             </Paper>
