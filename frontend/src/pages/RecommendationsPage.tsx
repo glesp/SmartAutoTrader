@@ -3,6 +3,14 @@ import { Navigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
 import ChatInterface from '../components/chat/ChatInterface'
+// Import Material-UI components
+import Fab from '@mui/material/Fab';
+import ChatIcon from '@mui/icons-material/Chat';
+import CloseIcon from '@mui/icons-material/Close';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 
 // Types for the chat component integration
 interface Vehicle {
@@ -35,6 +43,8 @@ const RecommendationsPage = () => {
   )
   const [recommendedVehicles, setRecommendedVehicles] = useState<Vehicle[]>([])
   const [parameters, setParameters] = useState<RecommendationParameters>({})
+  const [showChatButton, setShowChatButton] = useState(true)
+  const [showChatInterface, setShowChatInterface] = useState(false)
 
   // Show loading state while checking authentication
   if (loading) {
@@ -57,8 +67,20 @@ const RecommendationsPage = () => {
     setActiveTab('recommendations')
   }
 
+  // Open chat
+  const openChat = () => {
+    setShowChatButton(false)
+    setShowChatInterface(true)
+  }
+
+  // Close chat
+  const closeChat = () => {
+    setShowChatInterface(false)
+    setShowChatButton(true)
+  }
+
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 pb-20">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Personalized Recommendations</h1>
         <p className="text-gray-600 mt-2">
@@ -107,13 +129,12 @@ const RecommendationsPage = () => {
           />
         ) : (
           // Show chat interface when on assistant tab
-          <div
-            className="bg-gray-50 p-4 rounded-lg shadow-sm"
-            style={{ height: '600px' }}
-          >
-            <ChatInterface
+          <div className="h-[600px] max-w-full">
+           <div className="relative w-full h-full bg-white border rounded-lg shadow-md overflow-hidden">
+             <ChatInterface
               onRecommendationsUpdated={handleRecommendationsUpdate}
-            />
+           />
+            </div>
           </div>
         )}
       </div>
@@ -135,6 +156,75 @@ const RecommendationsPage = () => {
             Chat with AI Assistant
           </button>
         </div>
+      )}
+
+      {/* Material-UI Messenger-style Chat Button */}
+      {activeTab === 'recommendations' && showChatButton && (
+        <Box sx={{ 
+          position: 'fixed', 
+          bottom: 24, 
+          right: 24, 
+          zIndex: 1050 
+        }}>
+          <Fab 
+            color="primary" 
+            aria-label="chat"
+            onClick={openChat}
+            className="pulse-animation"
+          >
+            <ChatIcon />
+          </Fab>
+        </Box>
+      )}
+
+      {/* Material-UI Messenger-style Chat Interface */}
+      {activeTab === 'recommendations' && showChatInterface && (
+        <Paper 
+          elevation={8}
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            right: 24,
+            width: { xs: '320px', sm: '380px' },
+            height: '400px',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            zIndex: 1050,
+            borderTopLeftRadius: 8,
+            borderTopRightRadius: 8,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0
+          }}
+        >
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              backgroundColor: 'primary.main',
+              color: 'white',
+              p: 1.5
+            }}
+          >
+            <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 500 }}>
+              Smart Auto Assistant
+            </Typography>
+            <IconButton 
+              size="small" 
+              onClick={closeChat}
+              sx={{ color: 'white' }}
+              aria-label="close chat"
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+            <ChatInterface 
+              onRecommendationsUpdated={handleRecommendationsUpdate}
+            />
+          </Box>
+        </Paper>
       )}
     </div>
   )

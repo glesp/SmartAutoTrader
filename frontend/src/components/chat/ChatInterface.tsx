@@ -1,6 +1,16 @@
 import { useState, useRef, useEffect, useContext } from 'react'
 import axios from 'axios'
 import { AuthContext } from '../../contexts/AuthContext'
+// Import Material-UI components
+import Box from '@mui/material/Box'
+import TextField from '@mui/material/TextField'
+import Button from '@mui/material/Button'
+import Typography from '@mui/material/Typography'
+import Paper from '@mui/material/Paper'
+import CircularProgress from '@mui/material/CircularProgress'
+import SendIcon from '@mui/icons-material/Send'
+import InputAdornment from '@mui/material/InputAdornment'
+import IconButton from '@mui/material/IconButton'
 
 // Type definitions
 interface ChatInterfaceProps {
@@ -124,7 +134,9 @@ const getVehicleTypeString = (vehicleType: number): string => {
   return vehicleTypes[vehicleType] || 'Unknown'
 }
 
-const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
+const ChatInterface = ({ 
+  onRecommendationsUpdated,
+}: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -288,142 +300,250 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
-      <div className="p-4 bg-blue-600 text-white rounded-t-lg">
-        <h2 className="text-xl font-semibold">Smart Auto Assistant</h2>
-        <p className="text-sm text-blue-100">
-          Ask me about cars and I'll help you find the perfect match!
-        </p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%',
+      bgcolor: 'background.paper'
+    }}>
+      <Box 
+        sx={{ 
+          flexGrow: 1, 
+          overflowY: 'auto',
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1.5,
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#f1f1f1',
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#c1c1c1',
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            backgroundColor: '#a8a8a8',
+          },
+        }}
+      >
         {messages.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-gray-500">
-              <p className="font-medium">Welcome to Smart Auto Assistant!</p>
-              <p className="text-sm mt-2">Ask me questions like:</p>
-              <ul className="text-sm mt-1 space-y-1">
-                <li>"I'm looking for an SUV under €30,000"</li>
-                <li>"Show me electric cars with good range"</li>
-                <li>"What family cars would you recommend?"</li>
-              </ul>
-            </div>
-          </div>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              textAlign: 'center',
+              color: 'text.secondary',
+              py: 4
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              Welcome to Smart Auto Assistant!
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Ask me questions like:
+            </Typography>
+            <Box component="ul" sx={{ mt: 0.5, textAlign: 'left', p: 0 }}>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                "I'm looking for an SUV under €30,000"
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                "Show me electric cars with good range"
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                "What family cars would you recommend?"
+              </Typography>
+            </Box>
+          </Box>
         )}
 
         {messages.map((message) => (
-          <div
+          <Box
             key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            sx={{
+              display: 'flex',
+              justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+              mb: 1,
+              animation: 'fadeIn 0.3s ease-out forwards'
+            }}
           >
-            <div
-              className={`max-w-3/4 rounded-lg p-3 ${
-                message.sender === 'user'
-                  ? 'bg-blue-100 text-blue-900'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
+            <Paper
+              elevation={0}
+              sx={{
+                maxWidth: '75%',
+                p: 1.5,
+                backgroundColor: message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
+                borderRadius: 2
+              }}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <Typography 
+                variant="body2" 
+                sx={{ whiteSpace: 'pre-wrap' }}
+              >
+                {message.content}
+              </Typography>
 
               {message.vehicles && message.vehicles.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <p className="font-medium text-sm text-blue-700">
+                <Box sx={{ mt: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
                     Here are some recommendations:
-                  </p>
-                  <div className="grid grid-cols-1 gap-2">
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     {message.vehicles.slice(0, 2).map((vehicle) => (
-                      <div
+                      <Paper
                         key={vehicle.id}
-                        className="flex items-center p-2 bg-white rounded-md shadow-sm"
+                        elevation={1}
+                        sx={{ p: 1, display: 'flex', alignItems: 'center' }}
                       >
-                        <img
+                        <Box
+                          component="img"
                           src={getImageUrl(vehicle)}
                           alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-                          className="w-12 h-12 object-cover rounded-md"
+                          sx={{ width: 40, height: 40, borderRadius: 1, objectFit: 'cover' }}
                         />
-                        <div className="ml-2 flex-1">
-                          <p className="font-medium text-sm">
+                        <Box sx={{ ml: 1, flex: 1 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 500 }}>
                             {vehicle.year} {vehicle.make} {vehicle.model}
-                          </p>
-                          <p className="text-xs text-gray-600">
-                            {formatCurrency(vehicle.price)} ·{' '}
-                            {getFuelTypeString(vehicle.fuelType)} ·{' '}
-                            {getVehicleTypeString(vehicle.vehicleType)}
-                          </p>
-                        </div>
-                      </div>
+                          </Typography>
+                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                            {formatCurrency(vehicle.price)} · {getFuelTypeString(vehicle.fuelType)} · {getVehicleTypeString(vehicle.vehicleType)}
+                          </Typography>
+                        </Box>
+                      </Paper>
                     ))}
                     {message.vehicles.length > 2 && (
-                      <p className="text-xs text-blue-600 text-center">
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          textAlign: 'center', 
+                          color: 'primary.main'
+                        }}
+                      >
                         + {message.vehicles.length - 2} more recommendations
-                      </p>
+                      </Typography>
                     )}
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               )}
 
               {message.clarificationNeeded && message.sender === 'ai' && (
-                <div className="mt-2 text-sm font-medium text-blue-700">
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block', 
+                    mt: 1,
+                    fontWeight: 500,
+                    color: 'primary.main'
+                  }}
+                >
                   I need more information to help you find the perfect vehicle.
-                </div>
+                </Typography>
               )}
 
-              <p className="text-xs text-gray-500 mt-1">
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  display: 'block', 
+                  mt: 0.5,
+                  color: 'text.secondary'
+                }}
+              >
                 {message.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
-              </p>
-            </div>
-          </div>
+              </Typography>
+            </Paper>
+          </Box>
         ))}
 
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg p-4">
-              <div className="animate-pulse flex space-x-2 justify-center">
-                <div className="rounded-full bg-blue-400 h-2 w-2"></div>
-                <div className="rounded-full bg-blue-400 h-2 w-2"></div>
-                <div className="rounded-full bg-blue-400 h-2 w-2"></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Thinking...</p>
-            </div>
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                backgroundColor: '#f5f5f5',
+                borderRadius: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                <CircularProgress size={8} sx={{ color: 'primary.main' }} />
+                <CircularProgress size={8} sx={{ color: 'primary.main' }} />
+                <CircularProgress size={8} sx={{ color: 'primary.main' }} />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                Thinking...
+              </Typography>
+            </Paper>
+          </Box>
         )}
 
         <div ref={messagesEndRef} />
-      </div>
+      </Box>
 
-      <form onSubmit={handleSendMessage} className="p-4 border-t">
-        <div className="flex">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              clarificationState.awaiting
-                ? 'Please provide more details...'
-                : 'Ask about cars, features, or preferences...'
-            }
-            className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            disabled={isLoading || !input.trim()}
-          >
-            Send
-          </button>
-        </div>
+      <Box 
+        component="form" 
+        onSubmit={handleSendMessage} 
+        sx={{ 
+          p: 1.5,
+          borderTop: 1,
+          borderColor: 'divider' 
+        }}
+      >
+        <TextField
+          fullWidth
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={
+            clarificationState.awaiting
+              ? 'Please provide more details...'
+              : 'Ask about cars...'
+          }
+          disabled={isLoading}
+          size="small"
+          variant="outlined"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton 
+                  edge="end" 
+                  color="primary"
+                  disabled={isLoading || !input.trim()}
+                  type="submit"
+                >
+                  <SendIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ mb: clarificationState.awaiting ? 0.5 : 0 }}
+        />
+        
         {clarificationState.awaiting && (
-          <p className="text-xs text-blue-600 mt-1">
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              color: 'primary.main',
+              mt: 0.5
+            }}
+          >
             I'm asking follow-up questions to better understand your needs
-          </p>
+          </Typography>
         )}
-      </form>
-    </div>
-  )
+      </Box>
+    </Box>
+  );
 }
 
 export default ChatInterface
