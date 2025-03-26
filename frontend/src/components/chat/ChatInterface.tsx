@@ -703,6 +703,75 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                   </Tooltip>
                 </Box>
               )}
+              {/* show vehicles in the chat interface */}
+              {/* {message.vehicles && message.vehicles.length > 0 && (
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {message.vehicles.slice(0, 3).map((vehicle) => {
+                    const vehicleImages = extractArray(vehicle.images)
+                    const primaryImage = vehicleImages.find(
+                      (img) => img.isPrimary
+                    )
+
+                    return (
+                      <Box
+                        key={vehicle.id}
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          borderRadius: 1,
+                          overflow: 'hidden',
+                          border: '1px solid #eee',
+                          width: 80,
+                        }}
+                      >
+                        {primaryImage ? (
+                          <Box
+                            component="img"
+                            src={primaryImage.imageUrl}
+                            alt={`${vehicle.make} ${vehicle.model}`}
+                            sx={{
+                              width: '100%',
+                              height: 50,
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <Box
+                            sx={{
+                              width: '100%',
+                              height: 50,
+                              bgcolor: '#f0f0f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{ color: '#999' }}
+                            >
+                              No image
+                            </Typography>
+                          </Box>
+                        )}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.7rem',
+                            p: 0.5,
+                            textAlign: 'center',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {vehicle.make} {vehicle.model}
+                        </Typography>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              )} */}
 
               {message.clarificationNeeded && message.sender === 'ai' && (
                 <Typography
