@@ -158,6 +158,21 @@ namespace SmartAutoTrader.API.Services
                         ConversationId = message.ConversationId
                     };
                 }
+                
+                if (extractedParameters.IsOffTopic && !string.IsNullOrEmpty(extractedParameters.OffTopicResponse))
+                {
+                    // Return the off-topic response directly without further processing
+                    await SaveChatHistoryAsync(userId, message, extractedParameters.OffTopicResponse, conversationSessionId);
+    
+                    return new ChatResponse
+                    {
+                        Message = extractedParameters.OffTopicResponse,
+                        RecommendedVehicles = new List<Vehicle>(),
+                        UpdatedParameters = new RecommendationParameters(),
+                        ClarificationNeeded = false,
+                        ConversationId = message.ConversationId
+                    };
+                }
 
                 _logger.LogInformation("Parameter extraction completed successfully");
                 
@@ -725,6 +740,16 @@ namespace SmartAutoTrader.API.Services
                 if (!RecommendationParameterValidator.Validate(parameters, out var errorMessage))
                 {
                     _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
+                }
+                
+                // Parse the off-topic flags
+                parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out var isOffTopicElement) 
+                                        && isOffTopicElement.ValueKind == JsonValueKind.True;
+
+                if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out var responseElement) 
+                                          && responseElement.ValueKind == JsonValueKind.String)
+                {
+                    parameters.OffTopicResponse = responseElement.GetString();
                 }
                 
                 _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));

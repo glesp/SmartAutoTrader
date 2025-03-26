@@ -48,7 +48,9 @@ YOUR RESPONSE MUST ONLY CONTAIN VALID JSON with this exact format:
   "preferredMakes": [],
   "preferredFuelTypes": [],
   "preferredVehicleTypes": [],
-  "desiredFeatures": []
+  "desiredFeatures": [],
+  "isOffTopic": false,
+  "offTopicResponse": null
 }}
 
 RULES:
@@ -62,17 +64,32 @@ RULES:
 - For "cheap" or "affordable" set maxPrice to 15000
 - For "luxury" or "high-end" set minPrice to 30000
 
+CHANGE HANDLING RULES:
+- When the user says "change", "instead", "switch to", or similar phrasing, ONLY include the NEW values they want
+- For example, if the user says "change from Mazda SUV to Toyota", ONLY include Toyota in preferredMakes
+- For example, if the user says "make it electric instead", ONLY include Electric in preferredFuelTypes
+- For follow-up queries like "can you show me sedans instead", ONLY include Sedan in preferredVehicleTypes
+- Do not include both old and new values when the user is clearly requesting a change
+
+OFF-TOPIC HANDLING RULES:
+- Set "isOffTopic" to true if the query is not about automobiles, vehicles, or car shopping
+- If isOffTopic is true, provide a friendly response in "offTopicResponse" suggesting they ask about cars
+- For example, if user asks about spaceships, set offTopicResponse to "I'm your automotive assistant, so I can't help with spaceships. However, I'd be happy to help you find a vehicle here on Earth! What kind of car are you looking for?"
+- Examples of off-topic queries: "I need a spaceship", "What's the weather like?", "Can you recommend a restaurant?"
+- Empty or very vague queries like "hello" or "help" are NOT off-topic; respond with guidance about cars
+
 VALID VALUES:
 - preferredMakes: {json.dumps(valid_manufacturers)}
 - preferredFuelTypes: {json.dumps(valid_fuel_types)}
 - preferredVehicleTypes: {json.dumps(valid_vehicle_types)}
 
 EXAMPLES:
-- "electric car" → preferredFuelTypes: ["Electric"]
-- "BMW or Audi" → preferredMakes: ["BMW", "Audi"]
-- "SUV under 30000" → preferredVehicleTypes: ["SUV"], maxPrice: 30000
-- "low mileage Honda" → maxMileage: 30000, preferredMakes: ["Honda"]
-- "new Audi" → minYear: 2020, preferredMakes: ["Audi"]
+- "electric car" → preferredFuelTypes: ["Electric"], isOffTopic: false
+- "BMW or Audi" → preferredMakes: ["BMW", "Audi"], isOffTopic: false
+- "SUV under 30000" → preferredVehicleTypes: ["SUV"], maxPrice: 30000, isOffTopic: false
+- "Mazda SUV please! Can I change the brand to Toyota?" → preferredMakes: ["Toyota"], preferredVehicleTypes: ["SUV"], isOffTopic: false
+- "I need a spaceship" → isOffTopic: true, offTopicResponse: "I'm your automotive assistant, so I can't help with spaceships. However, I'd be happy to help you find a vehicle here on Earth! What kind of car are you looking for?"
+- "hello" → isOffTopic: false (this is vague but not off-topic; guide them to ask about cars)
 
 User query: {user_query}
 
@@ -154,7 +171,9 @@ def create_default_parameters(makes=None, fuel_types=None, vehicle_types=None):
         "preferredMakes": makes,
         "preferredFuelTypes": fuel_types,
         "preferredVehicleTypes": vehicle_types,
-        "desiredFeatures": []
+        "desiredFeatures": [],
+        "isOffTopic": False,
+        "offTopicResponse": None
     }
 
 
@@ -170,7 +189,9 @@ def process_parameters(params, valid_makes, valid_fuel_types, valid_vehicle_type
         "preferredMakes": [],
         "preferredFuelTypes": [],
         "preferredVehicleTypes": [],
-        "desiredFeatures": []
+        "desiredFeatures": [],
+        "isOffTopic": False,
+        "offTopicResponse": None
     }
     
     # Copy numerical values if present
@@ -194,15 +215,24 @@ def process_parameters(params, valid_makes, valid_fuel_types, valid_vehicle_type
     if params.get("desiredFeatures") and isinstance(params["desiredFeatures"], list):
         result["desiredFeatures"] = [f for f in params["desiredFeatures"] if isinstance(f, str)]
     
-    # Fill in defaults for empty arrays
-    if not result["preferredMakes"]:
-        result["preferredMakes"] = valid_makes.copy()
+    # Copy off-topic status and response if present
+    if "isOffTopic" in params and isinstance(params["isOffTopic"], bool):
+        result["isOffTopic"] = params["isOffTopic"]
     
-    if not result["preferredFuelTypes"]:
-        result["preferredFuelTypes"] = valid_fuel_types.copy()
+    if "offTopicResponse" in params and isinstance(params["offTopicResponse"], str):
+        result["offTopicResponse"] = params["offTopicResponse"]
     
-    if not result["preferredVehicleTypes"]:
-        result["preferredVehicleTypes"] = valid_vehicle_types.copy()
+    # Only fill in defaults for arrays if not off-topic
+    if not result["isOffTopic"]:
+        # Fill in defaults for empty arrays
+        if not result["preferredMakes"]:
+            result["preferredMakes"] = valid_makes.copy()
+        
+        if not result["preferredFuelTypes"]:
+            result["preferredFuelTypes"] = valid_fuel_types.copy()
+        
+        if not result["preferredVehicleTypes"]:
+            result["preferredVehicleTypes"] = valid_vehicle_types.copy()
     
     return result
 
