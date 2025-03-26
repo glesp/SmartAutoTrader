@@ -1,4 +1,3 @@
-// src/components/vehicles/VehicleCard.tsx
 import { Link } from 'react-router-dom'
 
 interface VehicleImage {
@@ -15,95 +14,145 @@ interface VehicleProps {
     year: number
     price: number
     mileage: number
-    images: VehicleImage[] | any // added 'any' to handle potential non-array format
+    fuelType?: number | string
+    vehicleType?: number | string
+    images: VehicleImage[] | { $values: VehicleImage[] } | any
   }
 }
 
-const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
-  // Debug logging
-  console.log('Vehicle ID:', vehicle.id)
-  console.log('Images property:', vehicle.images)
-  console.log('Images type:', typeof vehicle.images)
-  console.log('Is images an array?', Array.isArray(vehicle.images))
+// Helper function to extract arrays from ASP.NET response format
+const extractArray = <T,>(
+  data: T[] | { $values: T[] } | undefined | any
+): T[] => {
+  if (!data) return []
+  if (Array.isArray(data)) return data
+  if (data && '$values' in data) return data.$values
+  return []
+}
 
-  // Handle different possible formats of the images property
-  let primaryImage = 'https://via.placeholder.com/300x200?text=No+Image'
+// Map fuel type numbers to strings
+const getFuelTypeName = (fuelType?: number | string): string => {
+  if (!fuelType) return ''
+  if (typeof fuelType === 'string') return fuelType
 
-  if (vehicle.images) {
-    // If images is already an array
-    if (Array.isArray(vehicle.images)) {
-      console.log('Images array content:', vehicle.images)
-      // Use a more defensive approach
-      try {
-        const primaryImg = vehicle.images.find(
-          (img) => img && img.isPrimary === true
-        )
-        primaryImage =
-          primaryImg?.imageUrl ||
-          (vehicle.images[0] && vehicle.images[0].imageUrl) ||
-          primaryImage
-      } catch (error) {
-        console.error('Error processing images array:', error)
-      }
-    }
-    // If images has $values property (ASP.NET reference handling format)
-    else if (vehicle.images.$values && Array.isArray(vehicle.images.$values)) {
-      console.log('Images $values content:', vehicle.images.$values)
-      // Use a more defensive approach
-      try {
-        // Log first item to see its structure
-        if (vehicle.images.$values.length > 0) {
-          console.log('First image item:', vehicle.images.$values[0])
-        }
-
-        // Check each item before using find
-        let primaryImg = null
-        for (const img of vehicle.images.$values) {
-          if (
-            img &&
-            typeof img === 'object' &&
-            'isPrimary' in img &&
-            img.isPrimary === true
-          ) {
-            primaryImg = img
-            break
-          }
-        }
-
-        primaryImage =
-          primaryImg?.imageUrl ||
-          (vehicle.images.$values[0] && vehicle.images.$values[0].imageUrl) ||
-          primaryImage
-      } catch (error) {
-        console.error('Error processing images.$values array:', error)
-      }
-    }
-    // Log unexpected format for debugging
-    else {
-      console.error('Unexpected images format:', vehicle.images)
-    }
+  const fuelTypes: Record<number, string> = {
+    0: 'Petrol',
+    1: 'Diesel',
+    2: 'Electric',
+    3: 'Hybrid',
+    4: 'Plugin Hybrid',
   }
+  return fuelTypes[fuelType] || 'Unknown'
+}
+
+const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
+  // Get primary image URL
+  const getImageUrl = () => {
+    const images = extractArray(vehicle.images)
+    if (images.length === 0)
+      return 'https://via.placeholder.com/300x200?text=No+Image'
+
+    const primaryImage = images.find((img) => img && img.isPrimary === true)
+    return (
+      primaryImage?.imageUrl ||
+      images[0]?.imageUrl ||
+      'https://via.placeholder.com/300x200?text=No+Image'
+    )
+  }
+
   return (
-    <Link to={`/vehicles/${vehicle.id}`} className="block">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="aspect-w-16 aspect-h-9">
+    <Link
+      to={`/vehicles/${vehicle.id}`}
+      style={{
+        textDecoration: 'none',
+        color: 'inherit',
+        display: 'block',
+      }}
+    >
+      <div
+        style={{
+          border: '1px solid #eee',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        className="hover:shadow-lg hover:-translate-y-1"
+      >
+        <div style={{ height: '200px', overflow: 'hidden' }}>
           <img
-            src={primaryImage}
+            src={getImageUrl()}
             alt={`${vehicle.make} ${vehicle.model}`}
-            className="object-cover w-full h-full"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            onError={(e) => {
+              e.currentTarget.src =
+                'https://via.placeholder.com/300x200?text=No+Image'
+            }}
           />
         </div>
-        <div className="p-4">
-          <h3 className="text-lg font-semibold">
+
+        <div
+          style={{
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            flexGrow: 1,
+          }}
+        >
+          <h3
+            style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 600 }}
+          >
             {vehicle.year} {vehicle.make} {vehicle.model}
           </h3>
-          <div className="mt-2 flex justify-between">
-            <span className="text-blue-600 font-bold">
-              ${vehicle.price.toLocaleString()}
-            </span>
-            <span className="text-gray-600">
-              {vehicle.mileage.toLocaleString()} miles
-            </span>
+
+          <p
+            style={{
+              margin: '0 0 8px',
+              fontWeight: 'bold',
+              fontSize: '1.1rem',
+              color: '#1976d2',
+            }}
+          >
+            €{vehicle.price.toLocaleString()}
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              margin: '8px 0',
+              color: '#666',
+              fontSize: '0.9rem',
+            }}
+          >
+            <span>{vehicle.mileage.toLocaleString()} km</span>
+            {vehicle.fuelType && (
+              <span>{getFuelTypeName(vehicle.fuelType)}</span>
+            )}
+          </div>
+
+          <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
+            <div
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                textAlign: 'center',
+                width: '100%',
+                fontWeight: 500,
+              }}
+            >
+              View Details
+            </div>
           </div>
         </div>
       </div>
