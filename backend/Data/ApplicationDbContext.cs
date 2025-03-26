@@ -18,7 +18,8 @@ namespace SmartAutoTrader.API.Data
         public DbSet<UserPreference> UserPreferences { get; set; }
         public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
         public DbSet<Inquiry> Inquiries { get; set; }
-        public DbSet<ChatHistory> ChatHistory { get; set; } // Added ChatHistory DbSet
+        public DbSet<ChatHistory> ChatHistory { get; set; } 
+        public DbSet<ConversationSession> ConversationSessions { get; set; }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -85,6 +86,16 @@ namespace SmartAutoTrader.API.Data
                 .HasOne(ch => ch.User)
                 .WithMany()
                 .HasForeignKey(ch => ch.UserId);
+            modelBuilder.Entity<ConversationSession>()
+                .HasOne(cs => cs.User)
+                .WithMany()
+                .HasForeignKey(cs => cs.UserId);
+            
+            modelBuilder.Entity<ConversationSession>()
+                .HasMany(cs => cs.Messages)
+                .WithOne(ch => ch.Session)
+                .HasForeignKey(ch => ch.ConversationSessionId)
+                .IsRequired(false); // Make the relationship optional
         }
     }
 }
