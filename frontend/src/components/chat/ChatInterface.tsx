@@ -12,6 +12,14 @@ import InputAdornment from '@mui/material/InputAdornment'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Chip from '@mui/material/Chip'
+import Button from '@mui/material/Button'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
+import ListItemText from '@mui/material/ListItemText'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import HistoryIcon from '@mui/icons-material/History'
+import ChatIcon from '@mui/icons-material/Chat'
+import AddIcon from '@mui/icons-material/Add'
 import Zoom from '@mui/material/Zoom'
 
 // Type definitions
@@ -31,6 +39,7 @@ interface Message {
   parameters?: RecommendationParameters
   clarificationNeeded?: boolean
   originalUserInput?: string
+  conversationId?: string
 }
 
 interface Vehicle {
@@ -58,8 +67,8 @@ interface RecommendationParameters {
   maxYear?: number
   maxMileage?: number
   preferredMakes?: string[]
-  preferredVehicleTypes?: number[]
-  preferredFuelTypes?: number[]
+  preferredVehicleTypes?: number[] | string[]
+  preferredFuelTypes?: number[] | string[]
   desiredFeatures?: string[]
 }
 
@@ -68,6 +77,7 @@ interface ChatHistoryItem {
   userMessage: string
   aiResponse: string
   timestamp: string
+  conversationId?: string
 }
 
 interface ChatResponseDTO {
@@ -76,6 +86,14 @@ interface ChatResponseDTO {
   parameters?: RecommendationParameters
   clarificationNeeded?: boolean
   originalUserInput?: string
+  conversationId?: string
+}
+
+interface Conversation {
+  id: number
+  createdAt: string
+  lastInteractionAt: string
+  messageCount: number
 }
 
 // Helper function to extract arrays from ASP.NET response format
@@ -86,141 +104,229 @@ const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
   return []
 }
 
-// Helper function to format currency
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
+// Helper function for date formatting
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  } catch (error) {
+    return dateString
+  }
 }
 
-// Helper function to get the image URL
-const getImageUrl = (vehicle: Vehicle) => {
-  const images = extractArray(vehicle.images)
-  if (images.length === 0) return 'https://via.placeholder.com/200x150'
-
-  const primaryImage = images.find((img) => img.isPrimary)
-  return (
-    primaryImage?.imageUrl ||
-    images[0].imageUrl ||
-    'https://via.placeholder.com/200x150'
-  )
-}
-
-// Helper function to convert enum value to string
-const getFuelTypeString = (fuelType: number): string => {
-  const fuelTypes = [
-    'Petrol',
-    'Diesel',
-    'Electric',
-    'Hybrid',
-    'Plugin',
-    'Hydrogen',
-  ]
-  return fuelTypes[fuelType] || 'Unknown'
-}
-
-const getVehicleTypeString = (vehicleType: number): string => {
-  const vehicleTypes = [
-    'Hatchback',
-    'Sedan',
-    'SUV',
-    'Coupe',
-    'Convertible',
-    'Wagon',
-    'Pickup',
-    'Minivan',
-  ]
-  return vehicleTypes[vehicleType] || 'Unknown'
-}
-
-const ChatInterface = ({ 
-  onRecommendationsUpdated,
-}: ChatInterfaceProps) => {
+const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [updatingRecommendations, setUpdatingRecommendations] = useState<boolean>(false)
+  const [updatingRecommendations, setUpdatingRecommendations] =
+    useState<boolean>(false)
   const [clarificationState, setClarificationState] = useState<{
     awaiting: boolean
     originalUserInput: string
   }>({ awaiting: false, originalUserInput: '' })
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | undefined
+  >(undefined)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversationsMenuAnchor, setConversationsMenuAnchor] =
+    useState<null | HTMLElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { token } = useContext(AuthContext)
 
   // Suggested prompts
   const suggestedPrompts = [
-    "I need an SUV under €30,000",
-    "Show me electric cars with good range",
-    "Family cars with low mileage"
-  ];
+    'I need an SUV under €30,000',
+    'Show me electric cars with good range',
+    'Family cars with low mileage',
+  ]
 
-  // Load chat history on component mount
+  // Load conversations on component mount
   useEffect(() => {
-    const loadChatHistory = async () => {
-      try {
-        const response = await axios.get('/api/chat/history', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (response.data) {
-          const historyData = Array.isArray(response.data)
-            ? response.data
-            : response.data.$values || []
-
-          // Limit to last 5 history items to prevent UI overflow
-          const recentHistory = historyData.slice(-5)
-
-          const formattedHistory = recentHistory
-            .map((msg: ChatHistoryItem) => ({
-              id: msg.id,
-              content: msg.userMessage,
-              sender: 'user' as const,
-              timestamp: new Date(msg.timestamp),
-            }))
-            .concat(
-              recentHistory.map((msg: ChatHistoryItem) => ({
-                id: `ai-${msg.id}`,
-                content: msg.aiResponse,
-                sender: 'ai' as const,
-                timestamp: new Date(msg.timestamp),
-              }))
-            )
-            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-
-          setMessages(formattedHistory)
-        }
-      } catch (error) {
-        console.error('Failed to load chat history:', error)
-      }
-    }
-
     if (token) {
-      loadChatHistory()
+      loadConversations()
     }
   }, [token])
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (token && currentConversationId) {
+      loadChatHistory(currentConversationId)
+    } else {
+      // Clear messages if no conversation is selected
+      setMessages([])
+    }
+  }, [token, currentConversationId])
 
   // Scroll to bottom of messages when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSendMessage = async (e: React.FormEvent | null = null, promptText: string | null = null) => {
+  // Load available conversations
+  const loadConversations = async () => {
+    try {
+      const response = await axios.get('/api/chat/conversations', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.data) {
+        const conversationsData = Array.isArray(response.data)
+          ? response.data
+          : response.data.$values || []
+
+        setConversations(conversationsData)
+
+        // If we have conversations but none selected, select the most recent one
+        if (conversationsData.length > 0 && !currentConversationId) {
+          setCurrentConversationId(conversationsData[0].id.toString())
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load conversations:', error)
+    }
+  }
+
+  // Load chat history for a specific conversation
+  const loadChatHistory = async (conversationId: string) => {
+    try {
+      const response = await axios.get(
+        `/api/chat/history?conversationId=${conversationId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (response.data) {
+        const historyData = Array.isArray(response.data)
+          ? response.data
+          : response.data.$values || []
+
+        const formattedHistory = historyData
+          .map((msg: ChatHistoryItem) => ({
+            id: msg.id,
+            content: msg.userMessage,
+            sender: 'user' as const,
+            timestamp: new Date(msg.timestamp),
+            conversationId: msg.conversationId,
+          }))
+          .concat(
+            historyData.map((msg: ChatHistoryItem) => ({
+              id: `ai-${msg.id}`,
+              content: msg.aiResponse,
+              sender: 'ai' as const,
+              timestamp: new Date(msg.timestamp),
+              conversationId: msg.conversationId,
+            }))
+          )
+          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+        setMessages(formattedHistory)
+      }
+    } catch (error) {
+      console.error('Failed to load chat history:', error)
+    }
+  }
+
+  // Start a new conversation
+  const startNewConversation = async () => {
+    try {
+      const response = await axios.post(
+        '/api/chat/conversation/new',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (response.data?.conversationId) {
+        setCurrentConversationId(response.data.conversationId.toString())
+        setMessages([])
+
+        // Reset any ongoing clarification
+        setClarificationState({
+          awaiting: false,
+          originalUserInput: '',
+        })
+
+        // Refresh the conversations list
+        loadConversations()
+      }
+    } catch (error) {
+      console.error('Failed to start new conversation:', error)
+    }
+  }
+
+  // Open conversations menu
+  const handleConversationsMenuOpen = (
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    setConversationsMenuAnchor(event.currentTarget)
+  }
+
+  // Close conversations menu
+  const handleConversationsMenuClose = () => {
+    setConversationsMenuAnchor(null)
+  }
+
+  // Select a conversation
+  const selectConversation = (conversationId: string) => {
+    setCurrentConversationId(conversationId)
+    handleConversationsMenuClose()
+  }
+
+  const handleSendMessage = async (
+    e: React.FormEvent | null = null,
+    promptText: string | null = null
+  ) => {
     if (e) e.preventDefault()
 
-    const messageText = promptText || input;
+    const messageText = promptText || input
     if (!messageText.trim()) return
+
+    // If no conversation is selected, start a new one first
+    if (!currentConversationId) {
+      try {
+        const response = await axios.post(
+          '/api/chat/conversation/new',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+
+        if (response.data?.conversationId) {
+          setCurrentConversationId(response.data.conversationId.toString())
+        }
+      } catch (error) {
+        console.error('Failed to start new conversation:', error)
+        return
+      }
+    }
 
     const userMessage: Message = {
       id: Date.now(),
       content: messageText,
       sender: 'user',
       timestamp: new Date(),
+      conversationId: currentConversationId,
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -228,14 +334,16 @@ const ChatInterface = ({
     setIsLoading(true)
 
     try {
-      // Prepare the message payload based on whether we're in clarification mode
-      const payload = clarificationState.awaiting
-        ? {
-            content: messageText,
-            originalUserInput: clarificationState.originalUserInput,
-            isClarification: true,
-          }
-        : { content: messageText }
+      // Prepare the message payload with conversation context
+      const payload = {
+        content: messageText,
+        originalUserInput: clarificationState.awaiting
+          ? clarificationState.originalUserInput
+          : undefined,
+        isClarification: clarificationState.awaiting,
+        isFollowUp: messages.length > 0,
+        conversationId: currentConversationId,
+      }
 
       const response = await axios.post('/api/chat/message', payload, {
         headers: {
@@ -256,11 +364,19 @@ const ChatInterface = ({
           vehicles: responseData.recommendedVehicles,
           parameters: responseData.parameters,
           clarificationNeeded: responseData.clarificationNeeded,
+          conversationId: responseData.conversationId || currentConversationId,
         }
 
         setMessages((prev) => [...prev, aiMessage])
 
-        console.log('📦 Chat response parameters:', responseData.parameters)
+        // If we got a new conversation ID, update it
+        if (
+          responseData.conversationId &&
+          responseData.conversationId !== currentConversationId
+        ) {
+          setCurrentConversationId(responseData.conversationId)
+          loadConversations() // Refresh the list
+        }
 
         // If clarification is needed, update the clarification state
         if (responseData.clarificationNeeded) {
@@ -280,18 +396,18 @@ const ChatInterface = ({
           // Update recommendations in parent component if available
           if (onRecommendationsUpdated && responseData.recommendedVehicles) {
             // Show updating indicator
-            setUpdatingRecommendations(true);
-            
+            setUpdatingRecommendations(true)
+
             // Update recommendations
             onRecommendationsUpdated(
               responseData.recommendedVehicles,
               responseData.parameters || {}
             )
-            
+
             // Hide indicator after a delay
             setTimeout(() => {
-              setUpdatingRecommendations(false);
-            }, 1500);
+              setUpdatingRecommendations(false)
+            }, 1500)
           }
         }
       }
@@ -304,6 +420,7 @@ const ChatInterface = ({
           'Sorry, I encountered an error processing your request. Please try again.',
         sender: 'ai',
         timestamp: new Date(),
+        conversationId: currentConversationId,
       }
 
       setMessages((prev) => [...prev, errorMessage])
@@ -320,45 +437,152 @@ const ChatInterface = ({
 
   // Handle clicking a suggested prompt
   const handleSuggestedPrompt = (prompt: string) => {
-    setInput(prompt);
-    handleSendMessage(null, prompt);
-  };
+    setInput(prompt)
+    handleSendMessage(null, prompt)
+  }
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      height: '100%',
-      bgcolor: 'background.paper'
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        bgcolor: 'background.paper',
+      }}
+    >
       {/* Recommendations updating indicator */}
       {updatingRecommendations && (
         <Zoom in={updatingRecommendations}>
-          <Box sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            textAlign: 'center',
-            py: 0.5,
-            bgcolor: 'primary.main',
-            color: 'white',
-            fontSize: '0.75rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1
-          }}>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              textAlign: 'center',
+              py: 0.5,
+              bgcolor: 'primary.main',
+              color: 'white',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+            }}
+          >
             <CircularProgress size={14} thickness={4} sx={{ color: 'white' }} />
-            <Typography variant="caption">Updating recommendations...</Typography>
+            <Typography variant="caption">
+              Updating recommendations...
+            </Typography>
           </Box>
         </Zoom>
       )}
 
-      <Box 
-        sx={{ 
-          flexGrow: 1, 
+      {/* Chat header with conversation controls */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 1.5,
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 500 }}>
+          {currentConversationId
+            ? 'Current Conversation'
+            : 'Start a Conversation'}
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<ChatIcon />}
+            onClick={handleConversationsMenuOpen}
+            sx={{
+              fontSize: '0.75rem',
+              textTransform: 'none',
+              '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.04)' },
+            }}
+          >
+            {conversations.length} Conversation
+            {conversations.length !== 1 ? 's' : ''}
+          </Button>
+
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={startNewConversation}
+            sx={{
+              fontSize: '0.75rem',
+              textTransform: 'none',
+            }}
+          >
+            New
+          </Button>
+
+          {/* Conversations menu */}
+          <Menu
+            anchorEl={conversationsMenuAnchor}
+            open={Boolean(conversationsMenuAnchor)}
+            onClose={handleConversationsMenuClose}
+            sx={{
+              '& .MuiPaper-root': {
+                width: 280,
+                maxHeight: 400,
+                overflow: 'auto',
+              },
+            }}
+          >
+            {conversations.map((convo) => (
+              <MenuItem
+                key={convo.id}
+                onClick={() => selectConversation(convo.id.toString())}
+                selected={currentConversationId === convo.id.toString()}
+                sx={{ py: 1 }}
+              >
+                <ListItemIcon>
+                  <HistoryIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText
+                  primary={formatDate(convo.lastInteractionAt)}
+                  secondary={`${convo.messageCount} message${convo.messageCount !== 1 ? 's' : ''}`}
+                  primaryTypographyProps={{ fontSize: '0.875rem' }}
+                  secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                />
+              </MenuItem>
+            ))}
+            {conversations.length === 0 && (
+              <MenuItem disabled>
+                <ListItemText
+                  primary="No conversations yet"
+                  primaryTypographyProps={{
+                    fontSize: '0.875rem',
+                    textAlign: 'center',
+                  }}
+                />
+              </MenuItem>
+            )}
+            <MenuItem onClick={startNewConversation}>
+              <ListItemIcon>
+                <AddIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Start a new conversation"
+                primaryTypographyProps={{ fontSize: '0.875rem' }}
+              />
+            </MenuItem>
+          </Menu>
+        </Box>
+      </Box>
+
+      <Box
+        sx={{
+          flexGrow: 1,
           overflowY: 'auto',
           p: 2,
           display: 'flex',
@@ -381,27 +605,36 @@ const ChatInterface = ({
         }}
       >
         {messages.length === 0 && (
-          <Box 
-            sx={{ 
-              display: 'flex', 
+          <Box
+            sx={{
+              display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
               textAlign: 'center',
               color: 'text.secondary',
-              py: 2
+              py: 2,
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>
-              Welcome to Smart Auto Assistant!
+              {currentConversationId
+                ? 'This conversation is empty. Start chatting!'
+                : 'Welcome to Smart Auto Assistant!'}
             </Typography>
-            
+
             <Typography variant="caption" sx={{ mb: 2 }}>
               Ask me questions or try these:
             </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                width: '100%',
+              }}
+            >
               {suggestedPrompts.map((prompt, index) => (
                 <Chip
                   key={index}
@@ -422,9 +655,10 @@ const ChatInterface = ({
             key={message.id}
             sx={{
               display: 'flex',
-              justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+              justifyContent:
+                message.sender === 'user' ? 'flex-end' : 'flex-start',
               mb: 0.5,
-              animation: 'fadeIn 0.3s ease-out forwards'
+              animation: 'fadeIn 0.3s ease-out forwards',
             }}
           >
             <Paper
@@ -432,12 +666,13 @@ const ChatInterface = ({
               sx={{
                 maxWidth: '85%',
                 p: 1.5,
-                backgroundColor: message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
-                borderRadius: 2
+                backgroundColor:
+                  message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
+                borderRadius: 2,
               }}
             >
-              <Typography 
-                variant="body2" 
+              <Typography
+                variant="body2"
                 sx={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}
               >
                 {message.content}
@@ -445,19 +680,22 @@ const ChatInterface = ({
 
               {message.vehicles && message.vehicles.length > 0 && (
                 <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ fontWeight: 500, color: 'primary.main' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 500, color: 'primary.main' }}
+                  >
                     Found {message.vehicles.length} matching vehicles
                   </Typography>
                   <Tooltip title="Results shown in main content area">
-                    <Box 
-                      component="span" 
-                      sx={{ 
+                    <Box
+                      component="span"
+                      sx={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         ml: 0.5,
-                        color: 'primary.main', 
+                        color: 'primary.main',
                         cursor: 'help',
-                        fontSize: '0.75rem'
+                        fontSize: '0.75rem',
                       }}
                     >
                       ⓘ
@@ -467,26 +705,26 @@ const ChatInterface = ({
               )}
 
               {message.clarificationNeeded && message.sender === 'ai' && (
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    display: 'block', 
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
                     mt: 1,
                     fontWeight: 500,
-                    color: 'primary.main'
+                    color: 'primary.main',
                   }}
                 >
                   I need more information to help you find the perfect vehicle.
                 </Typography>
               )}
 
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  display: 'block', 
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
                   mt: 0.5,
                   color: 'text.secondary',
-                  fontSize: '0.7rem'
+                  fontSize: '0.7rem',
                 }}
               >
                 {message.timestamp.toLocaleTimeString([], {
@@ -508,7 +746,7 @@ const ChatInterface = ({
                 borderRadius: 2,
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
@@ -516,7 +754,10 @@ const ChatInterface = ({
                 <CircularProgress size={8} sx={{ color: 'primary.main' }} />
                 <CircularProgress size={8} sx={{ color: 'primary.main' }} />
               </Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, fontSize: '0.75rem' }}>
+              <Typography
+                variant="caption"
+                sx={{ color: 'text.secondary', mt: 0.5, fontSize: '0.75rem' }}
+              >
                 Thinking...
               </Typography>
             </Paper>
@@ -526,13 +767,13 @@ const ChatInterface = ({
         <div ref={messagesEndRef} />
       </Box>
 
-      <Box 
-        component="form" 
-        onSubmit={handleSendMessage} 
-        sx={{ 
+      <Box
+        component="form"
+        onSubmit={handleSendMessage}
+        sx={{
           p: 1.5,
           borderTop: 1,
-          borderColor: 'divider' 
+          borderColor: 'divider',
         }}
       >
         <TextField
@@ -550,8 +791,8 @@ const ChatInterface = ({
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <IconButton 
-                  edge="end" 
+                <IconButton
+                  edge="end"
                   color="primary"
                   disabled={isLoading || !input.trim()}
                   type="submit"
@@ -563,14 +804,14 @@ const ChatInterface = ({
           }}
           sx={{ mb: clarificationState.awaiting ? 0.5 : 0 }}
         />
-        
+
         {clarificationState.awaiting && (
-          <Typography 
-            variant="caption" 
-            sx={{ 
+          <Typography
+            variant="caption"
+            sx={{
               display: 'block',
               color: 'primary.main',
-              mt: 0.5
+              mt: 0.5,
             }}
           >
             I'm asking follow-up questions to better understand your needs
@@ -578,7 +819,7 @@ const ChatInterface = ({
         )}
       </Box>
     </Box>
-  );
+  )
 }
 
 export default ChatInterface
