@@ -18,6 +18,8 @@ namespace SmartAutoTrader.API.Services
         public List<string>? DesiredFeatures { get; set; }
         public string? TextPrompt { get; set; } // Add text prompt field
         public int? MaxResults { get; set; } = 5; // Default to 5 recommendations
+        public bool IsOffTopic { get; set; } = false;
+        public string? OffTopicResponse { get; set; }
     }
 
     // Interface for any AI recommendation service (allows easy swapping)
