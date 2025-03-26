@@ -28329,3 +28329,498 @@ Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType 
 UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
 WHERE "Id" = @p4
 RETURNING 1;
+Application is shutting down...
+Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*) FROM "sqlite_master" WHERE "type" = 'table' AND "rootpage" IS NOT NULL;
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "Vehicles" AS "v")
+Now listening on: https://localhost:7001
+Application started. Press Ctrl+C to shut down.
+Hosting environment: Development
+Content root path: /Users/conorgillespie/Projects/SmartAutoTrader/backend
+Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+Executed DbCommand (4ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (0ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (0ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (1ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (1ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 3
+Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__userId_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing follow-up query. Combined message: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain
+About to call parameter extraction for message: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain
+Calling parameter extraction service at http://192.168.1.5:5006/extract_parameters
+SENDING REQUEST to http://192.168.1.5:5006/extract_parameters with payload: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["Toyota"],"DesiredFeatures":[],"TextPrompt":"ok thats cool maybe just toyota  - Follow-up: show me my last cars gain","MaxResults":5}
+⏱️ LLM extraction took 6445ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 596), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Services.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 108), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 25)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["Toyota"],"DesiredFeatures":[],"TextPrompt":"ok thats cool maybe just toyota  - Follow-up: show me my last cars gain","MaxResults":5}
+Key filter values: Makes=Toyota, FuelTypes=Petrol, Diesel, Electric, Hybrid, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by vehicle types: Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by fuel types: Petrol, Diesel, Electric, Hybrid
+Filtering by manufacturers: Toyota
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+SQL Query: .param set @__parameters_PreferredVehicleTypes_0 '[0,1,2,4,5,7]'
+.param set @__parameters_PreferredFuelTypes_1 '[0,1,2,3]'
+.param set @__lowerMakes_2 '["toyota"]'
+
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_0) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_1) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_2) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+Executed DbCommand (1ms) [Parameters=[@__parameters_PreferredVehicleTypes_0='?' (Size = 13), @__parameters_PreferredFuelTypes_1='?' (Size = 9), @__lowerMakes_2='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_0) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_1) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_2) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Returning 5 vehicles based on parameter filtering
+Recommended vehicle: 2012 Toyota 4Runner, Type=SUV, Fuel=Petrol
+Recommended vehicle: 2018 Toyota 4Runner, Type=SUV, Fuel=Hybrid
+Recommended vehicle: 2014 Toyota Highlander, Type=Coupe, Fuel=Petrol
+Recommended vehicle: 2018 Toyota Tacoma, Type=Convertible, Fuel=Diesel
+Recommended vehicle: 2017 Toyota Tacoma, Type=Sedan, Fuel=Diesel
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 596), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 3
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__userId_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing follow-up query. Combined message: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain - Follow-up: same but now only the diesels!
+About to call parameter extraction for message: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain - Follow-up: same but now only the diesels!
+Calling parameter extraction service at http://192.168.1.5:5006/extract_parameters
+SENDING REQUEST to http://192.168.1.5:5006/extract_parameters with payload: ok thats cool maybe just toyota  - Follow-up: show me my last cars gain - Follow-up: same but now only the diesels!
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["Toyota"],"DesiredFeatures":[],"TextPrompt":"ok thats cool maybe just toyota  - Follow-up: show me my last cars gain - Follow-up: same but now only the diesels!","MaxResults":5}
+⏱️ LLM extraction took 4463ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 708), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Services.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 152), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 30)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["Toyota"],"DesiredFeatures":[],"TextPrompt":"ok thats cool maybe just toyota  - Follow-up: show me my last cars gain - Follow-up: same but now only the diesels!","MaxResults":5}
+Key filter values: Makes=Toyota, FuelTypes=Diesel, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by vehicle types: Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by fuel types: Diesel
+Filtering by manufacturers: Toyota
+SQL Query: .param set @__parameters_PreferredVehicleTypes_0 '[0,1,2,4,5,7]'
+.param set @__parameters_PreferredFuelTypes_1 '[1]'
+.param set @__lowerMakes_2 '["toyota"]'
+
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_0) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_1) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_2) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[@__parameters_PreferredVehicleTypes_0='?' (Size = 13), @__parameters_PreferredFuelTypes_1='?' (Size = 3), @__lowerMakes_2='?' (Size = 10)], CommandType='Text', CommandTimeout='30']
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_0) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_1) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_2) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Returning 4 vehicles based on parameter filtering
+Recommended vehicle: 2012 Toyota RAV4, Type=Van, Fuel=Diesel
+Recommended vehicle: 2018 Toyota Tacoma, Type=Convertible, Fuel=Diesel
+Recommended vehicle: 2017 Toyota Tacoma, Type=Sedan, Fuel=Diesel
+Recommended vehicle: 2015 Toyota Highlander, Type=Convertible, Fuel=Diesel
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 715), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 421), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 4
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__userId_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: Family cars with low mileage
+Calling parameter extraction service at http://192.168.1.5:5006/extract_parameters
+SENDING REQUEST to http://192.168.1.5:5006/extract_parameters with payload: Family cars with low mileage
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage","MaxResults":5}
+⏱️ LLM extraction took 5045ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 595), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Services.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 65), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 28)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage","MaxResults":5}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Petrol, Diesel, Electric, Hybrid, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by vehicle types: Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by fuel types: Petrol, Diesel, Electric, Hybrid
+Filtering by manufacturers: BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+SQL Query: .param set @__parameters_MaxMileage_Value_0 30000
+.param set @__parameters_PreferredVehicleTypes_1 '[0,1,2,4,5,7]'
+.param set @__parameters_PreferredFuelTypes_2 '[0,1,2,3]'
+.param set @__lowerMakes_3 '["bmw","audi","mercedes","toyota","honda","ford","volkswagen","nissan","hyundai","kia","tesla","volvo","mazda"]'
+
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."Mileage" <= @__parameters_MaxMileage_Value_0 AND "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_1) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_2) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_3) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+Executed DbCommand (0ms) [Parameters=[@__parameters_MaxMileage_Value_0='?' (DbType = Int32), @__parameters_PreferredVehicleTypes_1='?' (Size = 13), @__parameters_PreferredFuelTypes_2='?' (Size = 9), @__lowerMakes_3='?' (Size = 111)], CommandType='Text', CommandTimeout='30']
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."Name", "v0"."VehicleId", "v1"."Id", "v1"."ImageUrl", "v1"."IsPrimary", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleFeatures" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleImages" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."Mileage" <= @__parameters_MaxMileage_Value_0 AND "v"."VehicleType" IN (
+    SELECT "p"."value"
+    FROM json_each(@__parameters_PreferredVehicleTypes_1) AS "p"
+) AND "v"."FuelType" IN (
+    SELECT "p0"."value"
+    FROM json_each(@__parameters_PreferredFuelTypes_2) AS "p0"
+) AND lower("v"."Make") IN (
+    SELECT "l"."value"
+    FROM json_each(@__lowerMakes_3) AS "l"
+) AND "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Returning 5 vehicles based on parameter filtering
+Recommended vehicle: 2012 Toyota 4Runner, Type=SUV, Fuel=Petrol
+Recommended vehicle: 2025 Ford Explorer, Type=Convertible, Fuel=Petrol
+Recommended vehicle: 2024 Ford Mustang, Type=Van, Fuel=Diesel
+Recommended vehicle: 2018 Toyota 4Runner, Type=SUV, Fuel=Hybrid
+Recommended vehicle: 2025 Volkswagen ID.4, Type=Sedan, Fuel=Petrol
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__thirtyMinutesAgo_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__thirtyMinutesAgo_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 613), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
