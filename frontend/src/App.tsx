@@ -36,7 +36,12 @@ function App() {
         <AuthProvider>
           <div className="app">
             <Header />
-            <Container component="main" sx={{ py: 4 }}>
+            <Container
+              component="main"
+              maxWidth={false}
+              disableGutters
+              sx={{ py: 4, px: { xs: 2, md: 4 } }}
+            >
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/vehicles" element={<VehicleListingPage />} />
