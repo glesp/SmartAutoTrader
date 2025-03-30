@@ -1,24 +1,6 @@
 import { Link } from 'react-router-dom'
-
-interface VehicleImage {
-  id: number
-  imageUrl: string
-  isPrimary: boolean
-}
-
-interface VehicleProps {
-  vehicle: {
-    id: number
-    make: string
-    model: string
-    year: number
-    price: number
-    mileage: number
-    fuelType?: number | string
-    vehicleType?: number | string
-    images: VehicleImage[] | { $values: VehicleImage[] } | any
-  }
-}
+import { VehicleImage } from '../../types/models'
+import { VehicleProps } from '../../types/models'
 
 // Helper function to extract arrays from ASP.NET response format
 const extractArray = <T,>(
@@ -52,7 +34,9 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
     if (images.length === 0)
       return 'https://via.placeholder.com/300x200?text=No+Image'
 
-    const primaryImage = images.find((img) => img && img.isPrimary === true)
+    const primaryImage = images.find(
+      (img: VehicleImage) => img && img.isPrimary === true
+    )
     return (
       primaryImage?.imageUrl ||
       images[0]?.imageUrl ||

@@ -4,28 +4,14 @@ import { AuthContext } from '../contexts/AuthContext'
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
 import ChatInterface from '../components/chat/ChatInterface'
 // Import Material-UI components
-import Fab from '@mui/material/Fab';
-import ChatIcon from '@mui/icons-material/Chat';
-import MinimizeIcon from '@mui/icons-material/Minimize';
-import Paper from '@mui/material/Paper';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Slide from '@mui/material/Slide';
-import Badge from '@mui/material/Badge';
-
-// Types for the chat component integration
-interface Vehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  fuelType: number | string
-  vehicleType: number | string
-  images?: any
-}
+import MinimizeIcon from '@mui/icons-material/Minimize'
+import Paper from '@mui/material/Paper'
+import Typography from '@mui/material/Typography'
+import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import Slide from '@mui/material/Slide'
+import Badge from '@mui/material/Badge'
+import { Vehicle } from '../types/models'
 
 interface RecommendationParameters {
   minPrice?: number
@@ -64,30 +50,30 @@ const RecommendationsPage = () => {
     vehicles: Vehicle[],
     newParams: RecommendationParameters
   ) => {
-    console.log("Received recommendations:", vehicles.length, "vehicles");
-    setRecommendedVehicles(vehicles);
-    setParameters(newParams);
-    
+    console.log('Received recommendations:', vehicles.length, 'vehicles')
+    setRecommendedVehicles(vehicles)
+    setParameters(newParams)
+
     // Set flag for animation
-    setNewRecommendationsFlag(true);
-    
+    setNewRecommendationsFlag(true)
+
     // Show badge on minimized chat to indicate new recommendations
     if (isChatMinimized) {
-      setShowChatBadge(true);
+      setShowChatBadge(true)
     }
-    
+
     // Reset flag after animation completes
     setTimeout(() => {
-      setNewRecommendationsFlag(false);
-    }, 2000);
+      setNewRecommendationsFlag(false)
+    }, 2000)
   }
 
   // Toggle chat minimized state
   const toggleChat = () => {
-    setIsChatMinimized(!isChatMinimized);
+    setIsChatMinimized(!isChatMinimized)
     if (!isChatMinimized) {
       // When minimizing, clear any badge notification
-      setShowChatBadge(false);
+      setShowChatBadge(false)
     }
   }
 
@@ -132,11 +118,13 @@ const RecommendationsPage = () => {
       </div>
 
       {/* Main Content Area - with recommendation highlight effect */}
-      <div className={`mb-8 transition-all duration-500 ${newRecommendationsFlag ? 'bg-blue-50 rounded-lg p-4' : ''}`}>
+      <div
+        className={`mb-8 transition-all duration-500 ${newRecommendationsFlag ? 'bg-blue-50 rounded-lg p-4' : ''}`}
+      >
         {activeTab === 'recommendations' ? (
-          <VehicleRecommendations 
-            recommendedVehicles={recommendedVehicles} 
-            parameters={parameters} 
+          <VehicleRecommendations
+            recommendedVehicles={recommendedVehicles}
+            parameters={parameters}
           />
         ) : (
           <div className="h-[600px] max-w-full">
@@ -157,7 +145,8 @@ const RecommendationsPage = () => {
           </h2>
           <p className="mt-2 text-blue-700">
             Our AI assistant can help you discover vehicles based on your
-            specific requirements and preferences. Use the chat in the bottom right corner!
+            specific requirements and preferences. Use the chat in the bottom
+            right corner!
           </p>
         </div>
       )}
@@ -178,7 +167,7 @@ const RecommendationsPage = () => {
             borderTopLeftRadius: 8,
             borderTopRightRadius: 8,
             overflow: 'hidden',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
           }}
         >
           <Box
@@ -189,7 +178,7 @@ const RecommendationsPage = () => {
               backgroundColor: 'primary.main',
               color: 'white',
               p: 1.5,
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
             onClick={toggleChat}
           >
@@ -206,28 +195,37 @@ const RecommendationsPage = () => {
                     height: 10,
                     borderRadius: '50%',
                     backgroundColor: '#4caf50',
-                    marginRight: 1
+                    marginRight: 1,
                   }}
                 />
               </Badge>
-              <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 500 }}>
+              <Typography
+                variant="subtitle1"
+                component="h3"
+                sx={{ fontWeight: 500 }}
+              >
                 Smart Auto Assistant
               </Typography>
             </Box>
             <IconButton
               size="small"
               sx={{ color: 'white' }}
-              aria-label={isChatMinimized ? "Expand chat" : "Minimize chat"}
+              aria-label={isChatMinimized ? 'Expand chat' : 'Minimize chat'}
               onClick={(e) => {
-                e.stopPropagation();
-                toggleChat();
+                e.stopPropagation()
+                toggleChat()
               }}
             >
               <MinimizeIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          <Slide direction="up" in={!isChatMinimized} mountOnEnter unmountOnExit>
+          <Slide
+            direction="up"
+            in={!isChatMinimized}
+            mountOnEnter
+            unmountOnExit
+          >
             <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
               <ChatInterface
                 onRecommendationsUpdated={handleRecommendationsUpdate}

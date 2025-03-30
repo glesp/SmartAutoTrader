@@ -1,30 +1,7 @@
 import { useState, useEffect, useContext } from 'react'
 import { AuthContext } from '../../contexts/AuthContext'
-
-// Simple interfaces for the component
-interface VehicleImage {
-  id: number
-  imageUrl: string
-  isPrimary: boolean
-}
-
-interface Vehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  fuelType: number | string
-  vehicleType: number | string
-  images?: VehicleImage[] | { $values: VehicleImage[] }
-}
-
-// Interface for component props
-interface VehicleRecommendationsProps {
-  recommendedVehicles?: Vehicle[] | { $values: Vehicle[] }
-  parameters?: any
-}
+import { Vehicle } from '../../types/models.ts'
+import { VehicleRecommendationsProps } from '../../types/models.ts'
 
 // Helper function to extract arrays from ASP.NET response format
 const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
