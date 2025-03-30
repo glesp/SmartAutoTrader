@@ -463,9 +463,22 @@ namespace SmartAutoTrader.API.Services
             if ((parameters.PreferredMakes == null || !parameters.PreferredMakes.Any()) && 
                 !message.ToLower().Contains("any make") && !message.ToLower().Contains("any brand"))
                 missingParameterTypes++;
+            
+            //same for year 
+            if (parameters.MinYear == null && parameters.MaxYear == null)
+                missingParameterTypes++;
+            
+            //same for mileage 
+            if (parameters.MaxMileage == null)
+                missingParameterTypes++;
+            
+            //same for preferred fuel type
+            if (parameters.PreferredFuelTypes == null || !parameters.PreferredFuelTypes.Any())
+                missingParameterTypes++;
+            
                 
-            // For first-time queries, if more than one essential parameter type is missing, ask for clarification
-            return missingParameterTypes >= 2;
+            // Ask for clarification is more than 3 parameter types are missing 
+            return missingParameterTypes >= 3;
         }
         
         // Generate a personalized clarification message based on context
