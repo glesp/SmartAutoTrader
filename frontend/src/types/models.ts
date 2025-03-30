@@ -32,6 +32,6 @@ export interface VehicleProps {
     mileage: number
     fuelType?: number | string
     vehicleType?: number | string
-    images: VehicleImage[] | { $values: VehicleImage[] } | any
+    images?: VehicleImage[] | { $values: VehicleImage[] } | any
   }
 }
