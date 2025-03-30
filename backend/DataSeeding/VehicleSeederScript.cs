@@ -1,5 +1,6 @@
-using SmartAutoTrader.API.Models; // Updated to match your namespace
-using SmartAutoTrader.API.Data; // Assuming this is where your DbContext is
+// Updated VehicleSeeder with realistic vehicle type and fuel mappings (fixed 'Truck' -> 'Pickup')
+using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Data;
 
 namespace SmartAutoTrader.API.DataSeeding
 {
@@ -9,7 +10,7 @@ namespace SmartAutoTrader.API.DataSeeding
         {
             using (var scope = serviceProvider.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>(); // Replace with your actual DbContext name
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                 if (!context.Vehicles.Any())
                 {
@@ -25,17 +26,38 @@ namespace SmartAutoTrader.API.DataSeeding
             }
         }
 
+        private static readonly Dictionary<string, (VehicleType, FuelType)> ModelMeta = new()
+        {
+            ["Cybertruck"] = (VehicleType.Pickup, FuelType.Electric),
+            ["Model 3"] = (VehicleType.Sedan, FuelType.Electric),
+            ["Model S"] = (VehicleType.Sedan, FuelType.Electric),
+            ["Model X"] = (VehicleType.SUV, FuelType.Electric),
+            ["Model Y"] = (VehicleType.SUV, FuelType.Electric),
+            ["F-150"] = (VehicleType.Pickup, FuelType.Petrol),
+            ["RAV4"] = (VehicleType.SUV, FuelType.Hybrid),
+            ["CR-V"] = (VehicleType.SUV, FuelType.Petrol),
+            ["Camry"] = (VehicleType.Sedan, FuelType.Hybrid),
+            ["Civic"] = (VehicleType.Sedan, FuelType.Petrol),
+            ["CX-5"] = (VehicleType.SUV, FuelType.Petrol),
+            ["Golf"] = (VehicleType.Hatchback, FuelType.Petrol),
+            ["Altima"] = (VehicleType.Sedan, FuelType.Petrol),
+            ["Leaf"] = (VehicleType.Hatchback, FuelType.Electric),
+            ["Highlander"] = (VehicleType.SUV, FuelType.Hybrid),
+            ["Pilot"] = (VehicleType.SUV, FuelType.Petrol),
+            ["Forester"] = (VehicleType.SUV, FuelType.Petrol),
+            ["X5"] = (VehicleType.SUV, FuelType.Diesel),
+            ["A4"] = (VehicleType.Sedan, FuelType.Petrol),
+            ["Mustang"] = (VehicleType.Coupe, FuelType.Petrol),
+            ["S-Class"] = (VehicleType.Sedan, FuelType.Petrol),
+        };
+
         private static List<Vehicle> GenerateVehicles(int count)
         {
             var random = new Random();
             var vehicles = new List<Vehicle>();
 
-            // Lists for random data generation
             var makes = new[] { "Toyota", "Honda", "Ford", "Volkswagen", "BMW", "Mercedes-Benz", "Audi", "Nissan", "Hyundai", "Kia", "Tesla", "Mazda", "Subaru", "Chevrolet", "Lexus" };
-            var colors = new[] { "Black", "White", "Silver", "Grey", "Blue", "Red", "Green", "Yellow", "Brown", "Orange" };
-            var countries = new[] { "Japan", "Germany", "USA", "South Korea", "Italy", "France", "Sweden", "UK", "China" };
 
-            // Model mappings
             var modelsByMake = new Dictionary<string, string[]>
             {
                 { "Toyota", new[] { "Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner" } },
@@ -55,9 +77,7 @@ namespace SmartAutoTrader.API.DataSeeding
                 { "Lexus", new[] { "RX", "ES", "NX", "IS", "GX", "UX", "LS" } }
             };
 
-            // Common features
-            var featuresList = new[]
-            {
+            var featuresList = new[] {
                 "Leather Seats", "Sunroof", "Navigation System", "Bluetooth", "Backup Camera",
                 "Heated Seats", "Cruise Control", "Parking Sensors", "Blind Spot Monitor",
                 "Lane Departure Warning", "Keyless Entry", "Push Button Start", "Apple CarPlay",
@@ -66,62 +86,44 @@ namespace SmartAutoTrader.API.DataSeeding
                 "Ventilated Seats", "Heads-up Display", "360 Camera", "Wireless Charging"
             };
 
-            // Generate vehicles
             for (int i = 0; i < count; i++)
             {
                 var make = makes[random.Next(makes.Length)];
-                var models = modelsByMake[make];
-                var model = models[random.Next(models.Length)];
+                var model = modelsByMake[make][random.Next(modelsByMake[make].Length)];
                 var year = random.Next(2010, 2026);
                 var country = GetCountryForMake(make);
 
-                // Create vehicle
+                (VehicleType vType, FuelType fType) = ModelMeta.ContainsKey(model)
+                    ? ModelMeta[model]
+                    : ((VehicleType)random.Next(Enum.GetValues(typeof(VehicleType)).Length),
+                       (FuelType)random.Next(Enum.GetValues(typeof(FuelType)).Length));
+
                 var vehicle = new Vehicle
                 {
                     Make = make,
                     Model = model,
                     Year = year,
-                    Price = random.Next(5000, 100001), // $5,000 to $100,000
-                    Mileage = year == 2025 ? random.Next(0, 1000) : random.Next(1000, 150001), // Low mileage for new cars
-                    FuelType = (FuelType)random.Next(Enum.GetValues(typeof(FuelType)).Length),
+                    Price = random.Next(5000, 100001),
+                    Mileage = year == 2025 ? random.Next(0, 1000) : random.Next(1000, 150001),
+                    FuelType = fType,
                     Transmission = (TransmissionType)random.Next(Enum.GetValues(typeof(TransmissionType)).Length),
-                    VehicleType = (VehicleType)random.Next(Enum.GetValues(typeof(VehicleType)).Length),
-                    EngineSize = Math.Round(random.NextDouble() * 4 + 1, 1), // 1.0L to 5.0L
-                    HorsePower = random.Next(100, 601), // 100hp to 600hp
+                    VehicleType = vType,
+                    EngineSize = Math.Round(random.NextDouble() * 4 + 1, 1),
+                    HorsePower = random.Next(100, 601),
                     Country = country,
                     Description = GenerateDescription(make, model, year),
-                    DateListed = DateTime.Now.AddDays(-random.Next(1, 60)), // Random listing date within last 60 days
+                    DateListed = DateTime.Now.AddDays(-random.Next(1, 60)),
                     Status = GetRandomStatusWithWeights(random),
-                    // Initialize collections
-                    Images = new List<VehicleImage>(),
-                    Features = new List<VehicleFeature>(),
+                    Images = new List<VehicleImage> {
+                        new VehicleImage {
+                            ImageUrl = "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
+                            IsPrimary = true
+                        }
+                    },
+                    Features = featuresList.OrderBy(_ => random.Next()).Take(random.Next(3, 9))
+                        .Select(f => new VehicleFeature { Name = f }).ToList(),
                     FavoritedBy = new List<Models.UserFavorite>()
                 };
-
-                // Add images
-                int imageCount = random.Next(1, 6); // 1-5 images per vehicle
-                for (int j = 0; j < imageCount; j++)
-                {
-                    int imageId = random.Next(1, 20); // Assuming you have 20 placeholder images
-                    vehicle.Images.Add(new VehicleImage
-                    {
-                        ImageUrl = $"https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
-                        IsPrimary = j == 0, // First image is primary
-                        Vehicle = vehicle
-                    });
-                }
-
-                // Add features (3-8 random features)
-                var featureCount = random.Next(3, 9);
-                var selectedFeatures = featuresList.OrderBy(x => random.Next()).Take(featureCount);
-                foreach (var feature in selectedFeatures)
-                {
-                    vehicle.Features.Add(new VehicleFeature
-                    {
-                        Name = feature,
-                        Vehicle = vehicle
-                    });
-                }
 
                 vehicles.Add(vehicle);
             }
@@ -129,50 +131,39 @@ namespace SmartAutoTrader.API.DataSeeding
             return vehicles;
         }
 
-        private static string GetCountryForMake(string make)
+        private static string GetCountryForMake(string make) => make switch
         {
-            // Return appropriate country of origin for each make
-            return make switch
-            {
-                "Toyota" or "Honda" or "Nissan" or "Mazda" or "Subaru" or "Lexus" => "Japan",
-                "BMW" or "Mercedes-Benz" or "Audi" or "Volkswagen" => "Germany",
-                "Ford" or "Chevrolet" or "Tesla" => "USA",
-                "Hyundai" or "Kia" => "South Korea",
-                _ => "Other"
-            };
-        }
+            "Toyota" or "Honda" or "Nissan" or "Mazda" or "Subaru" or "Lexus" => "Japan",
+            "BMW" or "Mercedes-Benz" or "Audi" or "Volkswagen" => "Germany",
+            "Ford" or "Chevrolet" or "Tesla" => "USA",
+            "Hyundai" or "Kia" => "South Korea",
+            _ => "Other"
+        };
 
-        private static VehicleStatus GetRandomStatusWithWeights(Random random)
+        private static VehicleStatus GetRandomStatusWithWeights(Random random) => random.Next(100) switch
         {
-            // Weight probabilities: 80% Available, 15% Reserved, 5% Sold
-            int value = random.Next(1, 101);
-            if (value <= 80)
-                return VehicleStatus.Available;
-            else if (value <= 95)
-                return VehicleStatus.Reserved;
-            else
-                return VehicleStatus.Sold;
-        }
+            < 80 => VehicleStatus.Available,
+            < 95 => VehicleStatus.Reserved,
+            _ => VehicleStatus.Sold
+        };
 
         private static string GenerateDescription(string make, string model, int year)
         {
-            var random = new Random();
             var descriptions = new[]
             {
-                $"Excellent condition {year} {make} {model}. Well maintained with service history available. Must see to appreciate.",
-                $"Beautiful {year} {make} {model} with low mileage. No accidents, clean title.",
-                $"One owner {year} {make} {model}. Garage kept and regularly serviced at dealership.",
-                $"Immaculate {year} {make} {model}. All highway miles, never been in an accident.",
-                $"Like new {year} {make} {model}. Still under manufacturer warranty with all service up to date.",
-                $"Pristine {year} {make} {model}. Adult owned and driven, smoke-free interior.",
-                $"Well-maintained {year} {make} {model}. Recent service completed, ready for new owner.",
-                $"Sporty {year} {make} {model} in great condition. Fun to drive with excellent fuel economy.",
-                $"Luxury {year} {make} {model} loaded with features. Premium package included.",
-                $"Family-friendly {year} {make} {model} with spacious interior and excellent safety ratings."
+                $"Excellent condition {year} {make} {model}.",
+                $"Beautiful {year} {make} {model} with low mileage.",
+                $"One owner {year} {make} {model}, garage kept.",
+                $"Immaculate {year} {make} {model}.",
+                $"Like new {year} {make} {model} with warranty.",
+                $"Pristine {year} {make} {model}, adult owned.",
+                $"Well-maintained {year} {make} {model}, recently serviced.",
+                $"Sporty {year} {make} {model}, fun to drive.",
+                $"Luxury {year} {make} {model} loaded with features.",
+                $"Family-friendly {year} {make} {model} with spacious interior."
             };
 
-            return descriptions[random.Next(descriptions.Length)];
+            return descriptions[new Random().Next(descriptions.Length)];
         }
     }
-    
 }
