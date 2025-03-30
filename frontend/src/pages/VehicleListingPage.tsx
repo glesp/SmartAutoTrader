@@ -3,19 +3,7 @@ import { useState, useEffect } from 'react'
 import { vehicleService } from '../services/api'
 import VehicleCard from '../components/vehicles/VehicleCard'
 import VehicleFilters from '../components/vehicles/VehicleFilters'
-
-interface Vehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  fuelType: string
-  transmission: string
-  vehicleType: string
-  images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>
-}
+import { Vehicle } from '../types/models'
 
 interface FilterState {
   make?: string
