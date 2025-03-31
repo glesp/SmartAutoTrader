@@ -31,17 +31,12 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
   // Get primary image URL
   const getImageUrl = () => {
     const images = extractArray(vehicle.images)
-    if (images.length === 0)
-      return 'https://via.placeholder.com/300x200?text=No+Image'
+    if (!images || images.length === 0) return ''
 
-    const primaryImage = images.find(
-      (img: VehicleImage) => img && img.isPrimary === true
-    )
-    return (
-      primaryImage?.imageUrl ||
-      images[0]?.imageUrl ||
-      'https://via.placeholder.com/300x200?text=No+Image'
-    )
+    const primary = images.find((img) => img?.isPrimary) || images[0]
+    const path = primary?.imageUrl
+
+    return path ? `https://localhost:7001/${path}` : ''
   }
 
   return (
@@ -76,8 +71,7 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
               objectFit: 'cover',
             }}
             onError={(e) => {
-              e.currentTarget.src =
-                'https://via.placeholder.com/300x200?text=No+Image'
+              e.currentTarget.style.display = 'none' // optionally hide if broken
             }}
           />
         </div>
