@@ -4,13 +4,25 @@ import { AuthContext } from '../contexts/AuthContext'
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
 import ChatInterface from '../components/chat/ChatInterface'
 // Import Material-UI components
+import {
+  Paper,
+  Typography,
+  Box,
+  IconButton,
+  Slide,
+  Badge,
+  Container,
+  Tabs,
+  Tab,
+  Divider,
+  Alert,
+  AlertTitle,
+  Fade,
+  useTheme,
+} from '@mui/material'
 import MinimizeIcon from '@mui/icons-material/Minimize'
-import Paper from '@mui/material/Paper'
-import Typography from '@mui/material/Typography'
-import Box from '@mui/material/Box'
-import IconButton from '@mui/material/IconButton'
-import Slide from '@mui/material/Slide'
-import Badge from '@mui/material/Badge'
+import ChatIcon from '@mui/icons-material/Chat'
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'
 import { Vehicle } from '../types/models'
 
 interface RecommendationParameters {
@@ -25,6 +37,7 @@ interface RecommendationParameters {
 }
 
 const RecommendationsPage = () => {
+  const theme = useTheme()
   const { isAuthenticated, loading } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState<'recommendations' | 'assistant'>(
     'recommendations'
@@ -37,7 +50,13 @@ const RecommendationsPage = () => {
 
   // Show loading state while checking authentication
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>
+    return (
+      <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary">
+          Loading...
+        </Typography>
+      </Container>
+    )
   }
 
   // Redirect to login if not authenticated
@@ -78,48 +97,71 @@ const RecommendationsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 pb-20">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Personalized Recommendations</h1>
-        <p className="text-gray-600 mt-2">
-          Our AI analyzes your browsing history and preferences to recommend
-          vehicles you might like.
-        </p>
-      </div>
+    <Container maxWidth="lg" sx={{ py: 4, pb: 20 }}>
+      {/* Page Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom>
+          Personalized Recommendations
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary">
+          Our AI analyzes your preferences to recommend vehicles you might like.
+          Chat with our assistant for personalized suggestions.
+        </Typography>
+        <Divider sx={{ mt: 3 }} />
+      </Box>
 
       {/* Tabs Navigation */}
-      <div className="mb-6 border-b border-gray-200">
-        <ul className="flex flex-wrap -mb-px">
-          <li className="mr-2">
-            <button
-              className={`inline-block py-4 px-4 text-sm font-medium ${
-                activeTab === 'recommendations'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('recommendations')}
-            >
-              Recommendations
-            </button>
-          </li>
-          <li className="mr-2">
-            <button
-              className={`inline-block py-4 px-4 text-sm font-medium ${
-                activeTab === 'assistant'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('assistant')}
-            >
-              AI Assistant
-            </button>
-          </li>
-        </ul>
-      </div>
+      <Box sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          indicatorColor="primary"
+          textColor="primary"
+        >
+          <Tab
+            icon={<DirectionsCarIcon sx={{ mr: 1 }} />}
+            iconPosition="start"
+            label="Recommendations"
+            value="recommendations"
+            sx={{ fontWeight: 500, textTransform: 'none' }}
+          />
+          <Tab
+            icon={<ChatIcon sx={{ mr: 1 }} />}
+            iconPosition="start"
+            label="AI Assistant"
+            value="assistant"
+            sx={{ fontWeight: 500, textTransform: 'none' }}
+          />
+        </Tabs>
+      </Box>
 
       {/* Main Content Area - with recommendation highlight effect */}
-      <div
-        className={`mb-8 transition-all duration-500 ${newRecommendationsFlag ? 'bg-blue-50 rounded-lg p-4' : ''}`}
+      <Fade in={newRecommendationsFlag}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(25, 118, 210, 0.05)',
+            zIndex: -1,
+            pointerEvents: 'none',
+          }}
+        />
+      </Fade>
+
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 4,
+          p: 0,
+          borderRadius: 2,
+          transition: 'all 0.5s ease',
+          backgroundColor: newRecommendationsFlag
+            ? 'rgba(25, 118, 210, 0.05)'
+            : 'transparent',
+        }}
       >
         {activeTab === 'recommendations' ? (
           <VehicleRecommendations
@@ -127,47 +169,61 @@ const RecommendationsPage = () => {
             parameters={parameters}
           />
         ) : (
-          <div className="h-[600px] max-w-full">
-            <div className="relative w-full h-full bg-white border rounded-lg shadow-md overflow-hidden">
-              <ChatInterface
-                onRecommendationsUpdated={handleRecommendationsUpdate}
-              />
-            </div>
-          </div>
+          <Paper
+            elevation={2}
+            sx={{
+              height: { xs: '500px', md: '600px' },
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <ChatInterface
+              onRecommendationsUpdated={handleRecommendationsUpdate}
+            />
+          </Paper>
         )}
-      </div>
+      </Paper>
 
       {/* Show assistant promo only if there are no recommendations yet */}
       {activeTab === 'recommendations' && recommendedVehicles.length === 0 && (
-        <div className="bg-blue-50 p-5 rounded-lg shadow-sm">
-          <h2 className="text-xl font-semibold text-blue-800">
+        <Alert
+          severity="info"
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            mb: 4,
+            backgroundColor: 'rgba(25, 118, 210, 0.05)',
+          }}
+        >
+          <AlertTitle sx={{ fontWeight: 'bold' }}>
             Need help finding your perfect car?
-          </h2>
-          <p className="mt-2 text-blue-700">
-            Our AI assistant can help you discover vehicles based on your
-            specific requirements and preferences. Use the chat in the bottom
-            right corner!
-          </p>
-        </div>
+          </AlertTitle>
+          Our AI assistant can help you discover vehicles based on your specific
+          requirements and preferences. Use the chat in the bottom right corner
+          or switch to the AI Assistant tab!
+        </Alert>
       )}
 
       {/* Facebook Messenger Style Chat - Header Always Visible */}
       {activeTab === 'recommendations' && (
         <Paper
-          elevation={3}
+          elevation={4}
           sx={{
             position: 'fixed',
             bottom: 0,
             right: 24,
-            width: { xs: '320px', sm: '350px' },
-            height: isChatMinimized ? 'auto' : '400px',
+            width: { xs: '300px', sm: '350px' },
+            height: isChatMinimized ? 'auto' : '500px',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 1050,
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
             overflow: 'hidden',
-            transition: 'all 0.2s ease',
+            transition: theme.transitions.create(['height', 'box-shadow'], {
+              duration: theme.transitions.duration.standard,
+            }),
+            boxShadow: isChatMinimized ? 4 : 8,
           }}
         >
           <Box
@@ -177,8 +233,14 @@ const RecommendationsPage = () => {
               justifyContent: 'space-between',
               backgroundColor: 'primary.main',
               color: 'white',
-              p: 1.5,
+              p: 2,
               cursor: 'pointer',
+              transition: theme.transitions.create('background-color', {
+                duration: theme.transitions.duration.short,
+              }),
+              '&:hover': {
+                backgroundColor: 'primary.dark',
+              },
             }}
             onClick={toggleChat}
           >
@@ -187,17 +249,9 @@ const RecommendationsPage = () => {
                 color="error"
                 variant="dot"
                 invisible={!showChatBadge}
-                sx={{ mr: 1 }}
+                sx={{ mr: 1.5 }}
               >
-                <Box
-                  sx={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    backgroundColor: '#4caf50',
-                    marginRight: 1,
-                  }}
-                />
+                <ChatIcon fontSize="small" />
               </Badge>
               <Typography
                 variant="subtitle1"
@@ -206,6 +260,22 @@ const RecommendationsPage = () => {
               >
                 Smart Auto Assistant
               </Typography>
+              {showChatBadge && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    ml: 1.5,
+                    bgcolor: 'error.main',
+                    color: 'white',
+                    px: 1,
+                    py: 0.3,
+                    borderRadius: 5,
+                    fontWeight: 'bold',
+                  }}
+                >
+                  New
+                </Typography>
+              )}
             </Box>
             <IconButton
               size="small"
@@ -226,7 +296,7 @@ const RecommendationsPage = () => {
             mountOnEnter
             unmountOnExit
           >
-            <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+            <Box sx={{ flexGrow: 1, overflow: 'hidden', height: '100%' }}>
               <ChatInterface
                 onRecommendationsUpdated={handleRecommendationsUpdate}
               />
@@ -234,7 +304,7 @@ const RecommendationsPage = () => {
           </Slide>
         </Paper>
       )}
-    </div>
+    </Container>
   )
 }
 
