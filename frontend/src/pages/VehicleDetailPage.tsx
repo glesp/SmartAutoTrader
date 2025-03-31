@@ -3,6 +3,21 @@ import { useState, useEffect, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { vehicleService, favoriteService } from '../services/api'
 import { AuthContext } from '../contexts/AuthContext'
+// Add Material-UI imports
+import {
+  Box,
+  Typography,
+  Container,
+  Grid,
+  Paper,
+  Button,
+  Breadcrumbs,
+  Link as MuiLink,
+  ButtonBase,
+  Divider,
+} from '@mui/material'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 
 // Define what your API actually returns
 interface VehicleImage {
@@ -53,28 +68,20 @@ const VehicleDetailPage = () => {
         const data = await vehicleService.getVehicle(parseInt(id))
         setVehicle(data)
 
-        // Handle both array formats for images
         let imageArray: VehicleImage[] = []
-
-        // Check if images exists
         if (data.images) {
-          // Check if images is an array
           if (Array.isArray(data.images)) {
             imageArray = data.images
-          }
-          // Check if images has $values property using a type guard
-          else if (
+          } else if (
             typeof data.images === 'object' &&
             data.images !== null &&
             '$values' in data.images
           ) {
-            // Use a safe type assertion
             const imagesWithValues = data.images as { $values: VehicleImage[] }
             imageArray = imagesWithValues.$values
           }
         }
 
-        // Set primary image as active
         if (imageArray.length > 0) {
           const primaryIndex = imageArray.findIndex((img) => img.isPrimary)
           setActiveImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
@@ -91,7 +98,6 @@ const VehicleDetailPage = () => {
   }, [id])
 
   useEffect(() => {
-    // Check if vehicle is in favorites
     const checkFavorite = async () => {
       if (!isAuthenticated || !id) return
 
@@ -124,7 +130,6 @@ const VehicleDetailPage = () => {
     }
   }
 
-  // Helper function to get image array regardless of format
   const getImageArray = (): VehicleImage[] => {
     if (!vehicle) return []
 
@@ -135,194 +140,259 @@ const VehicleDetailPage = () => {
       vehicle.images !== null &&
       '$values' in vehicle.images
     ) {
-      // Use a safe type assertion
       const imagesWithValues = vehicle.images as { $values: VehicleImage[] }
       return imagesWithValues.$values
     }
     return []
   }
 
-  // Helper function to get image URL with fallback
   const getImageUrl = (image: VehicleImage | undefined) => {
-    if (!image || !image.imageUrl) {
-      return `https://via.placeholder.com/800x450/3498db/ffffff?text=No+Image`
-    }
-
-    const isPlaceholderUrl = image.imageUrl.includes('placeholder.com/vehicles')
-    if (isPlaceholderUrl && vehicle) {
-      return `https://via.placeholder.com/800x450/3498db/ffffff?text=${vehicle.make}+${vehicle.model}`
-    }
-
-    return image.imageUrl
+    if (!image || !image.imageUrl) return ''
+    return `https://localhost:7001/${image.imageUrl.replace(/^\/+/, '')}`
   }
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">Loading vehicle details...</div>
-      </div>
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="300px"
+        >
+          <Typography>Loading vehicle details...</Typography>
+        </Box>
+      </Container>
     )
   }
 
   if (error || !vehicle) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4 text-center">
-          {error || 'Vehicle not found'}
-          <div className="mt-4">
-            <Link
-              to="/vehicles"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Back to Vehicles
-            </Link>
-          </div>
-        </div>
-      </div>
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Paper
+          sx={{
+            p: 4,
+            textAlign: 'center',
+            bgcolor: 'error.light',
+            color: 'error.dark',
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            {error || 'Vehicle not found'}
+          </Typography>
+          <Button
+            variant="contained"
+            component={Link}
+            to="/vehicles"
+            sx={{ mt: 2 }}
+          >
+            Back to Vehicles
+          </Button>
+        </Paper>
+      </Container>
     )
   }
 
   const imageArray = getImageArray()
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <div className="text-sm text-gray-500 mb-6">
-        <Link to="/" className="hover:text-blue-600">
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Breadcrumbs */}
+      <Breadcrumbs sx={{ mb: 3 }}>
+        <MuiLink component={Link} to="/" underline="hover" color="inherit">
           Home
-        </Link>{' '}
-        &gt;
-        <Link to="/vehicles" className="hover:text-blue-600 mx-1">
+        </MuiLink>
+        <MuiLink
+          component={Link}
+          to="/vehicles"
+          underline="hover"
+          color="inherit"
+        >
           Vehicles
-        </Link>{' '}
-        &gt;
-        <span className="text-gray-700">
+        </MuiLink>
+        <Typography color="text.primary">
           {vehicle.year} {vehicle.make} {vehicle.model}
-        </span>
-      </div>
+        </Typography>
+      </Breadcrumbs>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Images and details */}
-        <div className="lg:col-span-3">
+      <Grid container spacing={4}>
+        {/* Left column - Images and description */}
+        <Grid item xs={12} md={7}>
           {/* Main image */}
-          <div className="relative mb-4 bg-gray-100 rounded-lg overflow-hidden aspect-w-16 aspect-h-9">
+          <Paper
+            elevation={2}
+            sx={{
+              mb: 2,
+              borderRadius: 2,
+              overflow: 'hidden',
+              maxHeight: '450px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             {imageArray.length > 0 ? (
-              <img
+              <Box
+                component="img"
                 src={getImageUrl(imageArray[activeImageIndex])}
                 alt={`${vehicle.make} ${vehicle.model}`}
-                className="object-cover w-full h-full"
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  maxHeight: '450px',
+                }}
               />
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <span className="text-gray-400">No image available</span>
-              </div>
+              <Box sx={{ p: 4, textAlign: 'center' }}>
+                <Typography color="text.secondary">
+                  No image available
+                </Typography>
+              </Box>
             )}
-          </div>
+          </Paper>
 
-          {/* Thumbnail images */}
+          {/* Thumbnails */}
           {imageArray.length > 1 && (
-            <div className="grid grid-cols-5 gap-2">
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: 1,
+                mb: 4,
+              }}
+            >
               {imageArray.map((image, index) => (
-                <button
+                <ButtonBase
                   key={image.id}
                   onClick={() => setActiveImageIndex(index)}
-                  className={`border-2 rounded overflow-hidden aspect-w-1 aspect-h-1 ${
-                    index === activeImageIndex
-                      ? 'border-blue-500'
-                      : 'border-transparent hover:border-gray-300'
-                  }`}
+                  sx={{
+                    border:
+                      index === activeImageIndex
+                        ? '2px solid #1976d2'
+                        : '2px solid transparent',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    height: '70px',
+                  }}
                 >
-                  <img
+                  <Box
+                    component="img"
                     src={getImageUrl(image)}
                     alt={`${vehicle.make} ${vehicle.model} thumbnail ${index + 1}`}
-                    className="object-cover w-full h-full"
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
                   />
-                </button>
+                </ButtonBase>
               ))}
-            </div>
+            </Box>
           )}
 
           {/* Description */}
-          <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">Description</h2>
-            <div className="bg-white rounded-lg shadow p-4">
-              <p className="text-gray-700 whitespace-pre-line">
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h5" gutterBottom fontWeight="500">
+              Description
+            </Typography>
+            <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
                 {vehicle.description}
-              </p>
-            </div>
-          </div>
-        </div>
+              </Typography>
+            </Paper>
+          </Box>
+        </Grid>
 
-        {/* Sidebar with summary and actions */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow p-6 sticky top-4">
-            <h1 className="text-2xl font-bold mb-2">
+        {/* Right column - Vehicle details */}
+        <Grid item xs={12} md={5}>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 3,
+              borderRadius: 2,
+              position: { md: 'sticky' },
+              top: { md: '24px' },
+            }}
+          >
+            <Typography variant="h4" gutterBottom fontWeight="bold">
               {vehicle.year} {vehicle.make} {vehicle.model}
-            </h1>
+            </Typography>
 
-            <div className="text-3xl font-bold text-blue-600 mb-4">
-              ${vehicle.price.toLocaleString()}
-            </div>
+            <Typography
+              variant="h4"
+              sx={{ color: 'primary.main', fontWeight: 'bold', mb: 3 }}
+            >
+              €{vehicle.price.toLocaleString()}
+            </Typography>
 
-            <div className="mb-6 space-y-2">
-              <div className="flex justify-between text-gray-700">
-                <span>Mileage:</span>
-                <span className="font-semibold">
-                  {vehicle.mileage.toLocaleString()} miles
-                </span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Fuel Type:</span>
-                <span className="font-semibold">{vehicle.fuelType}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Transmission:</span>
-                <span className="font-semibold">{vehicle.transmission}</span>
-              </div>
-              <div className="flex justify-between text-gray-700">
-                <span>Body Type:</span>
-                <span className="font-semibold">{vehicle.vehicleType}</span>
-              </div>
-            </div>
+            <Divider sx={{ mb: 2 }} />
 
-            {/* Actions */}
-            <div className="space-y-3">
-              <Link
-                to={`/inquiries/new?vehicleId=${vehicle.id}`}
-                className="block w-full bg-blue-600 text-white text-center py-3 px-4 rounded-lg font-semibold hover:bg-blue-700"
+            <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid item xs={6}>
+                <Typography color="text.secondary">Mileage</Typography>
+                <Typography fontWeight="500">
+                  {vehicle.mileage.toLocaleString()} km
+                </Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography color="text.secondary">Fuel Type</Typography>
+                <Typography fontWeight="500">{vehicle.fuelType}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography color="text.secondary">Transmission</Typography>
+                <Typography fontWeight="500">{vehicle.transmission}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography color="text.secondary">Body Type</Typography>
+                <Typography fontWeight="500">{vehicle.vehicleType}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Buttons */}
+            <Button
+              variant="contained"
+              component={Link}
+              to={`/inquiries/new?vehicleId=${vehicle.id}`}
+              fullWidth
+              size="large"
+              sx={{ mb: 2 }}
+            >
+              Send Inquiry
+            </Button>
+
+            {isAuthenticated ? (
+              <Button
+                variant={isFavorite ? 'outlined' : 'contained'}
+                color={isFavorite ? 'error' : 'primary'}
+                onClick={handleToggleFavorite}
+                disabled={checkingFavorite}
+                fullWidth
+                startIcon={
+                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
+                }
+                sx={{
+                  bgcolor: isFavorite ? 'error.light' : undefined,
+                  '&:hover': {
+                    bgcolor: isFavorite ? 'error.200' : undefined,
+                  },
+                }}
               >
-                Send Inquiry
-              </Link>
-
-              {isAuthenticated ? (
-                <button
-                  onClick={handleToggleFavorite}
-                  disabled={checkingFavorite}
-                  className={`block w-full py-3 px-4 rounded-lg font-semibold border ${
-                    isFavorite
-                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  {checkingFavorite
-                    ? 'Loading...'
-                    : isFavorite
-                      ? 'Remove from Favorites'
-                      : 'Add to Favorites'}
-                </button>
-              ) : (
-                <Link
-                  to="/login"
-                  className="block w-full bg-gray-50 text-gray-700 text-center py-3 px-4 rounded-lg font-semibold border border-gray-200 hover:bg-gray-100"
-                >
-                  Login to Save to Favorites
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                {checkingFavorite
+                  ? 'Loading...'
+                  : isFavorite
+                    ? 'Remove from Favorites'
+                    : 'Add to Favorites'}
+              </Button>
+            ) : (
+              <Button variant="outlined" component={Link} to="/login" fullWidth>
+                Login to Save to Favorites
+              </Button>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   )
 }
 

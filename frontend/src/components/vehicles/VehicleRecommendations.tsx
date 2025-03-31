@@ -2,6 +2,16 @@ import { useState, useEffect, useContext } from 'react'
 import { AuthContext } from '../../contexts/AuthContext'
 import { Vehicle } from '../../types/models.ts'
 import { VehicleRecommendationsProps } from '../../types/models.ts'
+import {
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+} from '@mui/material'
+import { Link } from 'react-router-dom'
 
 // Helper function to extract arrays from ASP.NET response format
 const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
@@ -38,15 +48,17 @@ const VehicleRecommendations = ({
   // Helper function to get primary image URL or fallback
   const getImageUrl = (vehicle: Vehicle) => {
     const images = extractArray(vehicle.images)
-    if (images.length === 0) return 'https://via.placeholder.com/200x150'
+    if (images.length === 0)
+      return 'https://via.placeholder.com/300x200?text=No+Image'
 
     // Find primary image
     const primaryImage = images.find((img) => img.isPrimary)
-    return (
-      primaryImage?.imageUrl ||
-      images[0]?.imageUrl ||
-      'https://via.placeholder.com/200x150'
-    )
+    const path = primaryImage?.imageUrl || images[0]?.imageUrl
+
+    // Important: Add the base URL prefix just like in VehicleDetailPage
+    return path
+      ? `https://localhost:7001/${path.replace(/^\/+/, '')}`
+      : 'https://via.placeholder.com/300x200?text=No+Image'
   }
 
   // Map fuel type numbers to strings
@@ -82,100 +94,122 @@ const VehicleRecommendations = ({
 
   // Alternative content when user is not authenticated
   if (!user) {
-    return <div>Please sign in to view recommendations.</div>
+    return <Box p={4}>Please sign in to view recommendations.</Box>
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>AI-Powered Recommendations</h2>
+    <Box p={2}>
+      <Typography variant="h4" fontWeight="bold" mb={3}>
+        AI-Powered Recommendations
+      </Typography>
 
       {vehicles.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '30px 0' }}>
-          <p>
-            No recommendations available yet. Chat with our AI assistant to get
-            personalized vehicle suggestions.
-          </p>
-          <p style={{ fontSize: '0.9em', marginTop: '10px' }}>
+        <Box
+          textAlign="center"
+          py={6}
+          px={2}
+          bgcolor="background.paper"
+          borderRadius={2}
+        >
+          <Typography variant="h6" mb={2}>
+            No recommendations available yet
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={2}>
+            Chat with our AI assistant to get personalized vehicle suggestions.
+          </Typography>
+          <Typography variant="body2" color="text.secondary" fontStyle="italic">
             Try asking: "Show me electric SUVs" or "I need a family car under
             €25,000"
-          </p>
-        </div>
+          </Typography>
+        </Box>
       ) : (
-        <div
-          style={{
+        <Box
+          sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(3, 1fr)',
+              lg: 'repeat(4, 1fr)',
+            },
+            gap: 3,
           }}
         >
           {vehicles.map((vehicle) => (
-            <div
+            <Card
               key={vehicle.id}
-              style={{
-                border: '1px solid #eee',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4,
+                },
+                borderRadius: 2,
               }}
+              elevation={2}
             >
-              <img
-                src={getImageUrl(vehicle)}
+              <CardMedia
+                component="img"
+                height={200}
+                image={getImageUrl(vehicle)}
                 alt={`${vehicle.make} ${vehicle.model}`}
-                style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                sx={{ objectFit: 'cover' }}
                 onError={(e) => {
-                  // Fallback if image fails to load
                   e.currentTarget.src =
                     'https://via.placeholder.com/300x200?text=No+Image'
                 }}
               />
-              <div style={{ padding: '16px' }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem' }}>
+              <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+                <Typography
+                  gutterBottom
+                  variant="h6"
+                  component="h3"
+                  fontWeight={500}
+                >
                   {vehicle.year} {vehicle.make} {vehicle.model}
-                </h3>
-                <p
-                  style={{
-                    margin: '0 0 8px',
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    color: '#1976d2',
-                  }}
+                </Typography>
+                <Typography
+                  variant="h6"
+                  color="primary"
+                  fontWeight={600}
+                  mb={1}
                 >
                   €{vehicle.price.toLocaleString()}
-                </p>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    margin: '8px 0',
-                    color: '#666',
-                  }}
+                </Typography>
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  color="text.secondary"
+                  mt={1}
                 >
-                  <span>{vehicle.mileage.toLocaleString()} km</span>
-                  <span>{getFuelTypeName(vehicle.fuelType)}</span>
-                </div>
-                <div style={{ marginTop: '12px' }}>
-                  <a
-                    href={`/vehicles/${vehicle.id}`}
-                    style={{
-                      display: 'inline-block',
-                      backgroundColor: '#1976d2',
-                      color: 'white',
-                      padding: '8px 16px',
-                      borderRadius: '4px',
-                      textDecoration: 'none',
-                      textAlign: 'center',
-                      width: '100%',
-                    }}
-                  >
-                    View Details
-                  </a>
-                </div>
-              </div>
-            </div>
+                  <Typography variant="body2">
+                    {vehicle.mileage.toLocaleString()} km
+                  </Typography>
+                  <Typography variant="body2">
+                    {getFuelTypeName(vehicle.fuelType)}
+                  </Typography>
+                </Box>
+              </CardContent>
+              <CardActions sx={{ p: 2, pt: 0 }}>
+                <Button
+                  component={Link}
+                  to={`/vehicles/${vehicle.id}`}
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  sx={{ borderRadius: 1 }}
+                >
+                  View Details
+                </Button>
+              </CardActions>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   )
 }
 
