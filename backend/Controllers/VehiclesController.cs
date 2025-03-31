@@ -203,5 +203,40 @@ namespace SmartAutoTrader.API.Controllers
         {
             return _context.Vehicles.Any(e => e.Id == id);
         }
+        
+        [HttpGet("available-makes")]
+        public IActionResult GetAvailableMakes()
+        {
+            var makes = _context.Vehicles
+                .Select(v => v.Make)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
+
+            return Ok(makes);
+        }
+
+        [HttpGet("available-models")]
+        public IActionResult GetAvailableModels([FromQuery] string make)
+        {
+            var models = _context.Vehicles
+                .Where(v => v.Make == make)
+                .Select(v => v.Model)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
+
+            return Ok(models);
+        }
+
+        [HttpGet("year-range")]
+        public IActionResult GetYearRange()
+        {
+            var minYear = _context.Vehicles.Min(v => v.Year);
+            var maxYear = _context.Vehicles.Max(v => v.Year);
+
+            return Ok(new { min = minYear, max = maxYear });
+        }
+
     }
 }
