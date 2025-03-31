@@ -46,6 +46,9 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
         textDecoration: 'none',
         color: 'inherit',
         display: 'block',
+        maxWidth: '300px',
+        margin: '0 auto',
+        width: '100%',
       }}
     >
       <div
