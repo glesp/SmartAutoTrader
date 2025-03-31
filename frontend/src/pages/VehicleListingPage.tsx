@@ -4,6 +4,16 @@ import { vehicleService } from '../services/api'
 import VehicleCard from '../components/vehicles/VehicleCard'
 import VehicleFilters from '../components/vehicles/VehicleFilters'
 import { Vehicle } from '../types/models'
+import {
+  Grid,
+  Box,
+  Typography,
+  Container,
+  Paper,
+  Pagination,
+  CircularProgress,
+  Divider,
+} from '@mui/material'
 
 interface FilterState {
   make?: string
@@ -61,68 +71,97 @@ const VehicleListingPage = () => {
     setPage(1) // Reset to first page when filters change
   }
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    newPage: number
+  ) => {
     setPage(newPage)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Available Vehicles</h1>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom>
+        Available Vehicles
+      </Typography>
+      <Divider sx={{ mb: 4 }} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <Grid container spacing={4}>
         {/* Filters sidebar */}
-        <div className="lg:col-span-1">
-          <VehicleFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
+        <Grid item xs={12} lg={3}>
+          <Box
+            component={Paper}
+            elevation={1}
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              position: { lg: 'sticky' },
+              top: { lg: '24px' },
+            }}
+          >
+            <VehicleFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+            />
+          </Box>
+        </Grid>
 
         {/* Vehicle grid */}
-        <div className="lg:col-span-3">
+        <Grid item xs={12} lg={9}>
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading vehicles...</p>
-            </div>
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              height={300}
+            >
+              <CircularProgress />
+              <Typography sx={{ ml: 2 }}>Loading vehicles...</Typography>
+            </Box>
           ) : vehicles.length === 0 ? (
-            <div className="bg-gray-50 rounded-lg p-8 text-center">
-              <h3 className="text-xl font-semibold mb-2">No vehicles found</h3>
-              <p className="text-gray-600">
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                textAlign: 'center',
+                bgcolor: 'grey.50',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" fontWeight="medium" gutterBottom>
+                No vehicles found
+              </Typography>
+              <Typography color="text.secondary">
                 Try adjusting your filters to see more results.
-              </p>
-            </div>
+              </Typography>
+            </Paper>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Grid container spacing={3}>
                 {vehicles.map((vehicle) => (
-                  <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                  <Grid item xs={12} sm={6} md={4} lg={4} key={vehicle.id}>
+                    <VehicleCard vehicle={vehicle} />
+                  </Grid>
                 ))}
-              </div>
+              </Grid>
 
               {/* Pagination */}
-              <div className="flex justify-center mt-8">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`mx-1 px-4 py-2 rounded ${
-                        pageNum === page
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 hover:bg-gray-300'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                )}
-              </div>
+              <Box display="flex" justifyContent="center" mt={6}>
+                <Pagination
+                  count={totalPages}
+                  page={page}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="large"
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </Grid>
+      </Grid>
+    </Container>
   )
 }
 
