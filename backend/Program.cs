@@ -125,6 +125,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.UseStaticFiles();
 
 // Create the database if it doesn't exist
 using (var scope = app.Services.CreateScope())

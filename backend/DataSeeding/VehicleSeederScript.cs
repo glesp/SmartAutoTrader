@@ -1,4 +1,4 @@
-// Updated VehicleSeeder with realistic vehicle type and fuel mappings (fixed 'Truck' -> 'Pickup')
+// Updated VehicleSeeder with local image mapping
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Data;
 
@@ -98,6 +98,9 @@ namespace SmartAutoTrader.API.DataSeeding
                     : ((VehicleType)random.Next(Enum.GetValues(typeof(VehicleType)).Length),
                        (FuelType)random.Next(Enum.GetValues(typeof(FuelType)).Length));
 
+                var slug = $"{make}-{model}".Replace(" ", "").ToLower();
+                var imageFileName = $"{slug}.jpg";
+
                 var vehicle = new Vehicle
                 {
                     Make = make,
@@ -116,7 +119,7 @@ namespace SmartAutoTrader.API.DataSeeding
                     Status = GetRandomStatusWithWeights(random),
                     Images = new List<VehicleImage> {
                         new VehicleImage {
-                            ImageUrl = "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop",
+                            ImageUrl = $"images/vehicles/{imageFileName}",
                             IsPrimary = true
                         }
                     },
