@@ -1,77 +1,133 @@
 // src/components/vehicles/VehicleFilters.tsx
 import { useState, useEffect } from 'react'
+import {
+  Box,
+  Typography,
+  TextField,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Slider,
+  Button,
+  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  InputAdornment,
+  IconButton,
+} from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import { vehicleService } from '../../services/api'
 
-interface FilterProps {
-  filters: {
-    make?: string
-    model?: string
-    minYear?: number
-    maxYear?: number
-    minPrice?: number
-    maxPrice?: number
-    fuelType?: string
-    transmission?: string
-    vehicleType?: string
-    sortBy: string
-    ascending: boolean
-  }
-  onFilterChange: (filters: Partial<FilterProps['filters']>) => void
+interface FilterState {
+  make?: string
+  model?: string
+  minYear?: number
+  maxYear?: number
+  minPrice?: number
+  maxPrice?: number
+  fuelType?: string
+  transmission?: string
+  vehicleType?: string
+  sortBy: string
+  ascending: boolean
 }
 
-const VehicleFilters = ({ filters, onFilterChange }: FilterProps) => {
-  const [localFilters, setLocalFilters] = useState(filters)
+interface VehicleFiltersProps {
+  filters: FilterState
+  onFilterChange: (filters: Partial<FilterState>) => void
+}
 
-  // Update local state when props change
+// These will be fetched from API but we include fallbacks
+const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Plugin Hybrid']
+const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic']
+const vehicleTypes = [
+  'Sedan',
+  'SUV',
+  'Hatchback',
+  'Coupe',
+  'Convertible',
+  'Wagon',
+  'Van',
+  'Truck',
+]
+
+const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
+  // State for available makes and models from database
+  const [availableMakes, setAvailableMakes] = useState<string[]>([])
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [yearRange, setYearRange] = useState<[number, number]>([
+    1990,
+    new Date().getFullYear(),
+  ])
+
+  // Fetch available makes when component mounts
   useEffect(() => {
-    setLocalFilters(filters)
-  }, [filters])
+    const fetchMakesAndYears = async () => {
+      try {
+        // Fetch makes
+        const makesResponse = await vehicleService.getAvailableMakes()
+        if (Array.isArray(makesResponse)) {
+          setAvailableMakes(makesResponse)
+        }
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target as HTMLInputElement
-
-    let parsedValue: string | number | boolean | undefined = value
-
-    // Convert numeric values
-    if (type === 'number' && value) {
-      parsedValue = Number(value)
+        // Fetch year range
+        const yearRangeResponse = await vehicleService.getYearRange()
+        if (
+          yearRangeResponse &&
+          yearRangeResponse.min &&
+          yearRangeResponse.max
+        ) {
+          setYearRange([yearRangeResponse.min, yearRangeResponse.max])
+        }
+      } catch (error) {
+        console.error('Error fetching makes or years:', error)
+      }
     }
 
-    // Handle empty values
-    if (value === '') {
-      parsedValue = undefined
+    fetchMakesAndYears()
+  }, [])
+
+  // Fetch models when make changes
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!filters.make) {
+        setAvailableModels([])
+        return
+      }
+
+      try {
+        const modelsResponse = await vehicleService.getAvailableModels(
+          filters.make
+        )
+        if (Array.isArray(modelsResponse)) {
+          setAvailableModels(modelsResponse)
+        }
+      } catch (error) {
+        console.error('Error fetching models:', error)
+      }
     }
 
-    setLocalFilters((prev) => ({
-      ...prev,
-      [name]: parsedValue,
-    }))
+    fetchModels()
+  }, [filters.make])
+
+  // Handle year range changes
+  const handleYearRangeChange = (event: Event, newValue: number | number[]) => {
+    if (Array.isArray(newValue)) {
+      onFilterChange({
+        minYear: newValue[0],
+        maxYear: newValue[1],
+      })
+    }
   }
 
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { value } = e.target
-    setLocalFilters((prev) => ({
-      ...prev,
-      sortBy: value,
-    }))
-  }
-
-  const handleSortDirectionChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setLocalFilters((prev) => ({
-      ...prev,
-      ascending: e.target.checked,
-    }))
-  }
-
-  const applyFilters = () => {
-    onFilterChange(localFilters)
-  }
-
-  const resetFilters = () => {
-    const resetValues = {
+  // Reset all filters
+  const handleResetFilters = () => {
+    onFilterChange({
       make: undefined,
       model: undefined,
       minYear: undefined,
@@ -83,217 +139,264 @@ const VehicleFilters = ({ filters, onFilterChange }: FilterProps) => {
       vehicleType: undefined,
       sortBy: 'DateListed',
       ascending: false,
-    }
-    setLocalFilters(resetValues)
-    onFilterChange(resetValues)
+    })
+  }
+
+  // Toggle sort direction
+  const toggleSortDirection = () => {
+    onFilterChange({ ascending: !filters.ascending })
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
-      <h2 className="text-xl font-semibold mb-4">Filters</h2>
+    <Box>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 2,
+        }}
+      >
+        <Typography variant="h6" component="h2" fontWeight="medium">
+          Filters
+        </Typography>
+        <Button
+          startIcon={<RestartAltIcon />}
+          size="small"
+          onClick={handleResetFilters}
+          color="inherit"
+        >
+          Reset
+        </Button>
+      </Box>
 
-      <div className="space-y-4">
-        {/* Make */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Make
-          </label>
-          <input
-            type="text"
-            name="make"
-            value={localFilters.make || ''}
-            onChange={handleInputChange}
-            className="w-full p-2 border border-gray-300 rounded"
-            placeholder="Any make"
+      <Divider sx={{ mb: 3 }} />
+
+      {/* Make dropdown */}
+      <FormControl fullWidth margin="normal" size="small">
+        <InputLabel id="make-label">Make</InputLabel>
+        <Select
+          labelId="make-label"
+          id="make"
+          value={filters.make || ''}
+          label="Make"
+          onChange={(e) =>
+            onFilterChange({
+              make: e.target.value || undefined,
+              model: undefined, // Reset model when make changes
+            })
+          }
+        >
+          <MenuItem value="">Any make</MenuItem>
+          {availableMakes.map((make) => (
+            <MenuItem key={make} value={make}>
+              {make}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Model dropdown (only enabled if make is selected) */}
+      <FormControl
+        fullWidth
+        margin="normal"
+        size="small"
+        disabled={!filters.make}
+      >
+        <InputLabel id="model-label">Model</InputLabel>
+        <Select
+          labelId="model-label"
+          id="model"
+          value={filters.model || ''}
+          label="Model"
+          onChange={(e) =>
+            onFilterChange({ model: e.target.value || undefined })
+          }
+        >
+          <MenuItem value="">Any model</MenuItem>
+          {availableModels.map((model) => (
+            <MenuItem key={model} value={model}>
+              {model}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Year range slider */}
+      <Box sx={{ mt: 3, mb: 2 }}>
+        <Typography gutterBottom>Year Range</Typography>
+        <Slider
+          value={[
+            filters.minYear || yearRange[0],
+            filters.maxYear || yearRange[1],
+          ]}
+          onChange={handleYearRangeChange}
+          valueLabelDisplay="auto"
+          min={yearRange[0]}
+          max={yearRange[1]}
+          marks={[
+            { value: yearRange[0], label: yearRange[0].toString() },
+            { value: yearRange[1], label: yearRange[1].toString() },
+          ]}
+        />
+      </Box>
+
+      {/* Price range */}
+      <Box sx={{ mt: 4, mb: 2 }}>
+        <Typography gutterBottom>Price Range (€)</Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField
+            label="Min"
+            type="number"
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">€</InputAdornment>
+              ),
+            }}
+            value={filters.minPrice || ''}
+            onChange={(e) =>
+              onFilterChange({
+                minPrice: e.target.value ? parseInt(e.target.value) : undefined,
+              })
+            }
           />
-        </div>
-
-        {/* Model */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Model
-          </label>
-          <input
-            type="text"
-            name="model"
-            value={localFilters.model || ''}
-            onChange={handleInputChange}
-            className="w-full p-2 border border-gray-300 rounded"
-            placeholder="Any model"
+          <TextField
+            label="Max"
+            type="number"
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">€</InputAdornment>
+              ),
+            }}
+            value={filters.maxPrice || ''}
+            onChange={(e) =>
+              onFilterChange({
+                maxPrice: e.target.value ? parseInt(e.target.value) : undefined,
+              })
+            }
           />
-        </div>
+        </Box>
+      </Box>
 
-        {/* Year Range */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Min Year
-            </label>
-            <input
-              type="number"
-              name="minYear"
-              value={localFilters.minYear || ''}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="From"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Max Year
-            </label>
-            <input
-              type="number"
-              name="maxYear"
-              value={localFilters.maxYear || ''}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="To"
-            />
-          </div>
-        </div>
+      {/* Advanced filters in accordion */}
+      <Accordion
+        sx={{
+          mt: 2,
+          mb: 2,
+          boxShadow: 'none',
+          '&:before': { display: 'none' },
+        }}
+      >
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography fontWeight="medium">Advanced Filters</Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ px: 1 }}>
+          {/* Fuel type */}
+          <FormControl fullWidth margin="normal" size="small">
+            <InputLabel id="fuel-type-label">Fuel Type</InputLabel>
+            <Select
+              labelId="fuel-type-label"
+              id="fuel-type"
+              value={filters.fuelType || ''}
+              label="Fuel Type"
+              onChange={(e) =>
+                onFilterChange({ fuelType: e.target.value || undefined })
+              }
+            >
+              <MenuItem value="">Any fuel type</MenuItem>
+              {fuelTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        {/* Price Range */}
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Min Price
-            </label>
-            <input
-              type="number"
-              name="minPrice"
-              value={localFilters.minPrice || ''}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="From"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Max Price
-            </label>
-            <input
-              type="number"
-              name="maxPrice"
-              value={localFilters.maxPrice || ''}
-              onChange={handleInputChange}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="To"
-            />
-          </div>
-        </div>
+          {/* Transmission */}
+          <FormControl fullWidth margin="normal" size="small">
+            <InputLabel id="transmission-label">Transmission</InputLabel>
+            <Select
+              labelId="transmission-label"
+              id="transmission"
+              value={filters.transmission || ''}
+              label="Transmission"
+              onChange={(e) =>
+                onFilterChange({ transmission: e.target.value || undefined })
+              }
+            >
+              <MenuItem value="">Any transmission</MenuItem>
+              {transmissionTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-        {/* Fuel Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Fuel Type
-          </label>
-          <select
-            name="fuelType"
-            value={localFilters.fuelType || ''}
-            onChange={handleInputChange}
-            className="w-full p-2 border border-gray-300 rounded"
+          {/* Vehicle type */}
+          <FormControl fullWidth margin="normal" size="small">
+            <InputLabel id="vehicle-type-label">Vehicle Type</InputLabel>
+            <Select
+              labelId="vehicle-type-label"
+              id="vehicle-type"
+              value={filters.vehicleType || ''}
+              label="Vehicle Type"
+              onChange={(e) =>
+                onFilterChange({ vehicleType: e.target.value || undefined })
+              }
+            >
+              <MenuItem value="">Any vehicle type</MenuItem>
+              {vehicleTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </AccordionDetails>
+      </Accordion>
+
+      <Divider sx={{ my: 3 }} />
+
+      {/* Sort options */}
+      <Box>
+        <Typography gutterBottom fontWeight="medium">
+          Sort By
+        </Typography>
+        <FormControl fullWidth size="small">
+          <Select
+            value={filters.sortBy}
+            onChange={(e) => onFilterChange({ sortBy: e.target.value })}
+            endAdornment={
+              <IconButton
+                size="small"
+                edge="end"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleSortDirection()
+                }}
+                sx={{ mr: 2 }}
+              >
+                {filters.ascending ? (
+                  <ArrowUpwardIcon />
+                ) : (
+                  <ArrowDownwardIcon />
+                )}
+              </IconButton>
+            }
           >
-            <option value="">Any fuel type</option>
-            <option value="0">Petrol</option>
-            <option value="1">Diesel</option>
-            <option value="2">Electric</option>
-            <option value="3">Hybrid</option>
-            <option value="4">Plugin</option>
-          </select>
-        </div>
-
-        {/* Transmission */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Transmission
-          </label>
-          <select
-            name="transmission"
-            value={localFilters.transmission || ''}
-            onChange={handleInputChange}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="">Any transmission</option>
-            <option value="0">Manual</option>
-            <option value="1">Automatic</option>
-            <option value="2">Semi-Automatic</option>
-          </select>
-        </div>
-
-        {/* Vehicle Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Vehicle Type
-          </label>
-          <select
-            name="vehicleType"
-            value={localFilters.vehicleType || ''}
-            onChange={handleInputChange}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="">Any type</option>
-            <option value="0">Sedan</option>
-            <option value="1">SUV</option>
-            <option value="2">Hatchback</option>
-            <option value="3">Estate</option>
-            <option value="4">Coupe</option>
-            <option value="5">Convertible</option>
-            <option value="6">Pickup</option>
-            <option value="7">Van</option>
-          </select>
-        </div>
-
-        {/* Sort By */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Sort By
-          </label>
-          <select
-            name="sortBy"
-            value={localFilters.sortBy}
-            onChange={handleSortChange}
-            className="w-full p-2 border border-gray-300 rounded"
-          >
-            <option value="DateListed">Date Listed</option>
-            <option value="Price">Price</option>
-            <option value="Year">Year</option>
-            <option value="Mileage">Mileage</option>
-            <option value="Make">Make</option>
-          </select>
-        </div>
-
-        {/* Sort Direction */}
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            id="ascending"
-            checked={localFilters.ascending}
-            onChange={handleSortDirectionChange}
-            className="h-4 w-4 text-blue-600 rounded"
-          />
-          <label htmlFor="ascending" className="ml-2 text-sm text-gray-700">
-            Ascending order
-          </label>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-2 pt-2">
-          <button
-            onClick={applyFilters}
-            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
-          >
-            Apply
-          </button>
-          <button
-            onClick={resetFilters}
-            className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded hover:bg-gray-300"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-    </div>
+            <MenuItem value="DateListed">Date Listed</MenuItem>
+            <MenuItem value="Price">Price</MenuItem>
+            <MenuItem value="Year">Year</MenuItem>
+            <MenuItem value="Mileage">Mileage</MenuItem>
+            <MenuItem value="Make">Make</MenuItem>
+            <MenuItem value="Model">Model</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+    </Box>
   )
 }
 

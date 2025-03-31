@@ -59,27 +59,17 @@ export const authService = {
   },
 }
 
-// Vehicle service
+//vehicle service
 export const vehicleService = {
-  // In api.ts, update the getVehicles method:
   getVehicles: async (params?: VehicleParams): Promise<Vehicle[]> => {
     try {
       const response = await api.get('/vehicles', { params })
 
-      // Check if response.data is the reference-preserved format
-      if (
-        response.data &&
-        response.data.$values &&
-        Array.isArray(response.data.$values)
-      ) {
+      if (response.data?.$values && Array.isArray(response.data.$values)) {
         return response.data.$values
-      }
-      // Check if it's already an array
-      else if (Array.isArray(response.data)) {
+      } else if (Array.isArray(response.data)) {
         return response.data
-      }
-      // Fallback to empty array
-      else {
+      } else {
         console.error('API did not return an array:', response.data)
         return []
       }
@@ -88,9 +78,43 @@ export const vehicleService = {
       return []
     }
   },
+
+  // Existing method: fetch a single vehicle by ID
   getVehicle: async (id: number) => {
     const response = await api.get<Vehicle>(`/vehicles/${id}`)
     return response.data
+  },
+
+  getAvailableMakes: async (): Promise<string[]> => {
+    try {
+      const response = await api.get('/vehicles/available-makes')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching makes:', error)
+      return []
+    }
+  },
+
+  getAvailableModels: async (make: string): Promise<string[]> => {
+    try {
+      const response = await api.get('/vehicles/available-models', {
+        params: { make },
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching models:', error)
+      return []
+    }
+  },
+
+  getYearRange: async (): Promise<{ min: number; max: number }> => {
+    try {
+      const response = await api.get('/vehicles/year-range')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching year range:', error)
+      return { min: 1990, max: new Date().getFullYear() }
+    }
   },
 }
 
