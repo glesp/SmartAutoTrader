@@ -44,10 +44,10 @@ namespace SmartAutoTrader.API.Models
         public int Id { get; set; }
 
         [Required]
-        public string Make { get; set; }
+        public string? Make { get; set; }
 
         [Required]
-        public string Model { get; set; }
+        public string? Model { get; set; }
 
         [Required]
         public int Year { get; set; }
@@ -67,19 +67,19 @@ namespace SmartAutoTrader.API.Models
 
         public int HorsePower { get; set; }
 
-        public string Country { get; set; }
+        public string? Country { get; set; }
 
         [Required]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public DateTime DateListed { get; set; } = DateTime.Now;
 
         public VehicleStatus Status { get; set; } = VehicleStatus.Available;
 
         // Navigation properties
-        public ICollection<VehicleImage> Images { get; set; }
+        public ICollection<VehicleImage>? Images { get; set; }
 
-        public ICollection<VehicleFeature> Features { get; set; }
+        public ICollection<VehicleFeature>? Features { get; set; }
 
         [JsonIgnore]
         public IEnumerable<UserFavorite>? FavoritedBy { get; set; }
@@ -91,14 +91,14 @@ namespace SmartAutoTrader.API.Models
         public int Id { get; set; }
 
         [Required]
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         public bool IsPrimary { get; set; }
 
         public int VehicleId { get; set; }
 
         [JsonIgnore]
-        public Vehicle Vehicle { get; set; }
+        public Vehicle? Vehicle { get; set; }
     }
 
     public class VehicleFeature
@@ -107,11 +107,11 @@ namespace SmartAutoTrader.API.Models
         public int Id { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         public int VehicleId { get; set; }
 
         [JsonIgnore]
-        public Vehicle Vehicle { get; set; }
+        public Vehicle? Vehicle { get; set; }
     }
 }

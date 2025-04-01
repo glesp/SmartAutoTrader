@@ -17,19 +17,19 @@ namespace SmartAutoTrader.API.Models
 
         public int UserId { get; set; }
 
-        public User User { get; set; }
+        public User? User { get; set; }
 
         public int VehicleId { get; set; }
 
-        public Vehicle Vehicle { get; set; }
+        public Vehicle? Vehicle { get; set; }
 
         [Required]
-        public string Subject { get; set; }
+        public string? Subject { get; set; }
 
         [Required]
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
-        public string Response { get; set; }
+        public string? Response { get; set; }
 
         public DateTime DateSent { get; set; } = DateTime.Now;
 

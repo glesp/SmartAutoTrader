@@ -11,19 +11,17 @@ namespace SmartAutoTrader.API.Models
         public int UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public User User { get; set; }
+        public User? User { get; set; } 
 
-        [Required]
-        public string UserMessage { get; set; }
+        [Required] public string? UserMessage { get; set; }
 
-        [Required]
-        public string AIResponse { get; set; }
+        [Required] public string? AIResponse { get; set; }
 
         public DateTime Timestamp { get; set; }
 
         public int? ConversationSessionId { get; set; }
 
-        public virtual ConversationSession Session { get; set; }
+        public virtual ConversationSession? Session { get; set; }
     }
 
     public class ConversationSession
@@ -36,10 +34,10 @@ namespace SmartAutoTrader.API.Models
 
         public DateTime LastInteractionAt { get; set; }
 
-        public string SessionContext { get; set; } // JSON string to store conversation context
+        public string? SessionContext { get; set; } // JSON string to store conversation context
 
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
 
-        public virtual ICollection<ChatHistory> Messages { get; set; }
+        public virtual ICollection<ChatHistory>? Messages { get; set; }
     }
 }

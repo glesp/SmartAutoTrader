@@ -225,11 +225,11 @@ namespace SmartAutoTrader.API.Controllers
 
         public class ChatResponseDto
         {
-            public string Message { get; set; }
+            public string? Message { get; set; }
 
             public List<Vehicle> RecommendedVehicles { get; set; } =[];
 
-            public RecommendationParametersDto Parameters { get; set; }
+            public RecommendationParametersDto? Parameters { get; set; }
 
             public bool ClarificationNeeded { get; set; }
 
@@ -263,11 +263,11 @@ namespace SmartAutoTrader.API.Controllers
         {
             public int Id { get; set; }
 
-            public string UserMessage { get; set; }
+            public string? UserMessage { get; set; }
 
-            public string AIResponse { get; set; }
+            public string? AIResponse { get; set; }
 
-            public string Timestamp { get; set; }
+            public string? Timestamp { get; set; }
 
             public string? ConversationId { get; set; }
         }
