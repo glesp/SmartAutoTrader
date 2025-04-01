@@ -182,13 +182,13 @@ namespace SmartAutoTrader.API.Controllers
     {
         public int VehicleId { get; set; }
 
-        public string Subject { get; set; }
+        public string? Subject { get; set; }
 
-        public string Message { get; set; }
+        public string? Message { get; set; }
     }
 
     public class InquiryReplyDto
     {
-        public string Response { get; set; }
+        public string? Response { get; set; }
     }
 }

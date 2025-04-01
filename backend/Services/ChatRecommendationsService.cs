@@ -15,7 +15,7 @@ namespace SmartAutoTrader.API.Services
 
     public class ChatMessage
     {
-        public string Content { get; set; }
+        public string? Content { get; set; }
 
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
@@ -30,11 +30,11 @@ namespace SmartAutoTrader.API.Services
 
     public class ChatResponse
     {
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         public List<Vehicle> RecommendedVehicles { get; set; } =[];
 
-        public RecommendationParameters UpdatedParameters { get; set; }
+        public RecommendationParameters? UpdatedParameters { get; set; }
 
         public bool ClarificationNeeded { get; set; }
 
