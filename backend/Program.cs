@@ -1,13 +1,13 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Services;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.DataSeeding;
+using SmartAutoTrader.API.Services;
 using ZLogger;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -62,9 +62,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:5173")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -83,7 +83,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Smart Auto Trader API", Version = "v1" });
-    
+
     // Define the JWT Bearer authentication scheme
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -93,7 +93,7 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -134,7 +134,7 @@ using (var scope = app.Services.CreateScope())
     var context = services.GetRequiredService<ApplicationDbContext>();
     context.Database.EnsureCreated();
     var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
-    vehicleSeeder.SeedVehicles(services, 200);
+    vehicleSeeder.SeedVehicles(services);
 }
 
-app.Run();  
+app.Run();
