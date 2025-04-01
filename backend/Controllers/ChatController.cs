@@ -212,7 +212,7 @@ namespace SmartAutoTrader.API.Controllers
 
         public class ChatMessageDto
         {
-            public string Content { get; set; }
+            public string? Content { get; set; }
 
             public bool IsClarification { get; set; }
 
