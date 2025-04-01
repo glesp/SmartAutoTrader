@@ -1,40 +1,41 @@
-namespace SmartAutoTrader.API.Services;
-
-public static class AIServiceRegistration
+namespace SmartAutoTrader.API.Services
 {
-    public static IServiceCollection AddAIRecommendationServices(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    public static class AIServiceRegistration
     {
-        // Register HttpClient for API calls
-        services.AddHttpClient();
-
-        // Determine which AI provider to use based on configuration
-        var aiProvider = configuration["AI:Provider"]?.ToLower() ?? "huggingface";
-
-        switch (aiProvider)
+        public static IServiceCollection AddAIRecommendationServices(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
-            case "huggingface":
-                services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
-                break;
+            // Register HttpClient for API calls
+            _ = services.AddHttpClient();
 
-            case "openai":
-                // If you implement OpenAI in the future
-                // services.AddScoped<IAIRecommendationService, OpenAIRecommendationService>();
-                throw new NotImplementedException("OpenAI provider not yet implemented");
+            // Determine which AI provider to use based on configuration
+            string aiProvider = configuration["AI:Provider"]?.ToLower(System.Globalization.CultureInfo.CurrentCulture) ?? "huggingface";
 
-            case "none":
-            case "fallback":
-                // For a simple fallback without AI, implement a FallbackRecommendationService
-                // services.AddScoped<IAIRecommendationService, FallbackRecommendationService>();
-                throw new NotImplementedException("Fallback provider not yet implemented");
+            switch (aiProvider)
+            {
+                case "huggingface":
+                    _ = services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                    break;
 
-            default:
-                // Default to Hugging Face
-                services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
-                break;
+                case "openai":
+                    // If you implement OpenAI in the future
+                    // services.AddScoped<IAIRecommendationService, OpenAIRecommendationService>();
+                    throw new NotImplementedException("OpenAI provider not yet implemented");
+
+                case "none":
+                case "fallback":
+                    // For a simple fallback without AI, implement a FallbackRecommendationService
+                    // services.AddScoped<IAIRecommendationService, FallbackRecommendationService>();
+                    throw new NotImplementedException("Fallback provider not yet implemented");
+
+                default:
+                    // Default to Hugging Face
+                    _ = services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                    break;
+            }
+
+            return services;
         }
-
-        return services;
     }
 }

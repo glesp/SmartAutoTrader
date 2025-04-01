@@ -1,100 +1,105 @@
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Models;
 
-namespace SmartAutoTrader.API.Data;
-
-public class ApplicationDbContext : DbContext
+namespace SmartAutoTrader.API.Data
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-    }
+        public DbSet<Vehicle> Vehicles { get; set; }
 
-    public DbSet<Vehicle> Vehicles { get; set; }
-    public DbSet<VehicleImage> VehicleImages { get; set; }
-    public DbSet<VehicleFeature> VehicleFeatures { get; set; }
-    public DbSet<User> Users { get; set; }
-    public DbSet<UserFavorite> UserFavorites { get; set; }
-    public DbSet<UserPreference> UserPreferences { get; set; }
-    public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
-    public DbSet<Inquiry> Inquiries { get; set; }
-    public DbSet<ChatHistory> ChatHistory { get; set; }
-    public DbSet<ConversationSession> ConversationSessions { get; set; }
+        public DbSet<VehicleImage> VehicleImages { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
+        public DbSet<VehicleFeature> VehicleFeatures { get; set; }
 
-        // Configure relationships
+        public DbSet<User> Users { get; set; }
 
-        // Vehicle - VehicleImage (one-to-many)
-        modelBuilder.Entity<VehicleImage>()
-            .HasOne(vi => vi.Vehicle)
-            .WithMany(v => v.Images)
-            .HasForeignKey(vi => vi.VehicleId);
+        public DbSet<UserFavorite> UserFavorites { get; set; }
 
-        // Vehicle - VehicleFeature (one-to-many)
-        modelBuilder.Entity<VehicleFeature>()
-            .HasOne(vf => vf.Vehicle)
-            .WithMany(v => v.Features)
-            .HasForeignKey(vf => vf.VehicleId);
+        public DbSet<UserPreference> UserPreferences { get; set; }
 
-        // User - UserFavorite (one-to-many)
-        modelBuilder.Entity<UserFavorite>()
-            .HasOne(uf => uf.User)
-            .WithMany(u => u.Favorites)
-            .HasForeignKey(uf => uf.UserId);
+        public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
 
-        // Vehicle - UserFavorite (one-to-many)
-        modelBuilder.Entity<UserFavorite>()
-            .HasOne(uf => uf.Vehicle)
-            .WithMany(v => v.FavoritedBy)
-            .HasForeignKey(uf => uf.VehicleId);
+        public DbSet<Inquiry> Inquiries { get; set; }
 
-        // User - UserPreference (one-to-many)
-        modelBuilder.Entity<UserPreference>()
-            .HasOne(up => up.User)
-            .WithMany(u => u.Preferences)
-            .HasForeignKey(up => up.UserId);
+        public DbSet<ChatHistory> ChatHistory { get; set; }
 
-        // User - BrowsingHistory (one-to-many)
-        modelBuilder.Entity<BrowsingHistory>()
-            .HasOne(bh => bh.User)
-            .WithMany(u => u.BrowsingHistory)
-            .HasForeignKey(bh => bh.UserId);
+        public DbSet<ConversationSession> ConversationSessions { get; set; }
 
-        // Vehicle - BrowsingHistory (one-to-many)
-        modelBuilder.Entity<BrowsingHistory>()
-            .HasOne(bh => bh.Vehicle)
-            .WithMany()
-            .HasForeignKey(bh => bh.VehicleId);
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
-        // User - Inquiry (one-to-many)
-        modelBuilder.Entity<Inquiry>()
-            .HasOne(i => i.User)
-            .WithMany(u => u.SentInquiries)
-            .HasForeignKey(i => i.UserId);
+            // Configure relationships
 
-        // Vehicle - Inquiry (one-to-many)
-        modelBuilder.Entity<Inquiry>()
-            .HasOne(i => i.Vehicle)
-            .WithMany()
-            .HasForeignKey(i => i.VehicleId);
+            // Vehicle - VehicleImage (one-to-many)
+            _ = modelBuilder.Entity<VehicleImage>()
+                .HasOne(vi => vi.Vehicle)
+                .WithMany(v => v.Images)
+                .HasForeignKey(vi => vi.VehicleId);
 
-        // User - ChatHistory (one-to-many)
-        modelBuilder.Entity<ChatHistory>()
-            .HasOne(ch => ch.User)
-            .WithMany()
-            .HasForeignKey(ch => ch.UserId);
-        modelBuilder.Entity<ConversationSession>()
-            .HasOne(cs => cs.User)
-            .WithMany()
-            .HasForeignKey(cs => cs.UserId);
+            // Vehicle - VehicleFeature (one-to-many)
+            _ = modelBuilder.Entity<VehicleFeature>()
+                .HasOne(vf => vf.Vehicle)
+                .WithMany(v => v.Features)
+                .HasForeignKey(vf => vf.VehicleId);
 
-        modelBuilder.Entity<ConversationSession>()
-            .HasMany(cs => cs.Messages)
-            .WithOne(ch => ch.Session)
-            .HasForeignKey(ch => ch.ConversationSessionId)
-            .IsRequired(false); // Make the relationship optional
+            // User - UserFavorite (one-to-many)
+            _ = modelBuilder.Entity<UserFavorite>()
+                .HasOne(uf => uf.User)
+                .WithMany(u => u.Favorites)
+                .HasForeignKey(uf => uf.UserId);
+
+            // Vehicle - UserFavorite (one-to-many)
+            _ = modelBuilder.Entity<UserFavorite>()
+                .HasOne(uf => uf.Vehicle)
+                .WithMany(v => v.FavoritedBy)
+                .HasForeignKey(uf => uf.VehicleId);
+
+            // User - UserPreference (one-to-many)
+            _ = modelBuilder.Entity<UserPreference>()
+                .HasOne(up => up.User)
+                .WithMany(u => u.Preferences)
+                .HasForeignKey(up => up.UserId);
+
+            // User - BrowsingHistory (one-to-many)
+            _ = modelBuilder.Entity<BrowsingHistory>()
+                .HasOne(bh => bh.User)
+                .WithMany(u => u.BrowsingHistory)
+                .HasForeignKey(bh => bh.UserId);
+
+            // Vehicle - BrowsingHistory (one-to-many)
+            _ = modelBuilder.Entity<BrowsingHistory>()
+                .HasOne(bh => bh.Vehicle)
+                .WithMany()
+                .HasForeignKey(bh => bh.VehicleId);
+
+            // User - Inquiry (one-to-many)
+            _ = modelBuilder.Entity<Inquiry>()
+                .HasOne(i => i.User)
+                .WithMany(u => u.SentInquiries)
+                .HasForeignKey(i => i.UserId);
+
+            // Vehicle - Inquiry (one-to-many)
+            _ = modelBuilder.Entity<Inquiry>()
+                .HasOne(i => i.Vehicle)
+                .WithMany()
+                .HasForeignKey(i => i.VehicleId);
+
+            // User - ChatHistory (one-to-many)
+            _ = modelBuilder.Entity<ChatHistory>()
+                .HasOne(ch => ch.User)
+                .WithMany()
+                .HasForeignKey(ch => ch.UserId);
+            _ = modelBuilder.Entity<ConversationSession>()
+                .HasOne(cs => cs.User)
+                .WithMany()
+                .HasForeignKey(cs => cs.UserId);
+
+            _ = modelBuilder.Entity<ConversationSession>()
+                .HasMany(cs => cs.Messages)
+                .WithOne(ch => ch.Session)
+                .HasForeignKey(ch => ch.ConversationSessionId)
+                .IsRequired(false); // Make the relationship optional
+        }
     }
 }

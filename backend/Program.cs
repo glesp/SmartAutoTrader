@@ -10,7 +10,7 @@ using SmartAutoTrader.API.DataSeeding;
 using SmartAutoTrader.API.Services;
 using ZLogger;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
@@ -34,7 +34,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
         };
     });
 
@@ -61,7 +61,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        _ = policy.WithOrigins("http://localhost:5173")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
@@ -79,6 +79,7 @@ builder.Logging.AddZLoggerFile("Logs/app_log.txt");
 
 // Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
+
 // Add this in your services configuration section
 builder.Services.AddSwaggerGen(options =>
 {
@@ -91,7 +92,7 @@ builder.Services.AddSwaggerGen(options =>
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Scheme = "Bearer",
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -106,17 +107,17 @@ builder.Services.AddSwaggerGen(options =>
                 }
             },
             Array.Empty<string>()
-        }
+        },
     });
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    _ = app.UseSwagger();
+    _ = app.UseSwaggerUI();
 }
 
 app.UseCors("AllowFrontend");
@@ -128,12 +129,12 @@ app.MapControllers();
 app.UseStaticFiles();
 
 // Create the database if it doesn't exist
-using (var scope = app.Services.CreateScope())
+using (IServiceScope scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
-    context.Database.EnsureCreated();
-    var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
+    IServiceProvider services = scope.ServiceProvider;
+    ApplicationDbContext context = services.GetRequiredService<ApplicationDbContext>();
+    _ = context.Database.EnsureCreated();
+    VehicleSeeder vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
     vehicleSeeder.SeedVehicles(services);
 }
 

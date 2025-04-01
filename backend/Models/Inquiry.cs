@@ -1,34 +1,40 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace SmartAutoTrader.API.Models;
-
-public enum InquiryStatus
+namespace SmartAutoTrader.API.Models
 {
-    New,
-    Read,
-    Replied,
-    Closed
-}
+    public enum InquiryStatus
+    {
+        New,
+        Read,
+        Replied,
+        Closed,
+    }
 
-public class Inquiry
-{
-    [Key] public int Id { get; set; }
+    public class Inquiry
+    {
+        [Key]
+        public int Id { get; set; }
 
-    public int UserId { get; set; }
-    public User User { get; set; }
+        public int UserId { get; set; }
 
-    public int VehicleId { get; set; }
-    public Vehicle Vehicle { get; set; }
+        public User User { get; set; }
 
-    [Required] public string Subject { get; set; }
+        public int VehicleId { get; set; }
 
-    [Required] public string Message { get; set; }
+        public Vehicle Vehicle { get; set; }
 
-    public string Response { get; set; }
+        [Required]
+        public string Subject { get; set; }
 
-    public DateTime DateSent { get; set; } = DateTime.Now;
+        [Required]
+        public string Message { get; set; }
 
-    public DateTime? DateReplied { get; set; }
+        public string Response { get; set; }
 
-    public InquiryStatus Status { get; set; } = InquiryStatus.New;
+        public DateTime DateSent { get; set; } = DateTime.Now;
+
+        public DateTime? DateReplied { get; set; }
+
+        public InquiryStatus Status { get; set; } = InquiryStatus.New;
+    }
 }
