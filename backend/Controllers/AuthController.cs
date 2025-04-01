@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Services;
 
 namespace SmartAutoTrader.API.Controllers
@@ -65,27 +66,5 @@ namespace SmartAutoTrader.API.Controllers
                 return BadRequest(new { ex.Message });
             }
         }
-    }
-
-    public class RegisterModel
-    {
-        public string Username { get; set; }
-
-        public string Email { get; set; }
-
-        public string Password { get; set; }
-
-        public string FirstName { get; set; }
-
-        public string LastName { get; set; }
-
-        public string PhoneNumber { get; set; }
-    }
-
-    public class LoginModel
-    {
-        public string Email { get; set; }
-
-        public string Password { get; set; }
     }
 }
