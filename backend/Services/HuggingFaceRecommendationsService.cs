@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
@@ -29,14 +28,17 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
     {
         try
         {
-            _logger.LogInformation("Fetching recommendations for user ID: {UserId} with parameters: {Parameters}", 
+            _logger.LogInformation("Fetching recommendations for user ID: {UserId} with parameters: {Parameters}",
                 userId, JsonSerializer.Serialize(parameters));
 
             // Log the important parameter values we'll be filtering on
-            _logger.LogInformation("Key filter values: Makes={Makes}, FuelTypes={FuelTypes}, VehicleTypes={VehicleTypes}",
+            _logger.LogInformation(
+                "Key filter values: Makes={Makes}, FuelTypes={FuelTypes}, VehicleTypes={VehicleTypes}",
                 parameters.PreferredMakes != null ? string.Join(", ", parameters.PreferredMakes) : "null",
                 parameters.PreferredFuelTypes != null ? string.Join(", ", parameters.PreferredFuelTypes) : "null",
-                parameters.PreferredVehicleTypes != null ? string.Join(", ", parameters.PreferredVehicleTypes) : "null");
+                parameters.PreferredVehicleTypes != null
+                    ? string.Join(", ", parameters.PreferredVehicleTypes)
+                    : "null");
 
             var filteredVehicles = await GetFilteredVehiclesAsync(parameters);
 
@@ -47,22 +49,18 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
             }
 
             if (filteredVehicles.Count > parameters.MaxResults)
-            {
                 filteredVehicles = filteredVehicles
                     .OrderByDescending(v => v.DateListed)
                     .Take(parameters.MaxResults ?? 5)
                     .ToList();
-            }
 
             _logger.LogInformation("Returning {Count} vehicles based on parameter filtering", filteredVehicles.Count);
-            
+
             // Log the actual results for debugging
             foreach (var vehicle in filteredVehicles.Take(5))
-            {
                 _logger.LogInformation("Recommended vehicle: {Year} {Make} {Model}, Type={Type}, Fuel={Fuel}",
                     vehicle.Year, vehicle.Make, vehicle.Model, vehicle.VehicleType, vehicle.FuelType);
-            }
-            
+
             return filteredVehicles;
         }
         catch (Exception ex)
@@ -76,55 +74,40 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
     {
         var query = _context.Vehicles.AsQueryable();
 
-        if (parameters.MinPrice.HasValue)
-        {
-            query = query.Where(v => v.Price >= parameters.MinPrice.Value);
-        }
+        if (parameters.MinPrice.HasValue) query = query.Where(v => v.Price >= parameters.MinPrice.Value);
 
-        if (parameters.MaxPrice.HasValue)
-        {
-            query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
-        }
+        if (parameters.MaxPrice.HasValue) query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
 
-        if (parameters.MinYear.HasValue)
-        {
-            query = query.Where(v => v.Year >= parameters.MinYear.Value);
-        }
+        if (parameters.MinYear.HasValue) query = query.Where(v => v.Year >= parameters.MinYear.Value);
 
-        if (parameters.MaxYear.HasValue)
-        {
-            query = query.Where(v => v.Year <= parameters.MaxYear.Value);
-        }
-        
-        if (parameters.MaxMileage.HasValue)
-        {
-            query = query.Where(v => v.Mileage <= parameters.MaxMileage.Value);
-        }
+        if (parameters.MaxYear.HasValue) query = query.Where(v => v.Year <= parameters.MaxYear.Value);
+
+        if (parameters.MaxMileage.HasValue) query = query.Where(v => v.Mileage <= parameters.MaxMileage.Value);
 
 
         if (parameters.PreferredVehicleTypes?.Any() == true)
         {
-            _logger.LogInformation("Filtering by vehicle types: {VehicleTypes}", 
+            _logger.LogInformation("Filtering by vehicle types: {VehicleTypes}",
                 string.Join(", ", parameters.PreferredVehicleTypes));
-            
+
             // We can use the enum values directly since they're already parsed
             query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
         }
 
         if (parameters.PreferredFuelTypes?.Any() == true)
         {
-            _logger.LogInformation("Filtering by fuel types: {FuelTypes}", 
+            _logger.LogInformation("Filtering by fuel types: {FuelTypes}",
                 string.Join(", ", parameters.PreferredFuelTypes));
-            
+
             // We can use the enum values directly since they're already parsed
             query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
         }
 
         if (parameters.PreferredMakes?.Any() == true)
         {
-            _logger.LogInformation("Filtering by manufacturers: {Manufacturers}", 
+            _logger.LogInformation("Filtering by manufacturers: {Manufacturers}",
                 string.Join(", ", parameters.PreferredMakes));
-            
+
             // Make case-insensitive comparison
             var lowerMakes = parameters.PreferredMakes.Select(m => m.ToLower()).ToList();
             query = query.Where(v => lowerMakes.Contains(v.Make.ToLower()));
@@ -132,7 +115,7 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
 
         if (parameters.DesiredFeatures?.Any() == true)
         {
-            _logger.LogInformation("Ranking by optional features: {Features}", 
+            _logger.LogInformation("Ranking by optional features: {Features}",
                 string.Join(", ", parameters.DesiredFeatures));
 
             var featureSet = parameters.DesiredFeatures
@@ -152,8 +135,8 @@ public class HuggingFaceRecommendationService : IAIRecommendationService
 
 
         query = query.Where(v => v.Status == VehicleStatus.Available)
-                     .Include(v => v.Features)
-                     .Include(v => v.Images);
+            .Include(v => v.Features)
+            .Include(v => v.Images);
 
         _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
 

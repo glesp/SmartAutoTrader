@@ -1,93 +1,90 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using SmartAutoTrader.API.Services;
 
-namespace SmartAutoTrader.API.Controllers
+namespace SmartAutoTrader.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
+    private readonly IAuthService _authService;
+
+    public AuthController(IAuthService authService)
     {
-        private readonly IAuthService _authService;
+        _authService = authService;
+    }
 
-        public AuthController(IAuthService authService)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterModel model)
+    {
+        try
         {
-            _authService = authService;
-        }
+            var user = await _authService.RegisterAsync(
+                model.Username,
+                model.Email,
+                model.Password,
+                model.FirstName,
+                model.LastName,
+                model.PhoneNumber
+            );
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterModel model)
-        {
-            try
+            return Ok(new
             {
-                var user = await _authService.RegisterAsync(
-                    model.Username,
-                    model.Email,
-                    model.Password,
-                    model.FirstName,
-                    model.LastName,
-                    model.PhoneNumber
-                );
+                user.Id,
+                user.Username,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                user.PhoneNumber,
+                Message = "Registration successful"
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { ex.Message });
+        }
+    }
 
-                return Ok(new
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginModel model)
+    {
+        try
+        {
+            var (token, user) = await _authService.LoginAsync(model.Email, model.Password);
+
+            return Ok(new
+            {
+                Token = token,
+                User = new
                 {
                     user.Id,
                     user.Username,
                     user.Email,
                     user.FirstName,
-                    user.LastName,
-                    user.PhoneNumber,
-                    Message = "Registration successful"
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
+                    user.LastName
+                },
+                Message = "Login successful"
+            });
         }
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        catch (Exception ex)
         {
-            try
-            {
-                var (token, user) = await _authService.LoginAsync(model.Email, model.Password);
-
-                return Ok(new
-                {
-                    Token = token,
-                    User = new
-                    {
-                        user.Id,
-                        user.Username,
-                        user.Email,
-                        user.FirstName,
-                        user.LastName
-                    },
-                    Message = "Login successful"
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
+            return BadRequest(new { ex.Message });
         }
     }
+}
 
-    public class RegisterModel
-    {
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string Password { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string PhoneNumber { get; set; }
-    }
+public class RegisterModel
+{
+    public string Username { get; set; }
+    public string Email { get; set; }
+    public string Password { get; set; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string PhoneNumber { get; set; }
+}
 
-    public class LoginModel
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
+public class LoginModel
+{
+    public string Email { get; set; }
+    public string Password { get; set; }
 }

@@ -1,783 +1,718 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Validators;
 
-namespace SmartAutoTrader.API.Services
+namespace SmartAutoTrader.API.Services;
+
+public interface IChatRecommendationService
 {
-    public interface IChatRecommendationService
+    Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
+}
+
+public class ChatMessage
+{
+    public string Content { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public bool IsClarification { get; set; } = false;
+    public string? OriginalUserInput { get; set; }
+    public bool IsFollowUp { get; set; } = false;
+    public string? ConversationId { get; set; }
+}
+
+public class ChatResponse
+{
+    public string Message { get; set; }
+    public List<Vehicle> RecommendedVehicles { get; set; } = new();
+    public RecommendationParameters UpdatedParameters { get; set; }
+    public bool ClarificationNeeded { get; set; }
+    public string? OriginalUserInput { get; set; }
+    public string? ConversationId { get; set; }
+}
+
+public class ChatRecommendationService : IChatRecommendationService
+{
+    private readonly IConfiguration _configuration;
+    private readonly ApplicationDbContext _context;
+    private readonly IConversationContextService _contextService;
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<ChatRecommendationService> _logger;
+    private readonly IAIRecommendationService _recommendationService;
+
+    public ChatRecommendationService(
+        ApplicationDbContext context,
+        IConfiguration configuration,
+        ILogger<ChatRecommendationService> logger,
+        HttpClient httpClient,
+        IAIRecommendationService recommendationService,
+        IConversationContextService contextService)
     {
-        Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
+        _context = context;
+        _configuration = configuration;
+        _logger = logger;
+        _httpClient = httpClient;
+        _recommendationService = recommendationService;
+        _contextService = contextService;
     }
 
-    public class ChatMessage
+    public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
     {
-        public string Content { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-        public bool IsClarification { get; set; } = false;
-        public string? OriginalUserInput { get; set; }
-        public bool IsFollowUp { get; set; } = false;
-        public string? ConversationId { get; set; }
-    }
-
-    public class ChatResponse
-    {
-        public string Message { get; set; }
-        public List<Vehicle> RecommendedVehicles { get; set; } = new List<Vehicle>();
-        public RecommendationParameters UpdatedParameters { get; set; }
-        public bool ClarificationNeeded { get; set; } = false;
-        public string? OriginalUserInput { get; set; }
-        public string? ConversationId { get; set; }
-    }
-
-    public class ChatRecommendationService : IChatRecommendationService
-    {
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<ChatRecommendationService> _logger;
-        private readonly HttpClient _httpClient;
-        private readonly IAIRecommendationService _recommendationService;
-        private readonly IConversationContextService _contextService;
-        
-        public ChatRecommendationService(
-            ApplicationDbContext context,
-            IConfiguration configuration,
-            ILogger<ChatRecommendationService> logger,
-            HttpClient httpClient,
-            IAIRecommendationService recommendationService,
-            IConversationContextService contextService)
+        try
         {
-            _context = context;
-            _configuration = configuration;
-            _logger = logger;
-            _httpClient = httpClient;
-            _recommendationService = recommendationService;
-            _contextService = contextService;
-        }
-        
-        public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
-        {
-            try
+            _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
+
+            // Get or create conversation session ID
+            int? conversationSessionId = null;
+            if (!string.IsNullOrEmpty(message.ConversationId) &&
+                int.TryParse(message.ConversationId, out var sessionId))
             {
-                _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
-                
-                // Get or create conversation session ID
-                int? conversationSessionId = null;
-                if (!string.IsNullOrEmpty(message.ConversationId) && int.TryParse(message.ConversationId, out var sessionId))
-                {
-                    conversationSessionId = sessionId;
-                    _logger.LogInformation("Using existing conversation session: {SessionId}", sessionId);
-                }
-                
-                // Get conversation context
-                var conversationContext = await _contextService.GetOrCreateContextAsync(userId);
-                
-                // Update conversation context with basic tracking info
-                conversationContext.MessageCount++;
-                conversationContext.LastInteraction = DateTime.UtcNow;
-                
-                // Get user context for personalization
-                var user = await _context.Users
-                    .Include(u => u.Preferences)
-                    .FirstOrDefaultAsync(u => u.Id == userId);
-                
-                if (user == null)
-                {
-                    _logger.LogWarning("User with ID {UserId} not found", userId);
-                    return new ChatResponse { 
-                        Message = "Sorry, I couldn't process your request. Please try again later.",
-                        ConversationId = message.ConversationId
-                    };
-                }
-
-                // Load related entities separately
-                user.Favorites = await _context.UserFavorites
-                    .Where(f => f.UserId == userId)
-                    .Include(f => f.Vehicle)
-                    .ToListAsync();
-
-                user.BrowsingHistory = await _context.BrowsingHistory
-                    .Where(h => h.UserId == userId)
-                    .OrderByDescending(h => h.ViewDate)
-                    .Take(5)
-                    .Include(h => h.Vehicle)
-                    .ToListAsync();
-                
-                // Determine if this is a clarification or a follow-up query
-                string messageToProcess = message.Content;
-                
-                // Check for conversation continuity
-                bool isFollowUpQuery = IsFollowUpQuery(message.Content, conversationContext);
-                
-                if (message.IsClarification && !string.IsNullOrEmpty(message.OriginalUserInput))
-                {
-                    // Combine original query with clarification
-                    messageToProcess = $"{message.OriginalUserInput} - Additional info: {message.Content}";
-                    _logger.LogInformation("Processing clarification. Combined message: {Message}", messageToProcess);
-                }
-                else if (isFollowUpQuery || message.IsFollowUp)
-                {
-                    // This is a follow-up to the previous query, use the context
-                    messageToProcess = $"{conversationContext.LastUserIntent} - Follow-up: {message.Content}";
-                    _logger.LogInformation("Processing follow-up query. Combined message: {Message}", messageToProcess);
-                    
-                    // Analyze message for features or preferences
-                    UpdateContextBasedOnMessage(message.Content, conversationContext);
-                }
-                
-                _logger.LogInformation("About to call parameter extraction for message: {MessageContent}", messageToProcess);
-
-                var sw = Stopwatch.StartNew();
-                var extractedParameters = await ExtractParametersAsync(messageToProcess);
-                sw.Stop();
-
-                _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
-
-                if (extractedParameters == null)
-                {
-                    _logger.LogError("🛑 ExtractParametersAsync returned NULL — possible timeout, LLM failure, or parsing issue.");
-                    _logger.LogError("[LLM_NULL_PARAMETERS] User message: {Message}", messageToProcess);
-
-                    return new ChatResponse
-                    {
-                        Message = "Sorry, I couldn't process your request. Could you try rephrasing or be a bit more specific?",
-                        UpdatedParameters = conversationContext.CurrentParameters ?? new RecommendationParameters(),
-                        ClarificationNeeded = true,
-                        OriginalUserInput = message.Content,
-                        ConversationId = message.ConversationId
-                    };
-                }
-                
-                if (extractedParameters.IsOffTopic && !string.IsNullOrEmpty(extractedParameters.OffTopicResponse))
-                {
-                    // Return the off-topic response directly without further processing
-                    await SaveChatHistoryAsync(userId, message, extractedParameters.OffTopicResponse, conversationSessionId);
-    
-                    return new ChatResponse
-                    {
-                        Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = new List<Vehicle>(),
-                        UpdatedParameters = new RecommendationParameters(),
-                        ClarificationNeeded = false,
-                        ConversationId = message.ConversationId
-                    };
-                }
-
-                _logger.LogInformation("Parameter extraction completed successfully");
-                
-                // Merge with existing parameters if this is a follow-up or clarification
-                RecommendationParameters parameters;
-                if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification) && conversationContext.CurrentParameters != null)
-                {
-                    parameters = MergeParameters(conversationContext.CurrentParameters, extractedParameters);
-                    _logger.LogInformation("Merged parameters from context and new extraction");
-                }
-                else
-                {
-                    parameters = extractedParameters;
-                }
-                
-                // Store the original message as last user intent
-                conversationContext.LastUserIntent = messageToProcess;
-                
-                // Update the conversation context with new parameters
-                conversationContext.CurrentParameters = parameters;
-                
-                // Save context
-                await _contextService.UpdateContextAsync(userId, conversationContext);
-                
-                // Determine if we need further clarification based on parameters
-                bool needsClarification = NeedsClarification(parameters, messageToProcess);
-                
-                if (needsClarification && !message.IsClarification)
-                {
-                    _logger.LogInformation("Clarification needed for user query");
-                    
-                    // Create clarification message based on context
-                    string clarificationMessage = GenerateClarificationMessage(parameters, messageToProcess, conversationContext);
-                    
-                    // Save the chat history
-                    await SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
-                    
-                    return new ChatResponse
-                    {
-                        Message = clarificationMessage,
-                        UpdatedParameters = parameters,
-                        ClarificationNeeded = true,
-                        OriginalUserInput = message.Content,
-                        ConversationId = message.ConversationId
-                    };
-                }
-                else
-                {
-                    // This is either a complete initial query or a follow-up clarification
-                    parameters.TextPrompt = messageToProcess;
-                    
-                    _logger.LogInformation("Using parameters: {@Parameters}", parameters);
-                    
-                    // Save the chat history with a placeholder response
-                    await SaveChatHistoryAsync(userId, message, 
-                        $"I'm looking for vehicles that match: {messageToProcess}", 
-                        conversationSessionId);
-                    
-                    // Get recommendations based on the parameters
-                    var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
-                    
-                    // Track which vehicles were shown to the user
-                    var vehicleIds = recommendations.Select(v => v.Id).ToList();
-                    foreach (var id in vehicleIds)
-                    {
-                        if (!conversationContext.ShownVehicleIds.Contains(id))
-                        {
-                            conversationContext.ShownVehicleIds.Add(id);
-                        }
-                    }
-                    
-                    // Save the updated context with shown vehicles
-                    await _contextService.UpdateContextAsync(userId, conversationContext);
-                    
-                    // Generate a response based on the parameters, recommendations, and context
-                    string responseMessage = GenerateResponseMessage(parameters, recommendations.Count(), conversationContext);
-                    
-                    return new ChatResponse
-                    {
-                        Message = responseMessage,
-                        RecommendedVehicles = recommendations.ToList(),
-                        UpdatedParameters = parameters,
-                        ClarificationNeeded = false,
-                        ConversationId = message.ConversationId
-                    };
-                }
+                conversationSessionId = sessionId;
+                _logger.LogInformation("Using existing conversation session: {SessionId}", sessionId);
             }
-            catch (Exception ex)
+
+            // Get conversation context
+            var conversationContext = await _contextService.GetOrCreateContextAsync(userId);
+
+            // Update conversation context with basic tracking info
+            conversationContext.MessageCount++;
+            conversationContext.LastInteraction = DateTime.UtcNow;
+
+            // Get user context for personalization
+            var user = await _context.Users
+                .Include(u => u.Preferences)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
             {
-                _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+                _logger.LogWarning("User with ID {UserId} not found", userId);
                 return new ChatResponse
                 {
-                    Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles = new List<Vehicle>(),
-                    UpdatedParameters = new RecommendationParameters(),
+                    Message = "Sorry, I couldn't process your request. Please try again later.",
                     ConversationId = message.ConversationId
                 };
             }
-        }
-        
-        // Determine if a message is a follow-up to the previous conversation
-        private bool IsFollowUpQuery(string message, ConversationContext context)
-        {
-            // If this is the first message in the conversation, it's not a follow-up
-            if (context.MessageCount <= 1 || string.IsNullOrEmpty(context.LastUserIntent))
+
+            // Load related entities separately
+            user.Favorites = await _context.UserFavorites
+                .Where(f => f.UserId == userId)
+                .Include(f => f.Vehicle)
+                .ToListAsync();
+
+            user.BrowsingHistory = await _context.BrowsingHistory
+                .Where(h => h.UserId == userId)
+                .OrderByDescending(h => h.ViewDate)
+                .Take(5)
+                .Include(h => h.Vehicle)
+                .ToListAsync();
+
+            // Determine if this is a clarification or a follow-up query
+            var messageToProcess = message.Content;
+
+            // Check for conversation continuity
+            var isFollowUpQuery = IsFollowUpQuery(message.Content, conversationContext);
+
+            if (message.IsClarification && !string.IsNullOrEmpty(message.OriginalUserInput))
             {
-                return false;
+                // Combine original query with clarification
+                messageToProcess = $"{message.OriginalUserInput} - Additional info: {message.Content}";
+                _logger.LogInformation("Processing clarification. Combined message: {Message}", messageToProcess);
             }
-            
-            // Check if the message is short (likely to be a follow-up)
-            if (message.Split(' ').Length <= 4)
+            else if (isFollowUpQuery || message.IsFollowUp)
             {
-                return true;
+                // This is a follow-up to the previous query, use the context
+                messageToProcess = $"{conversationContext.LastUserIntent} - Follow-up: {message.Content}";
+                _logger.LogInformation("Processing follow-up query. Combined message: {Message}", messageToProcess);
+
+                // Analyze message for features or preferences
+                UpdateContextBasedOnMessage(message.Content, conversationContext);
             }
-            
-            // Check for follow-up indicators
-            string lowerMessage = message.ToLower();
-            string[] followUpIndicators = new[] 
-            { 
-                "instead", "also", "but", "what about", "how about",
-                "can you", "show me", "i want", "i prefer", "i'd like",
-                "actually", "change", "modify", "update", "rather"
-            };
-            
-            if (followUpIndicators.Any(indicator => lowerMessage.Contains(indicator)))
+
+            _logger.LogInformation("About to call parameter extraction for message: {MessageContent}",
+                messageToProcess);
+
+            var sw = Stopwatch.StartNew();
+            var extractedParameters = await ExtractParametersAsync(messageToProcess);
+            sw.Stop();
+
+            _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
+
+            if (extractedParameters == null)
             {
-                return true;
-            }
-            
-            // Check for pronouns that might refer to previous context
-            string[] contextualPronouns = new[] { "it", "that", "these", "those", "them" };
-            if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
-            {
-                return true;
-            }
-            
-            // If the last interaction was recent (< 2 minutes ago), more likely to be a follow-up
-            if ((DateTime.UtcNow - context.LastInteraction).TotalMinutes < 2)
-            {
-                // Apply more relaxed criteria for recent interactions
-                return true;
-            }
-            
-            return false;
-        }
-        
-        // Save chat history to the database
-        private async Task SaveChatHistoryAsync(int userId, ChatMessage userMessage, string aiResponse, int? conversationSessionId = null)
-        {
-            try
-            {
-                // Create a chat history record
-                var chatHistory = new ChatHistory
+                _logger.LogError(
+                    "🛑 ExtractParametersAsync returned NULL — possible timeout, LLM failure, or parsing issue.");
+                _logger.LogError("[LLM_NULL_PARAMETERS] User message: {Message}", messageToProcess);
+
+                return new ChatResponse
                 {
-                    UserId = userId,
-                    UserMessage = userMessage.Content,
-                    AIResponse = aiResponse,
-                    Timestamp = DateTime.UtcNow,
-                    ConversationSessionId = conversationSessionId
+                    Message =
+                        "Sorry, I couldn't process your request. Could you try rephrasing or be a bit more specific?",
+                    UpdatedParameters = conversationContext.CurrentParameters ?? new RecommendationParameters(),
+                    ClarificationNeeded = true,
+                    OriginalUserInput = message.Content,
+                    ConversationId = message.ConversationId
                 };
-                
-                _context.ChatHistory.Add(chatHistory);
-                await _context.SaveChangesAsync();
             }
-            catch (Exception ex)
+
+            if (extractedParameters.IsOffTopic && !string.IsNullOrEmpty(extractedParameters.OffTopicResponse))
             {
-                _logger.LogError(ex, "Error saving chat history for user ID {UserId}", userId);
-                // Continue even if saving history fails
+                // Return the off-topic response directly without further processing
+                await SaveChatHistoryAsync(userId, message, extractedParameters.OffTopicResponse,
+                    conversationSessionId);
+
+                return new ChatResponse
+                {
+                    Message = extractedParameters.OffTopicResponse,
+                    RecommendedVehicles = new List<Vehicle>(),
+                    UpdatedParameters = new RecommendationParameters(),
+                    ClarificationNeeded = false,
+                    ConversationId = message.ConversationId
+                };
             }
-        }
-        
-        // Update context based on message content
-        private void UpdateContextBasedOnMessage(string message, ConversationContext context)
-        {
-            string[] featureKeywords = new[]
+
+            _logger.LogInformation("Parameter extraction completed successfully");
+
+            // Merge with existing parameters if this is a follow-up or clarification
+            RecommendationParameters parameters;
+            if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification) &&
+                conversationContext.CurrentParameters != null)
             {
-                "bluetooth", "navigation", "leather", "sunroof", "camera",
-                "cruise control", "parking sensors", "heated seats", "air conditioning",
-                "automatic", "manual", "safety", "fuel efficient", "family", "sport"
+                parameters = MergeParameters(conversationContext.CurrentParameters, extractedParameters);
+                _logger.LogInformation("Merged parameters from context and new extraction");
+            }
+            else
+            {
+                parameters = extractedParameters;
+            }
+
+            // Store the original message as last user intent
+            conversationContext.LastUserIntent = messageToProcess;
+
+            // Update the conversation context with new parameters
+            conversationContext.CurrentParameters = parameters;
+
+            // Save context
+            await _contextService.UpdateContextAsync(userId, conversationContext);
+
+            // Determine if we need further clarification based on parameters
+            var needsClarification = NeedsClarification(parameters, messageToProcess);
+
+            if (needsClarification && !message.IsClarification)
+            {
+                _logger.LogInformation("Clarification needed for user query");
+
+                // Create clarification message based on context
+                var clarificationMessage =
+                    GenerateClarificationMessage(parameters, messageToProcess, conversationContext);
+
+                // Save the chat history
+                await SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
+
+                return new ChatResponse
+                {
+                    Message = clarificationMessage,
+                    UpdatedParameters = parameters,
+                    ClarificationNeeded = true,
+                    OriginalUserInput = message.Content,
+                    ConversationId = message.ConversationId
+                };
+            }
+
+            // This is either a complete initial query or a follow-up clarification
+            parameters.TextPrompt = messageToProcess;
+
+            _logger.LogInformation("Using parameters: {@Parameters}", parameters);
+
+            // Save the chat history with a placeholder response
+            await SaveChatHistoryAsync(userId, message,
+                $"I'm looking for vehicles that match: {messageToProcess}",
+                conversationSessionId);
+
+            // Get recommendations based on the parameters
+            var recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+
+            // Track which vehicles were shown to the user
+            var vehicleIds = recommendations.Select(v => v.Id).ToList();
+            foreach (var id in vehicleIds)
+                if (!conversationContext.ShownVehicleIds.Contains(id))
+                    conversationContext.ShownVehicleIds.Add(id);
+
+            // Save the updated context with shown vehicles
+            await _contextService.UpdateContextAsync(userId, conversationContext);
+
+            // Generate a response based on the parameters, recommendations, and context
+            var responseMessage = GenerateResponseMessage(parameters, recommendations.Count(), conversationContext);
+
+            return new ChatResponse
+            {
+                Message = responseMessage,
+                RecommendedVehicles = recommendations.ToList(),
+                UpdatedParameters = parameters,
+                ClarificationNeeded = false,
+                ConversationId = message.ConversationId
             };
-            
-            string lowerMessage = message.ToLower();
-            
-            foreach (var feature in featureKeywords)
-            {
-                if (lowerMessage.Contains(feature) && !context.MentionedVehicleFeatures.Contains(feature))
-                {
-                    context.MentionedVehicleFeatures.Add(feature);
-                }
-            }
-            
-            // Detect explicitly rejected options
-            if (lowerMessage.Contains("not ") || lowerMessage.Contains("don't want") || 
-                lowerMessage.Contains("no ") || lowerMessage.Contains("except"))
-            {
-                foreach (var make in new[] { "bmw", "audi", "ford", "toyota", "honda" })
-                {
-                    if ((lowerMessage.Contains($"not {make}") || lowerMessage.Contains($"no {make}")) &&
-                        !context.ExplicitlyRejectedOptions.Contains(make))
-                    {
-                        context.ExplicitlyRejectedOptions.Add(make);
-                    }
-                }
-            }
-            
-            // Track topic context (for conversation flow management)
-            if (lowerMessage.Contains("budget") || lowerMessage.Contains("price") || 
-                lowerMessage.Contains("cost") || lowerMessage.Contains("afford"))
-            {
-                context.TopicContext["discussing_budget"] = true;
-            }
-            
-            if (lowerMessage.Contains("family") || lowerMessage.Contains("kids") || 
-                lowerMessage.Contains("children") || lowerMessage.Contains("baby"))
-            {
-                context.TopicContext["discussing_family_needs"] = true;
-            }
-            
-            if (lowerMessage.Contains("fuel") || lowerMessage.Contains("gas") || 
-                lowerMessage.Contains("diesel") || lowerMessage.Contains("electric") || 
-                lowerMessage.Contains("economy") || lowerMessage.Contains("consumption"))
-            {
-                context.TopicContext["discussing_fuel_economy"] = true;
-            }
         }
-        
-        // Merge parameters from a new query with existing parameters from context
-        private RecommendationParameters MergeParameters(
-            RecommendationParameters existingParams,
-            RecommendationParameters newParams)
+        catch (Exception ex)
         {
-            // Start with the new parameters
-            var mergedParams = newParams;
-            
-            // For each field, prefer new values if present, otherwise keep the existing ones
-            
-            // Price range
-            if (mergedParams.MinPrice == null)
-                mergedParams.MinPrice = existingParams.MinPrice;
-                
-            if (mergedParams.MaxPrice == null)
-                mergedParams.MaxPrice = existingParams.MaxPrice;
-                
-            // Year range
-            if (mergedParams.MinYear == null)
-                mergedParams.MinYear = existingParams.MinYear;
-                
-            if (mergedParams.MaxYear == null)
-                mergedParams.MaxYear = existingParams.MaxYear;
-                
-            // Vehicle types (if new ones are specified, use those; otherwise keep existing)
-            if (mergedParams.PreferredVehicleTypes == null || !mergedParams.PreferredVehicleTypes.Any())
-                mergedParams.PreferredVehicleTypes = existingParams.PreferredVehicleTypes;
-                
-            // Makes (same logic as vehicle types)
-            if (mergedParams.PreferredMakes == null || !mergedParams.PreferredMakes.Any())
-                mergedParams.PreferredMakes = existingParams.PreferredMakes;
-                
-            // Fuel types
-            if (mergedParams.PreferredFuelTypes == null || !mergedParams.PreferredFuelTypes.Any())
-                mergedParams.PreferredFuelTypes = existingParams.PreferredFuelTypes;
-                
-            // Features
-            if (mergedParams.DesiredFeatures == null || !mergedParams.DesiredFeatures.Any())
-                mergedParams.DesiredFeatures = existingParams.DesiredFeatures;
-                
-            // Max mileage
-            if (mergedParams.MaxMileage == null)
-                mergedParams.MaxMileage = existingParams.MaxMileage;
-            
-            return mergedParams;
+            _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+            return new ChatResponse
+            {
+                Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
+                RecommendedVehicles = new List<Vehicle>(),
+                UpdatedParameters = new RecommendationParameters(),
+                ConversationId = message.ConversationId
+            };
         }
-        
-        // This method determines if we need clarification based on the extracted parameters
-        private bool NeedsClarification(RecommendationParameters parameters, string message)
+    }
+
+    // Determine if a message is a follow-up to the previous conversation
+    private bool IsFollowUpQuery(string message, ConversationContext context)
+    {
+        // If this is the first message in the conversation, it's not a follow-up
+        if (context.MessageCount <= 1 || string.IsNullOrEmpty(context.LastUserIntent)) return false;
+
+        // Check if the message is short (likely to be a follow-up)
+        if (message.Split(' ').Length <= 4) return true;
+
+        // Check for follow-up indicators
+        var lowerMessage = message.ToLower();
+        string[] followUpIndicators = new[]
         {
-            // Count how many parameter types are missing
-            int missingParameterTypes = 0;
-            
-            // Check if essential parameters are missing
-            if (parameters.MinPrice == null && parameters.MaxPrice == null)
-                missingParameterTypes++;
-                
-            if ((parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any()) &&
-                !message.ToLower().Contains("any type") && !message.ToLower().Contains("any vehicle"))
-                missingParameterTypes++;
-                
-            if ((parameters.PreferredMakes == null || !parameters.PreferredMakes.Any()) && 
-                !message.ToLower().Contains("any make") && !message.ToLower().Contains("any brand"))
-                missingParameterTypes++;
-            
-            //same for year 
-            if (parameters.MinYear == null && parameters.MaxYear == null)
-                missingParameterTypes++;
-            
-            //same for mileage 
-            if (parameters.MaxMileage == null)
-                missingParameterTypes++;
-            
-            //same for preferred fuel type
-            if (parameters.PreferredFuelTypes == null || !parameters.PreferredFuelTypes.Any())
-                missingParameterTypes++;
-            
-                
-            // Ask for clarification is more than 3 parameter types are missing 
-            return missingParameterTypes >= 3;
+            "instead", "also", "but", "what about", "how about",
+            "can you", "show me", "i want", "i prefer", "i'd like",
+            "actually", "change", "modify", "update", "rather"
+        };
+
+        if (followUpIndicators.Any(indicator => lowerMessage.Contains(indicator))) return true;
+
+        // Check for pronouns that might refer to previous context
+        string[] contextualPronouns = new[] { "it", "that", "these", "those", "them" };
+        if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} "))) return true;
+
+        // If the last interaction was recent (< 2 minutes ago), more likely to be a follow-up
+        if ((DateTime.UtcNow - context.LastInteraction).TotalMinutes < 2)
+            // Apply more relaxed criteria for recent interactions
+            return true;
+
+        return false;
+    }
+
+    // Save chat history to the database
+    private async Task SaveChatHistoryAsync(int userId, ChatMessage userMessage, string aiResponse,
+        int? conversationSessionId = null)
+    {
+        try
+        {
+            // Create a chat history record
+            var chatHistory = new ChatHistory
+            {
+                UserId = userId,
+                UserMessage = userMessage.Content,
+                AIResponse = aiResponse,
+                Timestamp = DateTime.UtcNow,
+                ConversationSessionId = conversationSessionId
+            };
+
+            _context.ChatHistory.Add(chatHistory);
+            await _context.SaveChangesAsync();
         }
-        
-        // Generate a personalized clarification message based on context
-        private string GenerateClarificationMessage(
-            RecommendationParameters parameters, 
-            string message, 
-            ConversationContext context)
+        catch (Exception ex)
         {
-            StringBuilder clarification = new StringBuilder();
-            
-            // If this is a follow-up question, acknowledge the previous context
-            if (context.MessageCount > 1)
-            {
-                clarification.Append("Building on our previous conversation, ");
-            }
-            
-            clarification.Append("I'd like to help you find the perfect vehicle, but I need a bit more information. ");
-            
-            // Ask about missing parameters, considering context
-            if (parameters.MinPrice == null && parameters.MaxPrice == null)
-            {
-                if (context.TopicContext.ContainsKey("discussing_budget"))
-                {
-                    clarification.Append("Could you provide a specific price range you're comfortable with? ");
-                }
-                else
-                {
-                    clarification.Append("What's your budget range for this vehicle? ");
-                }
-            }
-            
-            if (parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any())
-            {
-                if (context.TopicContext.ContainsKey("discussing_family_needs"))
-                {
-                    clarification.Append("Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ");
-                }
-                else
-                {
-                    clarification.Append("What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
-                }
-            }
-            
-            if (parameters.PreferredMakes == null || !parameters.PreferredMakes.Any())
-            {
-                // Check if user has rejected any makes
-                if (context.ExplicitlyRejectedOptions.Any())
-                {
-                    clarification.Append($"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ");
-                }
-                else
-                {
-                    clarification.Append("Do you have any preferred manufacturers or brands? ");
-                }
-            }
-            
-            if (parameters.MinYear == null && parameters.MaxYear == null)
-            {
-                clarification.Append("How new would you like the vehicle to be? ");
-            }
-            
-            clarification.Append("The more details you can provide, the better I can match you with the right vehicle.");
-            
-            return clarification.ToString();
+            _logger.LogError(ex, "Error saving chat history for user ID {UserId}", userId);
+            // Continue even if saving history fails
         }
-        
-        // Generate a personalized response message based on context
-        private string GenerateResponseMessage(
-            RecommendationParameters parameters, 
-            int recommendationCount, 
-            ConversationContext context)
+    }
+
+    // Update context based on message content
+    private void UpdateContextBasedOnMessage(string message, ConversationContext context)
+    {
+        string[] featureKeywords = new[]
         {
-            StringBuilder response = new StringBuilder();
-            
-            if (recommendationCount == 0)
-            {
-                response.Append("I couldn't find any vehicles matching all your criteria. ");
-                
-                // Suggest relaxing constraints based on context
-                if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue && 
-                    parameters.MaxPrice.Value - parameters.MinPrice.Value < 10000)
-                {
-                    response.Append("Consider broadening your price range. ");
-                }
-                
-                if (parameters.PreferredMakes?.Count == 1)
-                {
-                    response.Append("Try including more manufacturers in your search. ");
-                }
-                
-                if (parameters.PreferredVehicleTypes?.Count == 1)
-                {
-                    response.Append("Consider exploring different vehicle types. ");
-                }
-                
-                return response.ToString();
-            }
-            
-            // Personalize based on conversation history
-            if (context.MessageCount > 1)
-            {
-                response.Append("Based on our conversation, ");
-            }
-            
-            response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
-            
-            // Add details about what was matched
-            if (parameters.PreferredVehicleTypes?.Any() == true)
-            {
-                response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
-            }
-            
-            if (parameters.PreferredMakes?.Any() == true)
-            {
-                response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
-            }
-            
-            if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
-            {
-                response.Append("Price range: ");
-                if (parameters.MinPrice.HasValue)
-                    response.Append($"€{parameters.MinPrice:N0} ");
-                response.Append("to ");
-                if (parameters.MaxPrice.HasValue)
-                    response.Append($"€{parameters.MaxPrice:N0}. ");
-                else
-                    response.Append("any. ");
-            }
-            
-            if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
-            {
-                response.Append("Year: ");
-                if (parameters.MinYear.HasValue)
-                    response.Append($"{parameters.MinYear} ");
-                response.Append("to ");
-                if (parameters.MaxYear.HasValue)
-                    response.Append($"{parameters.MaxYear}. ");
-                else
-                    response.Append("present. ");
-            }
-            
-            // Add personalized guidance based on context
+            "bluetooth", "navigation", "leather", "sunroof", "camera",
+            "cruise control", "parking sensors", "heated seats", "air conditioning",
+            "automatic", "manual", "safety", "fuel efficient", "family", "sport"
+        };
+
+        var lowerMessage = message.ToLower();
+
+        foreach (var feature in featureKeywords)
+            if (lowerMessage.Contains(feature) && !context.MentionedVehicleFeatures.Contains(feature))
+                context.MentionedVehicleFeatures.Add(feature);
+
+        // Detect explicitly rejected options
+        if (lowerMessage.Contains("not ") || lowerMessage.Contains("don't want") ||
+            lowerMessage.Contains("no ") || lowerMessage.Contains("except"))
+            foreach (var make in new[] { "bmw", "audi", "ford", "toyota", "honda" })
+                if ((lowerMessage.Contains($"not {make}") || lowerMessage.Contains($"no {make}")) &&
+                    !context.ExplicitlyRejectedOptions.Contains(make))
+                    context.ExplicitlyRejectedOptions.Add(make);
+
+        // Track topic context (for conversation flow management)
+        if (lowerMessage.Contains("budget") || lowerMessage.Contains("price") ||
+            lowerMessage.Contains("cost") || lowerMessage.Contains("afford"))
+            context.TopicContext["discussing_budget"] = true;
+
+        if (lowerMessage.Contains("family") || lowerMessage.Contains("kids") ||
+            lowerMessage.Contains("children") || lowerMessage.Contains("baby"))
+            context.TopicContext["discussing_family_needs"] = true;
+
+        if (lowerMessage.Contains("fuel") || lowerMessage.Contains("gas") ||
+            lowerMessage.Contains("diesel") || lowerMessage.Contains("electric") ||
+            lowerMessage.Contains("economy") || lowerMessage.Contains("consumption"))
+            context.TopicContext["discussing_fuel_economy"] = true;
+    }
+
+    // Merge parameters from a new query with existing parameters from context
+    private RecommendationParameters MergeParameters(
+        RecommendationParameters existingParams,
+        RecommendationParameters newParams)
+    {
+        // Start with the new parameters
+        var mergedParams = newParams;
+
+        // For each field, prefer new values if present, otherwise keep the existing ones
+
+        // Price range
+        if (mergedParams.MinPrice == null)
+            mergedParams.MinPrice = existingParams.MinPrice;
+
+        if (mergedParams.MaxPrice == null)
+            mergedParams.MaxPrice = existingParams.MaxPrice;
+
+        // Year range
+        if (mergedParams.MinYear == null)
+            mergedParams.MinYear = existingParams.MinYear;
+
+        if (mergedParams.MaxYear == null)
+            mergedParams.MaxYear = existingParams.MaxYear;
+
+        // Vehicle types (if new ones are specified, use those; otherwise keep existing)
+        if (mergedParams.PreferredVehicleTypes == null || !mergedParams.PreferredVehicleTypes.Any())
+            mergedParams.PreferredVehicleTypes = existingParams.PreferredVehicleTypes;
+
+        // Makes (same logic as vehicle types)
+        if (mergedParams.PreferredMakes == null || !mergedParams.PreferredMakes.Any())
+            mergedParams.PreferredMakes = existingParams.PreferredMakes;
+
+        // Fuel types
+        if (mergedParams.PreferredFuelTypes == null || !mergedParams.PreferredFuelTypes.Any())
+            mergedParams.PreferredFuelTypes = existingParams.PreferredFuelTypes;
+
+        // Features
+        if (mergedParams.DesiredFeatures == null || !mergedParams.DesiredFeatures.Any())
+            mergedParams.DesiredFeatures = existingParams.DesiredFeatures;
+
+        // Max mileage
+        if (mergedParams.MaxMileage == null)
+            mergedParams.MaxMileage = existingParams.MaxMileage;
+
+        return mergedParams;
+    }
+
+    // This method determines if we need clarification based on the extracted parameters
+    private bool NeedsClarification(RecommendationParameters parameters, string message)
+    {
+        // Count how many parameter types are missing
+        var missingParameterTypes = 0;
+
+        // Check if essential parameters are missing
+        if (parameters.MinPrice == null && parameters.MaxPrice == null)
+            missingParameterTypes++;
+
+        if ((parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any()) &&
+            !message.ToLower().Contains("any type") && !message.ToLower().Contains("any vehicle"))
+            missingParameterTypes++;
+
+        if ((parameters.PreferredMakes == null || !parameters.PreferredMakes.Any()) &&
+            !message.ToLower().Contains("any make") && !message.ToLower().Contains("any brand"))
+            missingParameterTypes++;
+
+        //same for year 
+        if (parameters.MinYear == null && parameters.MaxYear == null)
+            missingParameterTypes++;
+
+        //same for mileage 
+        if (parameters.MaxMileage == null)
+            missingParameterTypes++;
+
+        //same for preferred fuel type
+        if (parameters.PreferredFuelTypes == null || !parameters.PreferredFuelTypes.Any())
+            missingParameterTypes++;
+
+
+        // Ask for clarification is more than 3 parameter types are missing 
+        return missingParameterTypes >= 3;
+    }
+
+    // Generate a personalized clarification message based on context
+    private string GenerateClarificationMessage(
+        RecommendationParameters parameters,
+        string message,
+        ConversationContext context)
+    {
+        var clarification = new StringBuilder();
+
+        // If this is a follow-up question, acknowledge the previous context
+        if (context.MessageCount > 1) clarification.Append("Building on our previous conversation, ");
+
+        clarification.Append("I'd like to help you find the perfect vehicle, but I need a bit more information. ");
+
+        // Ask about missing parameters, considering context
+        if (parameters.MinPrice == null && parameters.MaxPrice == null)
+        {
+            if (context.TopicContext.ContainsKey("discussing_budget"))
+                clarification.Append("Could you provide a specific price range you're comfortable with? ");
+            else
+                clarification.Append("What's your budget range for this vehicle? ");
+        }
+
+        if (parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any())
+        {
             if (context.TopicContext.ContainsKey("discussing_family_needs"))
-            {
-                response.Append("These options should provide good space and safety features for your family needs. ");
-            }
-            
-            if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
-            {
-                response.Append("I've focused on vehicles with good fuel efficiency based on your requirements. ");
-            }
-            
-            // Contextual follow-up cues
-            if (context.MentionedVehicleFeatures.Any())
-            {
-                response.Append("You can ask me for more details about any of these vehicles, including specific features. ");
-            }
-            
+                clarification.Append(
+                    "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ");
+            else
+                clarification.Append("What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
+        }
+
+        if (parameters.PreferredMakes == null || !parameters.PreferredMakes.Any())
+        {
+            // Check if user has rejected any makes
+            if (context.ExplicitlyRejectedOptions.Any())
+                clarification.Append(
+                    $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ");
+            else
+                clarification.Append("Do you have any preferred manufacturers or brands? ");
+        }
+
+        if (parameters.MinYear == null && parameters.MaxYear == null)
+            clarification.Append("How new would you like the vehicle to be? ");
+
+        clarification.Append("The more details you can provide, the better I can match you with the right vehicle.");
+
+        return clarification.ToString();
+    }
+
+    // Generate a personalized response message based on context
+    private string GenerateResponseMessage(
+        RecommendationParameters parameters,
+        int recommendationCount,
+        ConversationContext context)
+    {
+        var response = new StringBuilder();
+
+        if (recommendationCount == 0)
+        {
+            response.Append("I couldn't find any vehicles matching all your criteria. ");
+
+            // Suggest relaxing constraints based on context
+            if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue &&
+                parameters.MaxPrice.Value - parameters.MinPrice.Value < 10000)
+                response.Append("Consider broadening your price range. ");
+
+            if (parameters.PreferredMakes?.Count == 1)
+                response.Append("Try including more manufacturers in your search. ");
+
+            if (parameters.PreferredVehicleTypes?.Count == 1)
+                response.Append("Consider exploring different vehicle types. ");
+
             return response.ToString();
         }
-        
-        // Extract parameters from message using the Python parameter extraction service
-        private async Task<RecommendationParameters> ExtractParametersAsync(string message)
+
+        // Personalize based on conversation history
+        if (context.MessageCount > 1) response.Append("Based on our conversation, ");
+
+        response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
+
+        // Add details about what was matched
+        if (parameters.PreferredVehicleTypes?.Any() == true)
+            response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
+
+        if (parameters.PreferredMakes?.Any() == true)
+            response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
+
+        if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
         {
-            try
-            {
-                // Get the parameter extraction endpoint from configuration
-                var endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ?? "http://localhost:5006/extract_parameters";
-                var timeoutSeconds = int.TryParse(_configuration["Services:ParameterExtraction:Timeout"], out var timeout) ? timeout : 30;
-                
-                _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
-                
-                // Prepare the request
-                var request = new { query = message };
-                
-                var content = new StringContent(
-                    JsonSerializer.Serialize(request),
-                    Encoding.UTF8,
-                    "application/json");
-                
-                // Configure timeout
-                var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-                
-                // Call the parameter extraction service
-                _logger.LogInformation("SENDING REQUEST to {Endpoint} with payload: {Query}", endpoint, message);
-                var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}", 
-                        response.StatusCode, errorContent);
-                    
-                    return new RecommendationParameters 
-                    { 
-                        TextPrompt = message,
-                        MaxResults = 5
-                    };
-                }
-                
-                // Parse the response
-                var responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+            response.Append("Price range: ");
+            if (parameters.MinPrice.HasValue)
+                response.Append($"€{parameters.MinPrice:N0} ");
+            response.Append("to ");
+            if (parameters.MaxPrice.HasValue)
+                response.Append($"€{parameters.MaxPrice:N0}. ");
+            else
+                response.Append("any. ");
+        }
 
-                using var jsonDoc = JsonDocument.Parse(responseContent);
-                var parameters = new RecommendationParameters
+        if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
+        {
+            response.Append("Year: ");
+            if (parameters.MinYear.HasValue)
+                response.Append($"{parameters.MinYear} ");
+            response.Append("to ");
+            if (parameters.MaxYear.HasValue)
+                response.Append($"{parameters.MaxYear}. ");
+            else
+                response.Append("present. ");
+        }
+
+        // Add personalized guidance based on context
+        if (context.TopicContext.ContainsKey("discussing_family_needs"))
+            response.Append("These options should provide good space and safety features for your family needs. ");
+
+        if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
+            response.Append("I've focused on vehicles with good fuel efficiency based on your requirements. ");
+
+        // Contextual follow-up cues
+        if (context.MentionedVehicleFeatures.Any())
+            response.Append(
+                "You can ask me for more details about any of these vehicles, including specific features. ");
+
+        return response.ToString();
+    }
+
+    // Extract parameters from message using the Python parameter extraction service
+    private async Task<RecommendationParameters> ExtractParametersAsync(string message)
+    {
+        try
+        {
+            // Get the parameter extraction endpoint from configuration
+            var endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ??
+                           "http://localhost:5006/extract_parameters";
+            var timeoutSeconds = int.TryParse(_configuration["Services:ParameterExtraction:Timeout"], out var timeout)
+                ? timeout
+                : 30;
+
+            _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
+
+            // Prepare the request
+            var request = new { query = message };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(request),
+                Encoding.UTF8,
+                "application/json");
+
+            // Configure timeout
+            var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+
+            // Call the parameter extraction service
+            _logger.LogInformation("SENDING REQUEST to {Endpoint} with payload: {Query}", endpoint, message);
+            var response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Parameter extraction service error: {StatusCode}, {ErrorContent}",
+                    response.StatusCode, errorContent);
+
+                return new RecommendationParameters
                 {
                     TextPrompt = message,
                     MaxResults = 5
                 };
-
-                // Parse numerical values safely
-                parameters.MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out var minPriceElement) && minPriceElement.ValueKind == JsonValueKind.Number
-                    ? minPriceElement.GetDecimal()
-                    : (decimal?)null;
-
-                parameters.MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out var maxPriceElement) && maxPriceElement.ValueKind == JsonValueKind.Number
-                    ? maxPriceElement.GetDecimal()
-                    : (decimal?)null;
-
-                parameters.MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out var minYearElement) && minYearElement.ValueKind == JsonValueKind.Number
-                    ? minYearElement.GetInt32()
-                    : (int?)null;
-
-                parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) && maxYearElement.ValueKind == JsonValueKind.Number
-                    ? maxYearElement.GetInt32()
-                    : (int?)null;
-                
-                parameters.MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out var mileageElement) && mileageElement.ValueKind == JsonValueKind.Number
-                    ? mileageElement.GetInt32()
-                    : (int?)null;
-                
-                // Parse array values safely
-                parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) && makesElement.ValueKind == JsonValueKind.Array
-                    ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
-                    : new List<string>();
-
-                parameters.DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out var featuresElement) && featuresElement.ValueKind == JsonValueKind.Array
-                    ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()).ToList()
-                    : new List<string>();
-
-                // Parse enums correctly
-                if (jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out var fuelTypesElement) && fuelTypesElement.ValueKind == JsonValueKind.Array)
-                {
-                    parameters.PreferredFuelTypes = fuelTypesElement.EnumerateArray()
-                        .Where(e => e.ValueKind == JsonValueKind.String)
-                        .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out var fuel) ? fuel : (FuelType?)null)
-                        .Where(f => f.HasValue)
-                        .Select(f => f.Value)
-                        .ToList();
-                }
-                else
-                {
-                    parameters.PreferredFuelTypes = new List<FuelType>();
-                }
-
-                if (jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out var vehicleTypesElement) && vehicleTypesElement.ValueKind == JsonValueKind.Array)
-                {
-                    parameters.PreferredVehicleTypes = vehicleTypesElement.EnumerateArray()
-                        .Where(e => e.ValueKind == JsonValueKind.String)
-                        .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out var vehicle) ? vehicle : (VehicleType?)null)
-                        .Where(v => v.HasValue)
-                        .Select(v => v.Value)
-                        .ToList();
-                }
-                else
-                {
-                    parameters.PreferredVehicleTypes = new List<VehicleType>();
-                }
-
-                // Validate the parameters
-                if (!RecommendationParameterValidator.Validate(parameters, out var errorMessage))
-                {
-                    _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
-                }
-                
-                // Parse the off-topic flags
-                parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out var isOffTopicElement) 
-                                        && isOffTopicElement.ValueKind == JsonValueKind.True;
-
-                if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out var responseElement) 
-                                          && responseElement.ValueKind == JsonValueKind.String)
-                {
-                    parameters.OffTopicResponse = responseElement.GetString();
-                }
-                
-                _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
-                return parameters;
             }
-            catch (Exception ex)
+
+            // Parse the response
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+
+            using var jsonDoc = JsonDocument.Parse(responseContent);
+            var parameters = new RecommendationParameters
             {
-                _logger.LogError(ex, "Error extracting parameters from message");
+                TextPrompt = message,
+                MaxResults = 5
+            };
 
-                return new RecommendationParameters 
-                { 
-                    TextPrompt = message,
-                    MaxResults = 5
-                };
-            }
+            // Parse numerical values safely
+            parameters.MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out var minPriceElement) &&
+                                  minPriceElement.ValueKind == JsonValueKind.Number
+                ? minPriceElement.GetDecimal()
+                : null;
+
+            parameters.MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out var maxPriceElement) &&
+                                  maxPriceElement.ValueKind == JsonValueKind.Number
+                ? maxPriceElement.GetDecimal()
+                : null;
+
+            parameters.MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out var minYearElement) &&
+                                 minYearElement.ValueKind == JsonValueKind.Number
+                ? minYearElement.GetInt32()
+                : null;
+
+            parameters.MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out var maxYearElement) &&
+                                 maxYearElement.ValueKind == JsonValueKind.Number
+                ? maxYearElement.GetInt32()
+                : null;
+
+            parameters.MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out var mileageElement) &&
+                                    mileageElement.ValueKind == JsonValueKind.Number
+                ? mileageElement.GetInt32()
+                : null;
+
+            // Parse array values safely
+            parameters.PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out var makesElement) &&
+                                        makesElement.ValueKind == JsonValueKind.Array
+                ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                    .Select(e => e.GetString()).ToList()
+                : new List<string>();
+
+            parameters.DesiredFeatures =
+                jsonDoc.RootElement.TryGetProperty("desiredFeatures", out var featuresElement) &&
+                featuresElement.ValueKind == JsonValueKind.Array
+                    ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => e.GetString()).ToList()
+                    : new List<string>();
+
+            // Parse enums correctly
+            if (jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out var fuelTypesElement) &&
+                fuelTypesElement.ValueKind == JsonValueKind.Array)
+                parameters.PreferredFuelTypes = fuelTypesElement.EnumerateArray()
+                    .Where(e => e.ValueKind == JsonValueKind.String)
+                    .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out var fuel) ? fuel : (FuelType?)null)
+                    .Where(f => f.HasValue)
+                    .Select(f => f.Value)
+                    .ToList();
+            else
+                parameters.PreferredFuelTypes = new List<FuelType>();
+
+            if (jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out var vehicleTypesElement) &&
+                vehicleTypesElement.ValueKind == JsonValueKind.Array)
+                parameters.PreferredVehicleTypes = vehicleTypesElement.EnumerateArray()
+                    .Where(e => e.ValueKind == JsonValueKind.String)
+                    .Select(e =>
+                        Enum.TryParse<VehicleType>(e.GetString(), true, out var vehicle) ? vehicle : (VehicleType?)null)
+                    .Where(v => v.HasValue)
+                    .Select(v => v.Value)
+                    .ToList();
+            else
+                parameters.PreferredVehicleTypes = new List<VehicleType>();
+
+            // Validate the parameters
+            if (!RecommendationParameterValidator.Validate(parameters, out var errorMessage))
+                _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
+
+            // Parse the off-topic flags
+            parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out var isOffTopicElement)
+                                    && isOffTopicElement.ValueKind == JsonValueKind.True;
+
+            if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out var responseElement)
+                                      && responseElement.ValueKind == JsonValueKind.String)
+                parameters.OffTopicResponse = responseElement.GetString();
+
+            _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
+            return parameters;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error extracting parameters from message");
+
+            return new RecommendationParameters
+            {
+                TextPrompt = message,
+                MaxResults = 5
+            };
         }
     }
 }
