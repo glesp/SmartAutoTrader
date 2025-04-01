@@ -5,104 +5,109 @@ using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 
-namespace SmartAutoTrader.API.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-[Authorize]
-public class FavoritesController : ControllerBase
+namespace SmartAutoTrader.API.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public FavoritesController(ApplicationDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class FavoritesController(ApplicationDbContext context) : ControllerBase
     {
-        _context = context;
-    }
+        private readonly ApplicationDbContext _context = context;
 
-    // GET: api/Favorites
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-        var favorites = await _context.UserFavorites
-            .Where(uf => uf.UserId == userId)
-            .Include(uf => uf.Vehicle)
-            .ThenInclude(v => v.Images)
-            .Select(uf => uf.Vehicle)
-            .ToListAsync();
-
-        return favorites;
-    }
-
-    // POST: api/Favorites
-    [HttpPost("{vehicleId}")]
-    public async Task<IActionResult> AddFavorite(int vehicleId)
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-        // Check if vehicle exists
-        var vehicle = await _context.Vehicles.FindAsync(vehicleId);
-        if (vehicle == null) return NotFound(new { Message = "Vehicle not found" });
-
-        // Check if already favorited
-        var existingFavorite = await _context.UserFavorites
-            .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
-
-        if (existingFavorite != null) return BadRequest(new { Message = "Vehicle already in favorites" });
-
-        // Add to favorites
-        var favorite = new UserFavorite
+        // GET: api/Favorites
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
         {
-            UserId = userId,
-            VehicleId = vehicleId,
-            DateAdded = DateTime.Now
-        };
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-        _context.UserFavorites.Add(favorite);
-        await _context.SaveChangesAsync();
+            List<Vehicle> favorites = await _context.UserFavorites
+                .Where(uf => uf.UserId == userId)
+                .Include(uf => uf.Vehicle)
+                .ThenInclude(v => v.Images)
+                .Select(uf => uf.Vehicle)
+                .ToListAsync();
 
-        return Ok(new { Message = "Vehicle added to favorites" });
-    }
+            return favorites;
+        }
 
-    // DELETE: api/Favorites/5
-    [HttpDelete("{vehicleId}")]
-    public async Task<IActionResult> RemoveFavorite(int vehicleId)
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+        // POST: api/Favorites
+        [HttpPost("{vehicleId}")]
+        public async Task<IActionResult> AddFavorite(int vehicleId)
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-        var favorite = await _context.UserFavorites
-            .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+            // Check if vehicle exists
+            Vehicle? vehicle = await _context.Vehicles.FindAsync(vehicleId);
+            if (vehicle == null)
+            {
+                return NotFound(new { Message = "Vehicle not found" });
+            }
 
-        if (favorite == null) return NotFound(new { Message = "Vehicle not in favorites" });
+            // Check if already favorited
+            UserFavorite? existingFavorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
-        _context.UserFavorites.Remove(favorite);
-        await _context.SaveChangesAsync();
+            if (existingFavorite != null)
+            {
+                return BadRequest(new { Message = "Vehicle already in favorites" });
+            }
 
-        return Ok(new { Message = "Vehicle removed from favorites" });
-    }
+            // Add to favorites
+            UserFavorite favorite = new UserFavorite
+            {
+                UserId = userId,
+                VehicleId = vehicleId,
+                DateAdded = DateTime.Now,
+            };
 
-    // GET: api/Favorites/Check/5
-    [HttpGet("Check/{vehicleId}")]
-    public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            _ = _context.UserFavorites.Add(favorite);
+            _ = await _context.SaveChangesAsync();
 
-        var isFavorite = await _context.UserFavorites
-            .AnyAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+            return Ok(new { Message = "Vehicle added to favorites" });
+        }
 
-        return isFavorite;
-    }
+        // DELETE: api/Favorites/5
+        [HttpDelete("{vehicleId}")]
+        public async Task<IActionResult> RemoveFavorite(int vehicleId)
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-    // GET: api/Favorites/Count
-    [HttpGet("Count")]
-    public async Task<ActionResult<int>> GetFavoritesCount()
-    {
-        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            UserFavorite? favorite = await _context.UserFavorites
+                .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
-        var count = await _context.UserFavorites
-            .CountAsync(uf => uf.UserId == userId);
+            if (favorite == null)
+            {
+                return NotFound(new { Message = "Vehicle not in favorites" });
+            }
 
-        return count;
+            _ = _context.UserFavorites.Remove(favorite);
+            _ = await _context.SaveChangesAsync();
+
+            return Ok(new { Message = "Vehicle removed from favorites" });
+        }
+
+        // GET: api/Favorites/Check/5
+        [HttpGet("Check/{vehicleId}")]
+        public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            bool isFavorite = await _context.UserFavorites
+                .AnyAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
+
+            return isFavorite;
+        }
+
+        // GET: api/Favorites/Count
+        [HttpGet("Count")]
+        public async Task<ActionResult<int>> GetFavoritesCount()
+        {
+            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            int count = await _context.UserFavorites
+                .CountAsync(uf => uf.UserId == userId);
+
+            return count;
+        }
     }
 }

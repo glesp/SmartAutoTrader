@@ -5,219 +5,249 @@ using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 
-namespace SmartAutoTrader.API.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-public class VehiclesController : ControllerBase
+namespace SmartAutoTrader.API.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public VehiclesController(ApplicationDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class VehiclesController(ApplicationDbContext context) : ControllerBase
     {
-        _context = context;
-    }
+        private readonly ApplicationDbContext _context = context;
 
-    // GET: api/Vehicles
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles(
-        [FromQuery] string make = null,
-        [FromQuery] string model = null,
-        [FromQuery] int? minYear = null,
-        [FromQuery] int? maxYear = null,
-        [FromQuery] decimal? minPrice = null,
-        [FromQuery] decimal? maxPrice = null,
-        [FromQuery] FuelType? fuelType = null,
-        [FromQuery] TransmissionType? transmission = null,
-        [FromQuery] VehicleType? vehicleType = null,
-        [FromQuery] int? minMileage = null,
-        [FromQuery] int? maxMileage = null,
-        [FromQuery] string sortBy = "DateListed",
-        [FromQuery] bool ascending = false,
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 10)
-    {
-        IQueryable<Vehicle> query = _context.Vehicles
-            .Include(v => v.Images)
-            .Include(v => v.Features)
-            .Where(v => v.Status == VehicleStatus.Available);
-
-        // Apply filters
-        if (!string.IsNullOrEmpty(make))
-            query = query.Where(v => v.Make.Contains(make));
-
-        if (!string.IsNullOrEmpty(model))
-            query = query.Where(v => v.Model.Contains(model));
-
-        if (minYear.HasValue)
-            query = query.Where(v => v.Year >= minYear.Value);
-
-        if (maxYear.HasValue)
-            query = query.Where(v => v.Year <= maxYear.Value);
-
-        if (minPrice.HasValue)
-            query = query.Where(v => v.Price >= minPrice.Value);
-
-        if (maxPrice.HasValue)
-            query = query.Where(v => v.Price <= maxPrice.Value);
-
-        if (fuelType.HasValue)
-            query = query.Where(v => v.FuelType == fuelType.Value);
-
-        if (transmission.HasValue)
-            query = query.Where(v => v.Transmission == transmission.Value);
-
-        if (vehicleType.HasValue)
-            query = query.Where(v => v.VehicleType == vehicleType.Value);
-
-        if (minMileage.HasValue)
-            query = query.Where(v => v.Mileage >= minMileage.Value);
-
-        if (maxMileage.HasValue)
-            query = query.Where(v => v.Mileage <= maxMileage.Value);
-
-        // Apply sorting
-        query = sortBy.ToLower() switch
+        // GET: api/Vehicles
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles(
+            [FromQuery] string make = null,
+            [FromQuery] string model = null,
+            [FromQuery] int? minYear = null,
+            [FromQuery] int? maxYear = null,
+            [FromQuery] decimal? minPrice = null,
+            [FromQuery] decimal? maxPrice = null,
+            [FromQuery] FuelType? fuelType = null,
+            [FromQuery] TransmissionType? transmission = null,
+            [FromQuery] VehicleType? vehicleType = null,
+            [FromQuery] int? minMileage = null,
+            [FromQuery] int? maxMileage = null,
+            [FromQuery] string sortBy = "DateListed",
+            [FromQuery] bool ascending = false,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
-            "price" => ascending ? query.OrderBy(v => v.Price) : query.OrderByDescending(v => v.Price),
-            "year" => ascending ? query.OrderBy(v => v.Year) : query.OrderByDescending(v => v.Year),
-            "mileage" => ascending ? query.OrderBy(v => v.Mileage) : query.OrderByDescending(v => v.Mileage),
-            "make" => ascending ? query.OrderBy(v => v.Make) : query.OrderByDescending(v => v.Make),
-            "model" => ascending ? query.OrderBy(v => v.Model) : query.OrderByDescending(v => v.Model),
-            _ => ascending ? query.OrderBy(v => v.DateListed) : query.OrderByDescending(v => v.DateListed)
-        };
+            IQueryable<Vehicle> query = _context.Vehicles
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .Where(v => v.Status == VehicleStatus.Available);
 
-        // Apply pagination
-        var totalItems = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-        var vehicles = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        // Add pagination headers
-        Response.Headers.Add("X-Total-Count", totalItems.ToString());
-        Response.Headers.Add("X-Total-Pages", totalPages.ToString());
-
-        return vehicles;
-    }
-
-    // GET: api/Vehicles/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Vehicle>> GetVehicle(int id)
-    {
-        var vehicle = await _context.Vehicles
-            .Include(v => v.Images)
-            .Include(v => v.Features)
-            .FirstOrDefaultAsync(v => v.Id == id);
-
-        if (vehicle == null) return NotFound();
-
-        // Record viewing in browsing history if user is authenticated
-        if (User.Identity.IsAuthenticated)
-        {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            var history = new BrowsingHistory
+            // Apply filters
+            if (!string.IsNullOrEmpty(make))
             {
-                UserId = userId,
-                VehicleId = id,
-                ViewDate = DateTime.Now,
-                ViewDurationSeconds = 0 // Can be updated later
+                query = query.Where(v => v.Make.Contains(make));
+            }
+
+            if (!string.IsNullOrEmpty(model))
+            {
+                query = query.Where(v => v.Model.Contains(model));
+            }
+
+            if (minYear.HasValue)
+            {
+                query = query.Where(v => v.Year >= minYear.Value);
+            }
+
+            if (maxYear.HasValue)
+            {
+                query = query.Where(v => v.Year <= maxYear.Value);
+            }
+
+            if (minPrice.HasValue)
+            {
+                query = query.Where(v => v.Price >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(v => v.Price <= maxPrice.Value);
+            }
+
+            if (fuelType.HasValue)
+            {
+                query = query.Where(v => v.FuelType == fuelType.Value);
+            }
+
+            if (transmission.HasValue)
+            {
+                query = query.Where(v => v.Transmission == transmission.Value);
+            }
+
+            if (vehicleType.HasValue)
+            {
+                query = query.Where(v => v.VehicleType == vehicleType.Value);
+            }
+
+            if (minMileage.HasValue)
+            {
+                query = query.Where(v => v.Mileage >= minMileage.Value);
+            }
+
+            if (maxMileage.HasValue)
+            {
+                query = query.Where(v => v.Mileage <= maxMileage.Value);
+            }
+
+            // Apply sorting
+            query = sortBy.ToLower(System.Globalization.CultureInfo.CurrentCulture) switch
+            {
+                "price" => ascending ? query.OrderBy(v => v.Price) : query.OrderByDescending(v => v.Price),
+                "year" => ascending ? query.OrderBy(v => v.Year) : query.OrderByDescending(v => v.Year),
+                "mileage" => ascending ? query.OrderBy(v => v.Mileage) : query.OrderByDescending(v => v.Mileage),
+                "make" => ascending ? query.OrderBy(v => v.Make) : query.OrderByDescending(v => v.Make),
+                "model" => ascending ? query.OrderBy(v => v.Model) : query.OrderByDescending(v => v.Model),
+                _ => ascending ? query.OrderBy(v => v.DateListed) : query.OrderByDescending(v => v.DateListed),
             };
 
-            _context.BrowsingHistory.Add(history);
-            await _context.SaveChangesAsync();
+            // Apply pagination
+            int totalItems = await query.CountAsync();
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            List<Vehicle> vehicles = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Add pagination headers
+            Response.Headers.Append("X-Total-Count", totalItems.ToString());
+            Response.Headers.Append("X-Total-Pages", totalPages.ToString());
+
+            return vehicles;
         }
 
-        return vehicle;
-    }
-
-    // POST: api/Vehicles
-    [HttpPost]
-    [Authorize] // Only authenticated users can add vehicles (in your case, admins)
-    public async Task<ActionResult<Vehicle>> PostVehicle(Vehicle vehicle)
-    {
-        _context.Vehicles.Add(vehicle);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
-    }
-
-    // PUT: api/Vehicles/5
-    [HttpPut("{id}")]
-    [Authorize]
-    public async Task<IActionResult> PutVehicle(int id, Vehicle vehicle)
-    {
-        if (id != vehicle.Id) return BadRequest();
-
-        _context.Entry(vehicle).State = EntityState.Modified;
-
-        try
+        // GET: api/Vehicles/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
-            await _context.SaveChangesAsync();
+            Vehicle? vehicle = await _context.Vehicles
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (vehicle == null)
+            {
+                return NotFound();
+            }
+
+            // Record viewing in browsing history if user is authenticated
+            if (User.Identity.IsAuthenticated)
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+                BrowsingHistory history = new BrowsingHistory
+                {
+                    UserId = userId,
+                    VehicleId = id,
+                    ViewDate = DateTime.Now,
+                    ViewDurationSeconds = 0, // Can be updated later
+                };
+
+                _ = _context.BrowsingHistory.Add(history);
+                _ = await _context.SaveChangesAsync();
+            }
+
+            return vehicle;
         }
-        catch (DbUpdateConcurrencyException)
+
+        // POST: api/Vehicles
+        [HttpPost]
+        [Authorize] // Only authenticated users can add vehicles (in your case, admins)
+        public async Task<ActionResult<Vehicle>> PostVehicle(Vehicle vehicle)
         {
-            if (!VehicleExists(id)) return NotFound();
+            _ = _context.Vehicles.Add(vehicle);
+            _ = await _context.SaveChangesAsync();
 
-            throw;
+            return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
         }
 
-        return NoContent();
-    }
+        // PUT: api/Vehicles/5
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> PutVehicle(int id, Vehicle vehicle)
+        {
+            if (id != vehicle.Id)
+            {
+                return BadRequest();
+            }
 
-    // DELETE: api/Vehicles/5
-    [HttpDelete("{id}")]
-    [Authorize]
-    public async Task<IActionResult> DeleteVehicle(int id)
-    {
-        var vehicle = await _context.Vehicles.FindAsync(id);
-        if (vehicle == null) return NotFound();
+            _context.Entry(vehicle).State = EntityState.Modified;
 
-        _context.Vehicles.Remove(vehicle);
-        await _context.SaveChangesAsync();
+            try
+            {
+                _ = await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!VehicleExists(id))
+                {
+                    return NotFound();
+                }
 
-        return NoContent();
-    }
+                throw;
+            }
 
-    private bool VehicleExists(int id)
-    {
-        return _context.Vehicles.Any(e => e.Id == id);
-    }
+            return NoContent();
+        }
 
-    [HttpGet("available-makes")]
-    public IActionResult GetAvailableMakes()
-    {
-        var makes = _context.Vehicles
-            .Select(v => v.Make)
-            .Distinct()
-            .OrderBy(m => m)
-            .ToList();
+        // DELETE: api/Vehicles/5
+        [HttpDelete("{id}")]
+        [Authorize]
+        public async Task<IActionResult> DeleteVehicle(int id)
+        {
+            Vehicle? vehicle = await _context.Vehicles.FindAsync(id);
+            if (vehicle == null)
+            {
+                return NotFound();
+            }
 
-        return Ok(makes);
-    }
+            _ = _context.Vehicles.Remove(vehicle);
+            _ = await _context.SaveChangesAsync();
 
-    [HttpGet("available-models")]
-    public IActionResult GetAvailableModels([FromQuery] string make)
-    {
-        var models = _context.Vehicles
-            .Where(v => v.Make == make)
-            .Select(v => v.Model)
-            .Distinct()
-            .OrderBy(m => m)
-            .ToList();
+            return NoContent();
+        }
 
-        return Ok(models);
-    }
+        private bool VehicleExists(int id)
+        {
+            return _context.Vehicles.Any(e => e.Id == id);
+        }
 
-    [HttpGet("year-range")]
-    public IActionResult GetYearRange()
-    {
-        var minYear = _context.Vehicles.Min(v => v.Year);
-        var maxYear = _context.Vehicles.Max(v => v.Year);
+        [HttpGet("available-makes")]
+        public IActionResult GetAvailableMakes()
+        {
+            List<string> makes = _context.Vehicles
+                .Select(v => v.Make)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
 
-        return Ok(new { min = minYear, max = maxYear });
+            return Ok(makes);
+        }
+
+        [HttpGet("available-models")]
+        public IActionResult GetAvailableModels([FromQuery] string make)
+        {
+            List<string> models = _context.Vehicles
+                .Where(v => v.Make == make)
+                .Select(v => v.Model)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
+
+            return Ok(models);
+        }
+
+        [HttpGet("year-range")]
+        public IActionResult GetYearRange()
+        {
+            int minYear = _context.Vehicles.Min(v => v.Year);
+            int maxYear = _context.Vehicles.Max(v => v.Year);
+
+            return Ok(new { min = minYear, max = maxYear });
+        }
     }
 }
