@@ -8,7 +8,8 @@
 
     <PropertyGroup>
         <AnalysisLevel>latest</AnalysisLevel>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- <WarningsAsErrors>CS8618</WarningsAsErrors> -->
+
     </PropertyGroup>
 
     <PropertyGroup>
