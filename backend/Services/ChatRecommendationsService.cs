@@ -74,8 +74,10 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Get conversation context
-                ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId);
-
+                ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId); 
+                
+                string? modelUsedForSession = conversationContext.ModelUsed;
+                
                 // Update conversation context with basic tracking info
                 conversationContext.MessageCount++;
                 conversationContext.LastInteraction = DateTime.UtcNow;
@@ -135,7 +137,7 @@ namespace SmartAutoTrader.API.Services
                     messageToProcess);
 
                 Stopwatch sw = Stopwatch.StartNew();
-                RecommendationParameters extractedParameters = await ExtractParametersAsync(messageToProcess);
+                RecommendationParameters extractedParameters = await ExtractParametersAsync(messageToProcess, modelUsedForSession);
                 sw.Stop();
 
                 _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
@@ -716,7 +718,7 @@ namespace SmartAutoTrader.API.Services
         }
 
         // Extract parameters from message using the Python parameter extraction service
-        private async Task<RecommendationParameters> ExtractParametersAsync(string message)
+        private async Task<RecommendationParameters> ExtractParametersAsync(string message, string? forceModelOverride = null)
 {
     try
     {
@@ -736,7 +738,7 @@ namespace SmartAutoTrader.API.Services
         var requestPayload = new 
         {
             query = message,
-            forceModel = forceModel
+            forceModel = forceModelOverride,
         };
 
         StringContent content = new StringContent(

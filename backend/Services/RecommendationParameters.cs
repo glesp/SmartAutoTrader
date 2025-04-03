@@ -30,6 +30,8 @@ namespace SmartAutoTrader.API.Services
         public bool IsOffTopic { get; set; }
 
         public string? OffTopicResponse { get; set; }
+        public string? ModelUsed { get; set; }
+
     }
 
     // Interface for any AI recommendation service (allows easy swapping)
