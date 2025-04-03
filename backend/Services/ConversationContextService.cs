@@ -39,6 +39,7 @@ namespace SmartAutoTrader.API.Services
 
         // Track recommendations shown to the user
         public List<int> ShownVehicleIds { get; set; } =[];
+        public string? ModelUsed { get; set; }
     }
 
     public class ConversationContextService(ApplicationDbContext context, ILogger<ConversationContextService> logger) : IConversationContextService
@@ -94,6 +95,12 @@ namespace SmartAutoTrader.API.Services
                 {
                     _ = await StartNewSessionAsync(userId);
                 }
+                
+                // If we detect it's a brand-new session, pick a model
+                // e.g. rotate among fast/refine/clarify:
+                string[] modelPool = new[] { "fast", "refine", "clarify" };
+                int index = new Random().Next(0, modelPool.Length);
+                newContext.ModelUsed = modelPool[index];
 
                 // Cache and return the new context
                 _activeContexts[userId] = newContext;
