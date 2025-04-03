@@ -57,7 +57,7 @@ const VehicleRecommendations = ({
 
     // Important: Add the base URL prefix just like in VehicleDetailPage
     return path
-      ? `https://localhost:7001/${path.replace(/^\/+/, '')}`
+      ? `https://localhost:7001/${path}`
       : 'https://via.placeholder.com/300x200?text=No+Image'
   }
 
