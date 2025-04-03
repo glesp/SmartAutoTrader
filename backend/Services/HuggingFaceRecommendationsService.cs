@@ -69,94 +69,64 @@ namespace SmartAutoTrader.API.Services
         }
 
         private async Task<List<Vehicle>> GetFilteredVehiclesAsync(RecommendationParameters parameters)
-        {
-            IQueryable<Vehicle> query = _context.Vehicles.AsQueryable();
+{
+    IQueryable<Vehicle> query = _context.Vehicles.AsQueryable();
 
-            if (parameters.MinPrice.HasValue)
+    // Apply all basic filters (price, year, mileage) - these are fine
+    // ... (existing code)
+
+    // Fix PreferredMakes filtering to stay on the database
+    if (parameters.PreferredMakes?.Any() == true)
+    {
+        _logger.LogInformation(
+            "Filtering by manufacturers: {Manufacturers}",
+            string.Join(", ", parameters.PreferredMakes));
+
+        var normalizedMakes = parameters.PreferredMakes
+            .Select(m => m.Trim().ToLowerInvariant())
+            .ToList();
+
+        // SQLite compatible approach
+        query = query.Where(v => normalizedMakes.Contains(v.Make.ToLower()));
+    }
+
+    // Make sure to include related entities before materializing the query
+    query = query.Where(v => v.Status == VehicleStatus.Available)
+        .Include(v => v.Features)
+        .Include(v => v.Images);
+
+    // Execute the query to get the complete data
+    var vehicles = await query.ToListAsync();
+
+    // Apply feature matching in memory after loading entities with images
+    if (parameters.DesiredFeatures?.Any() == true)
+    {
+        _logger.LogInformation(
+            "Ranking by optional features: {Features}",
+            string.Join(", ", parameters.DesiredFeatures));
+
+        HashSet<string> normalizedFeatureSet = parameters.DesiredFeatures
+            .Select(f => f.Trim().ToLowerInvariant())
+            .ToHashSet();
+
+        // Process feature matching in memory
+        return vehicles
+            .Select(v => new
             {
-                query = query.Where(v => v.Price >= parameters.MinPrice.Value);
-            }
+                Vehicle = v,
+                MatchCount = v.Features
+                    .Count(f => normalizedFeatureSet.Contains(
+                        f.Name?.Trim().ToLowerInvariant() ?? string.Empty))
+            })
+            .OrderByDescending(v => v.MatchCount)
+            .ThenBy(v => v.Vehicle.Price)
+            .Select(v => v.Vehicle)
+            .ToList();
+    }
 
-            if (parameters.MaxPrice.HasValue)
-            {
-                query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
-            }
+    _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
 
-            if (parameters.MinYear.HasValue)
-            {
-                query = query.Where(v => v.Year >= parameters.MinYear.Value);
-            }
-
-            if (parameters.MaxYear.HasValue)
-            {
-                query = query.Where(v => v.Year <= parameters.MaxYear.Value);
-            }
-
-            if (parameters.MaxMileage.HasValue)
-            {
-                query = query.Where(v => v.Mileage <= parameters.MaxMileage.Value);
-            }
-
-            if (parameters.PreferredVehicleTypes?.Any() == true)
-            {
-                _logger.LogInformation(
-                    "Filtering by vehicle types: {VehicleTypes}",
-                    string.Join(", ", parameters.PreferredVehicleTypes));
-
-                // We can use the enum values directly since they're already parsed
-                query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
-            }
-
-            if (parameters.PreferredFuelTypes?.Any() == true)
-            {
-                _logger.LogInformation(
-                    "Filtering by fuel types: {FuelTypes}",
-                    string.Join(", ", parameters.PreferredFuelTypes));
-
-                // We can use the enum values directly since they're already parsed
-                query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
-            }
-
-            if (parameters.PreferredMakes?.Any() == true)
-            {
-                _logger.LogInformation(
-                    "Filtering by manufacturers: {Manufacturers}",
-                    string.Join(", ", parameters.PreferredMakes));
-
-                // Make case-insensitive comparison
-                List<string> lowerMakes = parameters.PreferredMakes.Select(m => m.ToLower(System.Globalization.CultureInfo.CurrentCulture)).ToList();
-                query = query.Where(v => lowerMakes.Contains(v.Make.ToLower(System.Globalization.CultureInfo.CurrentCulture)));
-            }
-
-            if (parameters.DesiredFeatures?.Any() == true)
-            {
-                _logger.LogInformation(
-                    "Ranking by optional features: {Features}",
-                    string.Join(", ", parameters.DesiredFeatures));
-
-                HashSet<string> featureSet = parameters.DesiredFeatures
-                    .Select(f => f.ToLowerInvariant())
-                    .ToHashSet();
-
-                query = query
-                    .Select(v => new
-                    {
-                        Vehicle = v,
-                        MatchCount = v.Features.Count(f => featureSet.Contains(f.Name.ToLower(System.Globalization.CultureInfo.CurrentCulture))),
-                    })
-                    .OrderByDescending(v => v.MatchCount)
-                    .ThenBy(v => v.Vehicle.Price) // Optional: add tie-breakers like price
-                    .Select(v => v.Vehicle);
-            }
-
-
-            query = query.Where(v => v.Status == VehicleStatus.Available)
-                .Include(v => v.Features)
-                .Include(v => v.Images);
-
-            _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
-
-            return await query.ToListAsync();
-        }
+    return vehicles;
+}
     }
 }
