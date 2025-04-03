@@ -72,44 +72,65 @@ namespace SmartAutoTrader.API.Services
 {
     IQueryable<Vehicle> query = _context.Vehicles.AsQueryable();
 
-    // Apply all basic filters (price, year, mileage) - these are fine
-    // ... (existing code)
+    // Numeric filters
+    if (parameters.MinPrice.HasValue)
+        query = query.Where(v => v.Price >= parameters.MinPrice.Value);
 
-    // Fix PreferredMakes filtering to stay on the database
+    if (parameters.MaxPrice.HasValue)
+        query = query.Where(v => v.Price <= parameters.MaxPrice.Value);
+
+    if (parameters.MinYear.HasValue)
+        query = query.Where(v => v.Year >= parameters.MinYear.Value);
+
+    if (parameters.MaxYear.HasValue)
+        query = query.Where(v => v.Year <= parameters.MaxYear.Value);
+
+    if (parameters.MaxMileage.HasValue)
+        query = query.Where(v => v.Mileage <= parameters.MaxMileage.Value);
+
+    // Enum filters
+    if (parameters.PreferredFuelTypes?.Any() == true)
+        query = query.Where(v => parameters.PreferredFuelTypes.Contains(v.FuelType));
+
+    if (parameters.PreferredVehicleTypes?.Any() == true)
+        query = query.Where(v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
+
+    // Make filter (case-insensitive SQLite-compatible)
     if (parameters.PreferredMakes?.Any() == true)
     {
-        _logger.LogInformation(
-            "Filtering by manufacturers: {Manufacturers}",
+        _logger.LogInformation("Filtering by manufacturers: {Manufacturers}",
             string.Join(", ", parameters.PreferredMakes));
 
         var normalizedMakes = parameters.PreferredMakes
             .Select(m => m.Trim().ToLowerInvariant())
             .ToList();
 
-        // SQLite compatible approach
         query = query.Where(v => normalizedMakes.Contains(v.Make.ToLower()));
     }
 
-    // Make sure to include related entities before materializing the query
-    query = query.Where(v => v.Status == VehicleStatus.Available)
+    // Only include available vehicles
+    query = query.Where(v => v.Status == VehicleStatus.Available);
+
+    // Include related data (after filtering)
+    query = query
         .Include(v => v.Features)
         .Include(v => v.Images);
 
-    // Execute the query to get the complete data
+    _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
+
+    // Execute query
     var vehicles = await query.ToListAsync();
 
-    // Apply feature matching in memory after loading entities with images
+    // Optional in-memory feature ranking
     if (parameters.DesiredFeatures?.Any() == true)
     {
-        _logger.LogInformation(
-            "Ranking by optional features: {Features}",
+        _logger.LogInformation("Ranking by optional features: {Features}",
             string.Join(", ", parameters.DesiredFeatures));
 
         HashSet<string> normalizedFeatureSet = parameters.DesiredFeatures
             .Select(f => f.Trim().ToLowerInvariant())
             .ToHashSet();
 
-        // Process feature matching in memory
         return vehicles
             .Select(v => new
             {
@@ -124,9 +145,8 @@ namespace SmartAutoTrader.API.Services
             .ToList();
     }
 
-    _logger.LogInformation("SQL Query: {Query}", query.ToQueryString());
-
     return vehicles;
 }
+
     }
 }
