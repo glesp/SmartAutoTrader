@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 import requests
 import json
 import logging
+import re
 import os
 import sys
 from typing import Dict, List, Optional, Union, Any
@@ -12,16 +13,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # If your 'retriever' folder is inside the same directory, you may do:
-# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    from retriever.retriever import find_best_match
-except ImportError:
-    # If retriever not found, define a dummy function
-    logger = logging.getLogger(__name__)
-    logger.warning("retriever module not found; local retrieval is disabled.")
-    def find_best_match(query: str):
-        return ("noRetriever", 0.0)
+from retriever.retriever import find_best_match
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +23,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+def word_count_clean(query: str) -> int:
+    """Counts meaningful words in a cleaned-up user query."""
+    cleaned = re.sub(r'[^a-zA-Z0-9 ]+', '', query).lower()
+    return len(cleaned.strip().split())
+
+def extract_newest_user_fragment(query: str) -> str:
+    """
+    For follow-up queries like "Original - Additional info: blah",
+    return only the latest user input.
+    """
+    return query.split(" - Additional info:")[-1].strip()
 
 app = Flask(__name__)
 
@@ -83,8 +89,9 @@ def extract_parameters():
             }), 200
 
         # 2) If short or vague but at least car-related, try local retrieval
-        if len(user_query.strip().split()) < 4:
-            match_cat, score = find_best_match(user_query)
+        query_fragment = extract_newest_user_fragment(user_query)
+        if word_count_clean(query_fragment) < 4:
+            match_cat, score = find_best_match(query_fragment)
             if score < 0.5:
                 logger.info("Local retrieval found weak match: %s (%.2f)", match_cat, score)
                 return jsonify({
