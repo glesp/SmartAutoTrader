@@ -87,6 +87,7 @@ interface ChatResponseDTO {
   clarificationNeeded?: boolean
   originalUserInput?: string
   conversationId?: string
+  matchedCategory?: string
 }
 
 interface Conversation {
@@ -774,17 +775,29 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               )} */}
 
               {message.clarificationNeeded && message.sender === 'ai' && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    display: 'block',
-                    mt: 1,
-                    fontWeight: 500,
-                    color: 'primary.main',
-                  }}
-                >
-                  I need more information to help you find the perfect vehicle.
-                </Typography>
+                <>
+                  {message.parameters?.matchedCategory && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        color: 'primary.main',
+                        fontWeight: 600,
+                        mt: 1,
+                      }}
+                    >
+                      Sounds like you might be interested in:{' '}
+                      {message.parameters.matchedCategory}
+                    </Typography>
+                  )}
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', color: 'primary.main', mt: 0.5 }}
+                  >
+                    Could you let me know your budget, preferred fuel type, or
+                    how new you'd like the car to be?
+                  </Typography>
+                </>
               )}
 
               <Typography
