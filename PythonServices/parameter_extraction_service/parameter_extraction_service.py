@@ -106,8 +106,14 @@ def extract_parameters():
                     "desiredFeatures": [],
                     "isOffTopic": False,
                     "offTopicResponse": None,
-                    "retrieverSuggestion": "I'm not totally sure. Maybe specify brand or budget?"
+                    "clarificationNeeded": True,
+                    "matchedCategory": match_cat,
+                    "retrieverSuggestion": (
+                        f"Sounds like you're after something like '{match_cat}'. "
+                        "Could you give me more details — maybe a budget or fuel type?"
+                    )
                 }), 200
+
             else:
                 logger.info("Local retrieval matched: %s (%.2f)", match_cat, score)
                 return jsonify({

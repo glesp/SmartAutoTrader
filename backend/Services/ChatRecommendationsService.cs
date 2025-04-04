@@ -41,6 +41,7 @@ namespace SmartAutoTrader.API.Services
         public string? OriginalUserInput { get; set; }
 
         public string? ConversationId { get; set; }
+        public string? MatchedCategory { get; set; }
     }
 
     public class ChatRecommendationService(
@@ -139,6 +140,22 @@ namespace SmartAutoTrader.API.Services
                 Stopwatch sw = Stopwatch.StartNew();
                 RecommendationParameters extractedParameters = await ExtractParametersAsync(messageToProcess, modelUsedForSession);
                 sw.Stop();
+                
+                // ⚠️ NEW: Check if this is a vague query from RAG fallback
+                if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
+                {
+                    _logger.LogInformation("Vague RAG match triggered. Suggesting clarification: {Suggestion}", extractedParameters.RetrieverSuggestion);
+
+                    return new ChatResponse
+                    {
+                        Message = extractedParameters.RetrieverSuggestion,
+                        ClarificationNeeded = true,
+                        OriginalUserInput = message.Content,
+                        ConversationId = message.ConversationId,
+                        UpdatedParameters = new RecommendationParameters() // Empty for now
+                    };
+                }
+
 
                 _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
 
@@ -860,6 +877,14 @@ namespace SmartAutoTrader.API.Services
         {
             parameters.OffTopicResponse = responseElement.GetString();
         }
+        
+        // Parse retriever suggestion
+        if (jsonDoc.RootElement.TryGetProperty("retrieverSuggestion", out JsonElement retrieverSuggestionElement) &&
+            retrieverSuggestionElement.ValueKind == JsonValueKind.String)
+        {
+            parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
+        }
+
 
         _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
         return parameters;
