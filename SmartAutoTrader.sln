@@ -4,6 +4,8 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartAutoTrader.API", "backend\SmartAutoTrader.API.csproj", "{749BFE63-67F6-86DB-6EDD-2A6465A85247}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartAutoTrader.Tests", "SmartAutoTrader.Tests\SmartAutoTrader.Tests.csproj", "{DC5E09F9-CE41-41A9-BBD7-8261715A027B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{749BFE63-67F6-86DB-6EDD-2A6465A85247}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC5E09F9-CE41-41A9-BBD7-8261715A027B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC5E09F9-CE41-41A9-BBD7-8261715A027B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC5E09F9-CE41-41A9-BBD7-8261715A027B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC5E09F9-CE41-41A9-BBD7-8261715A027B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
