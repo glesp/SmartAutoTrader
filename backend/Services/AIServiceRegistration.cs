@@ -10,12 +10,12 @@ namespace SmartAutoTrader.API.Services
             _ = services.AddHttpClient();
 
             // Determine which AI provider to use based on configuration
-            string aiProvider = configuration["AI:Provider"]?.ToLower(System.Globalization.CultureInfo.CurrentCulture) ?? "huggingface";
+            string aiProvider = configuration["AI:Provider"]?.ToLower(System.Globalization.CultureInfo.CurrentCulture) ?? "openrouter";
 
             switch (aiProvider)
             {
-                case "huggingface":
-                    _ = services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                case "openrouter":
+                    _ = services.AddScoped<IAIRecommendationService, OpenRouterRecommendationService>();
                     break;
 
                 case "openai":
@@ -31,7 +31,7 @@ namespace SmartAutoTrader.API.Services
 
                 default:
                     // Default to Hugging Face
-                    _ = services.AddScoped<IAIRecommendationService, HuggingFaceRecommendationService>();
+                    _ = services.AddScoped<IAIRecommendationService, OpenRouterRecommendationService>();
                     break;
             }
 

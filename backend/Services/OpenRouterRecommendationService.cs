@@ -5,16 +5,16 @@ using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Services
 {
-    public class HuggingFaceRecommendationService(
+    public class OpenRouterRecommendationService(
         ApplicationDbContext context,
         IConfiguration configuration,
-        ILogger<HuggingFaceRecommendationService> logger,
+        ILogger<OpenRouterRecommendationService> logger,
         HttpClient httpClient) : IAIRecommendationService
     {
         private readonly IConfiguration _configuration = configuration;
         private readonly ApplicationDbContext _context = context;
         private readonly HttpClient _httpClient = httpClient;
-        private readonly ILogger<HuggingFaceRecommendationService> _logger = logger;
+        private readonly ILogger<OpenRouterRecommendationService> _logger = logger;
 
         public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
         {
