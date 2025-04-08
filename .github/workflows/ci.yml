@@ -1,0 +1,77 @@
+name: SmartAutoTrader CI
+
+on:
+  push:
+    branches: [main, devops-pipeline]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------
+  # 1) .NET Backend Build & Test
+  # ---------------------------------------------
+  dotnet_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore .NET dependencies
+        # If you have a .sln in /backend, do this:
+        run: dotnet restore ./backend/SmartAutoTrader.sln
+
+      - name: Build .NET project
+        run: dotnet build ./backend/SmartAutoTrader.sln --no-restore --configuration Release
+
+      - name: Run .NET tests
+        run: dotnet test ./backend/SmartAutoTrader.sln --no-build --verbosity normal
+
+  # ---------------------------------------------
+  # 2) Frontend Install & Lint
+  # ---------------------------------------------
+  frontend_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        # If your frontend is in /frontend
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Lint frontend
+        # Assumes you have a script "lint" in package.json
+        run: npm run lint
+        working-directory: ./frontend
+
+  # ---------------------------------------------
+  # 3) Python Lint (Optional)
+  # ---------------------------------------------
+  python_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Lint Python
+        run: flake8 .
+        working-directory: ./PythonServices

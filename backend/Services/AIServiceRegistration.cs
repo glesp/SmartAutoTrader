@@ -1,3 +1,5 @@
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Services
 {
     public static class AIServiceRegistration
