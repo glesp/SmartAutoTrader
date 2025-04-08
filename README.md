@@ -1,4 +1,3 @@
-cat > README.md << 'EOL'
 # Smart Auto Trader
 
 An AI-powered vehicle marketplace that offers personalized recommendations and streamlines the car buying experience.
