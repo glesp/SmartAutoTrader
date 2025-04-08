@@ -7,37 +7,36 @@ on:
     branches: [main]
 
 jobs:
-  # ---------------------------------------------
+  # -----------------------------------
   # 1) .NET Backend Build & Test
-  # ---------------------------------------------
+  # -----------------------------------
   dotnet_tests:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      
-      - name: Restore .NET dependencies
-        # If you have a .sln in /backend, do this:
-        run: dotnet restore ./backend/SmartAutoTrader.sln
 
-      - name: Build .NET project
-        run: dotnet build ./backend/SmartAutoTrader.sln --no-restore --configuration Release
+      - name: Restore dependencies
+        run: dotnet restore ./backend/SmartAutoTrader.API.csproj
 
-      - name: Run .NET tests
-        run: dotnet test ./backend/SmartAutoTrader.sln --no-build --verbosity normal
+      - name: Build API project
+        run: dotnet build ./backend/SmartAutoTrader.API.csproj --no-restore --configuration Release
 
-  # ---------------------------------------------
-  # 2) Frontend Install & Lint
-  # ---------------------------------------------
+      - name: Run unit tests
+        run: dotnet test ./SmartAutoTrader.Tests/SmartAutoTrader.Tests.csproj --verbosity normal
+
+  # -----------------------------------
+  # 2) Frontend Linting
+  # -----------------------------------
   frontend_lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -46,22 +45,20 @@ jobs:
           node-version: '18'
 
       - name: Install frontend dependencies
-        # If your frontend is in /frontend
         run: npm ci
         working-directory: ./frontend
 
-      - name: Lint frontend
-        # Assumes you have a script "lint" in package.json
+      - name: Run frontend lint
         run: npm run lint
         working-directory: ./frontend
 
-  # ---------------------------------------------
-  # 3) Python Lint (Optional)
-  # ---------------------------------------------
+  # -----------------------------------
+  # 3) Python Linting
+  # -----------------------------------
   python_lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
