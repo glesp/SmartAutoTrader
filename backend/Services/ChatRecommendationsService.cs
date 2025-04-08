@@ -11,6 +11,7 @@ namespace SmartAutoTrader.API.Services
     {
         Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
     }
+
     public class ChatRecommendationService(
         IUserRepository userRepo,
         IChatRepository chatRepo,
@@ -44,10 +45,10 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Get conversation context
-                ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId); 
-                
+                ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId);
+
                 string? modelUsedForSession = conversationContext.ModelUsed;
-                
+
                 // Update conversation context with basic tracking info
                 conversationContext.MessageCount++;
                 conversationContext.LastInteraction = DateTime.UtcNow;
@@ -100,7 +101,7 @@ namespace SmartAutoTrader.API.Services
                 Stopwatch sw = Stopwatch.StartNew();
                 RecommendationParameters extractedParameters = await ExtractParametersAsync(messageToProcess, modelUsedForSession);
                 sw.Stop();
-                
+
                 // ⚠️ NEW: Check if this is a vague query from RAG fallback
                 if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
                 {
@@ -112,7 +113,7 @@ namespace SmartAutoTrader.API.Services
                         ClarificationNeeded = true,
                         OriginalUserInput = message.Content,
                         ConversationId = message.ConversationId,
-                        UpdatedParameters = new RecommendationParameters() // Empty for now
+                        UpdatedParameters = new RecommendationParameters(), // Empty for now
                     };
                 }
 
@@ -148,7 +149,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = [],
+                        RecommendedVehicles =[],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -253,7 +254,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles = [],
+                    RecommendedVehicles =[],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -279,9 +280,21 @@ namespace SmartAutoTrader.API.Services
             string lowerMessage = message.ToLower(System.Globalization.CultureInfo.CurrentCulture);
             string[] followUpIndicators =
             [
-                "instead", "also", "but", "what about", "how about",
-                "can you", "show me", "i want", "i prefer", "i'd like",
-                "actually", "change", "modify", "update", "rather"
+                "instead",
+                "also",
+                "but",
+                "what about",
+                "how about",
+                "can you",
+                "show me",
+                "i want",
+                "i prefer",
+                "i'd like",
+                "actually",
+                "change",
+                "modify",
+                "update",
+                "rather"
             ];
 
             if (followUpIndicators.Any(lowerMessage.Contains))
@@ -290,7 +303,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
+            string[] contextualPronouns =["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -316,7 +329,7 @@ namespace SmartAutoTrader.API.Services
             try
             {
                 // Create a chat history record
-                ChatHistory chatHistory = new ChatHistory
+                ChatHistory chatHistory = new()
                 {
                     UserId = userId,
                     UserMessage = userMessage.Content,
@@ -341,9 +354,21 @@ namespace SmartAutoTrader.API.Services
         {
             string[] featureKeywords =
             [
-                "bluetooth", "navigation", "leather", "sunroof", "camera",
-                "cruise control", "parking sensors", "heated seats", "air conditioning",
-                "automatic", "manual", "safety", "fuel efficient", "family", "sport"
+                "bluetooth",
+                "navigation",
+                "leather",
+                "sunroof",
+                "camera",
+                "cruise control",
+                "parking sensors",
+                "heated seats",
+                "air conditioning",
+                "automatic",
+                "manual",
+                "safety",
+                "fuel efficient",
+                "family",
+                "sport"
             ];
 
             string lowerMessage = message.ToLower(System.Globalization.CultureInfo.CurrentCulture);
@@ -520,7 +545,7 @@ namespace SmartAutoTrader.API.Services
             string message,
             ConversationContext context)
         {
-            StringBuilder clarification = new StringBuilder();
+            StringBuilder clarification = new();
 
             // If this is a follow-up question, acknowledge the previous context
             if (context.MessageCount > 1)
@@ -534,42 +559,27 @@ namespace SmartAutoTrader.API.Services
             // Ask about missing parameters, considering context
             if (parameters.MinPrice == null && parameters.MaxPrice == null)
             {
-                if (context.TopicContext.ContainsKey("discussing_budget"))
-                {
-                    _ = clarification.Append("Could you provide a specific price range you're comfortable with? ");
-                }
-                else
-                {
-                    _ = clarification.Append("What's your budget range for this vehicle? ");
-                }
+                _ = context.TopicContext.ContainsKey("discussing_budget")
+                    ? clarification.Append("Could you provide a specific price range you're comfortable with? ")
+                    : clarification.Append("What's your budget range for this vehicle? ");
             }
 
             if (parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any())
             {
-                if (context.TopicContext.ContainsKey("discussing_family_needs"))
-                {
-                    _ = clarification.Append(
-                        "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ");
-                }
-                else
-                {
-                    _ = clarification.Append(
+                _ = context.TopicContext.ContainsKey("discussing_family_needs")
+                    ? clarification.Append(
+                        "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ")
+                    : clarification.Append(
                         "What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
-                }
             }
 
             if (parameters.PreferredMakes == null || !parameters.PreferredMakes.Any())
             {
                 // Check if user has rejected any makes
-                if (context.ExplicitlyRejectedOptions.Any())
-                {
-                    _ = clarification.Append(
-                        $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ");
-                }
-                else
-                {
-                    _ = clarification.Append("Do you have any preferred manufacturers or brands? ");
-                }
+                _ = context.ExplicitlyRejectedOptions.Any()
+                    ? clarification.Append(
+                        $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ")
+                    : clarification.Append("Do you have any preferred manufacturers or brands? ");
             }
 
             if (parameters.MinYear == null && parameters.MaxYear == null)
@@ -589,7 +599,7 @@ namespace SmartAutoTrader.API.Services
             int recommendationCount,
             ConversationContext context)
         {
-            StringBuilder response = new StringBuilder();
+            StringBuilder response = new();
 
             if (recommendationCount == 0)
             {
@@ -643,14 +653,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 _ = response.Append("to ");
-                if (parameters.MaxPrice.HasValue)
-                {
-                    _ = response.Append($"€{parameters.MaxPrice:N0}. ");
-                }
-                else
-                {
-                    _ = response.Append("any. ");
-                }
+                _ = parameters.MaxPrice.HasValue ? response.Append($"€{parameters.MaxPrice:N0}. ") : response.Append("any. ");
             }
 
             if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
@@ -662,14 +665,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 _ = response.Append("to ");
-                if (parameters.MaxYear.HasValue)
-                {
-                    _ = response.Append($"{parameters.MaxYear}. ");
-                }
-                else
-                {
-                    _ = response.Append("present. ");
-                }
+                _ = parameters.MaxYear.HasValue ? response.Append($"{parameters.MaxYear}. ") : response.Append("present. ");
             }
 
             // Add personalized guidance based on context
@@ -696,170 +692,171 @@ namespace SmartAutoTrader.API.Services
 
         // Extract parameters from message using the Python parameter extraction service
         private async Task<RecommendationParameters> ExtractParametersAsync(string message, string? forceModelOverride = null)
-{
-    try
-    {
-        // Get the parameter extraction endpoint from configuration
-        string endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ??
-                          "http://localhost:5006/extract_parameters";
-        int timeoutSeconds = int.TryParse(
-            _configuration["Services:ParameterExtraction:Timeout"],
-            out int timeout) ? timeout : 30;
-
-        // Optionally get the force model flag from configuration (e.g., "fast", "refine", or "clarify")
-        string? forceModel = _configuration["Services:ParameterExtraction:ForceModel"];
-
-        _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
-
-        // Prepare the request payload including the forceModel flag if set
-        var requestPayload = new 
         {
-            query = message,
-            forceModel = forceModelOverride,
-        };
-
-        StringContent content = new StringContent(
-            JsonSerializer.Serialize(requestPayload),
-            Encoding.UTF8,
-            "application/json");
-
-        // Configure timeout
-        CancellationTokenSource timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-
-        _logger.LogInformation("SENDING REQUEST to {Endpoint} with payload: {Payload}", 
-            endpoint, JsonSerializer.Serialize(requestPayload));
-        HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            string errorContent = await response.Content.ReadAsStringAsync();
-            _logger.LogError(
-                "Parameter extraction service error: {StatusCode}, {ErrorContent}",
-                response.StatusCode,
-                errorContent);
-
-            return new RecommendationParameters
+            try
             {
-                TextPrompt = message,
-                MaxResults = 5,
-            };
+                // Get the parameter extraction endpoint from configuration
+                string endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ??
+                                  "http://localhost:5006/extract_parameters";
+                int timeoutSeconds = int.TryParse(
+                    _configuration["Services:ParameterExtraction:Timeout"],
+                    out int timeout) ? timeout : 30;
+
+                // Optionally get the force model flag from configuration (e.g., "fast", "refine", or "clarify")
+                string? forceModel = _configuration["Services:ParameterExtraction:ForceModel"];
+
+                _logger.LogInformation("Calling parameter extraction service at {Endpoint}", endpoint);
+
+                // Prepare the request payload including the forceModel flag if set
+                var requestPayload = new
+                {
+                    query = message,
+                    forceModel = forceModelOverride,
+                };
+
+                StringContent content = new(
+                    JsonSerializer.Serialize(requestPayload),
+                    Encoding.UTF8,
+                    "application/json");
+
+                // Configure timeout
+                CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(timeoutSeconds));
+
+                _logger.LogInformation(
+                    "SENDING REQUEST to {Endpoint} with payload: {Payload}",
+                    endpoint, JsonSerializer.Serialize(requestPayload));
+                HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError(
+                        "Parameter extraction service error: {StatusCode}, {ErrorContent}",
+                        response.StatusCode,
+                        errorContent);
+
+                    return new RecommendationParameters
+                    {
+                        TextPrompt = message,
+                        MaxResults = 5,
+                    };
+                }
+
+                // Parse the response
+                string responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+
+                using JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
+                RecommendationParameters parameters = new()
+                {
+                    TextPrompt = message,
+                    MaxResults = 5,
+
+                    // Parse numerical values safely
+                    MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out JsonElement minPriceElement) &&
+                               minPriceElement.ValueKind == JsonValueKind.Number
+                        ? minPriceElement.GetDecimal()
+                        : null,
+
+                    MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out JsonElement maxPriceElement) &&
+                               maxPriceElement.ValueKind == JsonValueKind.Number
+                        ? maxPriceElement.GetDecimal()
+                        : null,
+
+                    MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out JsonElement minYearElement) &&
+                              minYearElement.ValueKind == JsonValueKind.Number
+                        ? minYearElement.GetInt32()
+                        : null,
+
+                    MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out JsonElement maxYearElement) &&
+                              maxYearElement.ValueKind == JsonValueKind.Number
+                        ? maxYearElement.GetInt32()
+                        : null,
+
+                    MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out JsonElement mileageElement) &&
+                                 mileageElement.ValueKind == JsonValueKind.Number
+                        ? mileageElement.GetInt32()
+                        : null,
+
+                    // Parse array values safely
+                    PreferredMakes =
+                        jsonDoc.RootElement.TryGetProperty("preferredMakes", out JsonElement makesElement) &&
+                        makesElement.ValueKind == JsonValueKind.Array
+                            ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                                .Select(e => e.GetString()).ToList()
+                            :[],
+
+                    DesiredFeatures =
+                        jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
+                        featuresElement.ValueKind == JsonValueKind.Array
+                            ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                                .Select(e => e.GetString()).ToList()
+                            :[],
+
+                    // Parse enums correctly
+                    PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
+                                         fuelTypesElement.ValueKind == JsonValueKind.Array
+                        ? fuelTypesElement.EnumerateArray()
+                            .Where(e => e.ValueKind == JsonValueKind.String)
+                            .Select(e => Enum.TryParse(e.GetString(), true, out FuelType fuel)
+                                ? fuel
+                                : (FuelType?)null)
+                            .Where(f => f.HasValue)
+                            .Select(f => f.Value)
+                            .ToList()
+                        :[],
+
+                    PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
+                                            vehicleTypesElement.ValueKind == JsonValueKind.Array
+                        ? vehicleTypesElement.EnumerateArray()
+                            .Where(e => e.ValueKind == JsonValueKind.String)
+                            .Select(e => Enum.TryParse(e.GetString(), true, out VehicleType vehicle)
+                                ? vehicle
+                                : (VehicleType?)null)
+                            .Where(v => v.HasValue)
+                            .Select(v => v.Value)
+                            .ToList()
+                        :[],
+                };
+
+                // Validate the parameters
+                if (!RecommendationParameterValidator.Validate(parameters, out string? errorMessage))
+                {
+                    _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
+                }
+
+                // Parse the off-topic flags
+                parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
+                                        && isOffTopicElement.ValueKind == JsonValueKind.True;
+
+                if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out JsonElement responseElement)
+                    && responseElement.ValueKind == JsonValueKind.String)
+                {
+                    parameters.OffTopicResponse = responseElement.GetString();
+                }
+
+                // Parse retriever suggestion
+                if (jsonDoc.RootElement.TryGetProperty("retrieverSuggestion", out JsonElement retrieverSuggestionElement) &&
+                    retrieverSuggestionElement.ValueKind == JsonValueKind.String)
+                {
+                    parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
+                }
+
+
+                _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
+                return parameters;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error extracting parameters from message");
+
+                return new RecommendationParameters
+                {
+                    TextPrompt = message,
+                    MaxResults = 5,
+                };
+            }
         }
-
-        // Parse the response
-        string responseContent = await response.Content.ReadAsStringAsync();
-        _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
-
-        using JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
-        RecommendationParameters parameters = new RecommendationParameters
-        {
-            TextPrompt = message,
-            MaxResults = 5,
-
-            // Parse numerical values safely
-            MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out JsonElement minPriceElement) &&
-                       minPriceElement.ValueKind == JsonValueKind.Number
-                ? minPriceElement.GetDecimal()
-                : null,
-
-            MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out JsonElement maxPriceElement) &&
-                       maxPriceElement.ValueKind == JsonValueKind.Number
-                ? maxPriceElement.GetDecimal()
-                : null,
-
-            MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out JsonElement minYearElement) &&
-                      minYearElement.ValueKind == JsonValueKind.Number
-                ? minYearElement.GetInt32()
-                : null,
-
-            MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out JsonElement maxYearElement) &&
-                      maxYearElement.ValueKind == JsonValueKind.Number
-                ? maxYearElement.GetInt32()
-                : null,
-
-            MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out JsonElement mileageElement) &&
-                         mileageElement.ValueKind == JsonValueKind.Number
-                ? mileageElement.GetInt32()
-                : null,
-
-            // Parse array values safely
-            PreferredMakes =
-                jsonDoc.RootElement.TryGetProperty("preferredMakes", out JsonElement makesElement) &&
-                makesElement.ValueKind == JsonValueKind.Array
-                    ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                        .Select(e => e.GetString()).ToList()
-                    : new List<string>(),
-
-            DesiredFeatures =
-                jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
-                featuresElement.ValueKind == JsonValueKind.Array
-                    ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                        .Select(e => e.GetString()).ToList()
-                    : new List<string>(),
-
-            // Parse enums correctly
-            PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
-                                 fuelTypesElement.ValueKind == JsonValueKind.Array
-                ? fuelTypesElement.EnumerateArray()
-                    .Where(e => e.ValueKind == JsonValueKind.String)
-                    .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out FuelType fuel)
-                        ? fuel
-                        : (FuelType?)null)
-                    .Where(f => f.HasValue)
-                    .Select(f => f.Value)
-                    .ToList()
-                : new List<FuelType>(),
-
-            PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
-                                    vehicleTypesElement.ValueKind == JsonValueKind.Array
-                ? vehicleTypesElement.EnumerateArray()
-                    .Where(e => e.ValueKind == JsonValueKind.String)
-                    .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out VehicleType vehicle)
-                        ? vehicle
-                        : (VehicleType?)null)
-                    .Where(v => v.HasValue)
-                    .Select(v => v.Value)
-                    .ToList()
-                : new List<VehicleType>(),
-        };
-
-        // Validate the parameters
-        if (!RecommendationParameterValidator.Validate(parameters, out string? errorMessage))
-        {
-            _logger.LogWarning("Parameter validation failed: {ErrorMessage}", errorMessage);
-        }
-
-        // Parse the off-topic flags
-        parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
-                                && isOffTopicElement.ValueKind == JsonValueKind.True;
-
-        if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out JsonElement responseElement)
-            && responseElement.ValueKind == JsonValueKind.String)
-        {
-            parameters.OffTopicResponse = responseElement.GetString();
-        }
-        
-        // Parse retriever suggestion
-        if (jsonDoc.RootElement.TryGetProperty("retrieverSuggestion", out JsonElement retrieverSuggestionElement) &&
-            retrieverSuggestionElement.ValueKind == JsonValueKind.String)
-        {
-            parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
-        }
-
-
-        _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
-        return parameters;
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error extracting parameters from message");
-
-        return new RecommendationParameters
-        {
-            TextPrompt = message,
-            MaxResults = 5,
-        };
-    }
-}
 
     }
 }

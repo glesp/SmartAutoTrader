@@ -1,9 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 using BC = BCrypt.Net.BCrypt;
@@ -35,7 +33,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Create new user
-            User user = new User
+            User user = new()
             {
                 Username = username,
                 Email = email,
@@ -73,7 +71,7 @@ namespace SmartAutoTrader.API.Services
         {
             byte[] key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
 
-            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
+            SecurityTokenDescriptor tokenDescriptor = new()
             {
                 Subject = new ClaimsIdentity(new[]
                 {
@@ -88,7 +86,7 @@ namespace SmartAutoTrader.API.Services
                 Audience = _configuration["Jwt:Audience"],
             };
 
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+            JwtSecurityTokenHandler tokenHandler = new();
             SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);

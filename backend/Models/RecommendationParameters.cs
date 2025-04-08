@@ -28,6 +28,7 @@ namespace SmartAutoTrader.API.Models
         public bool IsOffTopic { get; set; }
 
         public string? OffTopicResponse { get; set; }
+
         public string? RetrieverSuggestion { get; set; }
 
         public string? ModelUsed { get; set; }

@@ -11,11 +11,13 @@ namespace SmartAutoTrader.API.Models
         public int UserId { get; set; }
 
         [ForeignKey("UserId")]
-        public User? User { get; set; } 
+        public User? User { get; set; }
 
-        [Required] public string? UserMessage { get; set; }
+        [Required]
+        public string? UserMessage { get; set; }
 
-        [Required] public string? AIResponse { get; set; }
+        [Required]
+        public string? AIResponse { get; set; }
 
         public DateTime Timestamp { get; set; }
 

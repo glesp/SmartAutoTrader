@@ -1,5 +1,4 @@
 using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
 
 namespace SmartAutoTrader.API.Validators
 {

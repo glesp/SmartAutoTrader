@@ -51,7 +51,7 @@ namespace SmartAutoTrader.API.Controllers
                 }
 
                 // Process the message
-                ChatMessage chatMessage = new ChatMessage
+                ChatMessage chatMessage = new()
                 {
                     Content = message.Content,
                     Timestamp = DateTime.UtcNow,
@@ -70,7 +70,7 @@ namespace SmartAutoTrader.API.Controllers
                 }
 
                 // Map the response to a DTO with null checks
-                ChatResponseDto responseDto = new ChatResponseDto
+                ChatResponseDto responseDto = new()
                 {
                     Message = response.Message,
                     RecommendedVehicles = response.RecommendedVehicles,
@@ -90,7 +90,7 @@ namespace SmartAutoTrader.API.Controllers
                                 ?.Select(t => t.ToString())?.ToList(),
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?.Select(f => f.ToString())
                                 ?.ToList(),
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures,
                         }
                         : null,
                 };

@@ -2,52 +2,56 @@ using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 
-namespace SmartAutoTrader.API.Repositories;
-
-public interface IChatRepository
+namespace SmartAutoTrader.API.Repositories
 {
-    Task AddChatHistoryAsync(ChatHistory chatHistory);
-    Task UpdateSessionAsync(ConversationSession session);
-    Task AddSessionAsync(ConversationSession session);
-    Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge);
-    Task SaveChangesAsync();
-}
-public class ChatRepository : IChatRepository
-{
-    private readonly ApplicationDbContext _context;
-
-    public ChatRepository(ApplicationDbContext context)
+    public interface IChatRepository
     {
-        _context = context;
+        Task AddChatHistoryAsync(ChatHistory chatHistory);
+
+        Task UpdateSessionAsync(ConversationSession session);
+
+        Task AddSessionAsync(ConversationSession session);
+
+        Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge);
+
+        Task SaveChangesAsync();
     }
 
-    public Task AddChatHistoryAsync(ChatHistory chatHistory)
+    public class ChatRepository(ApplicationDbContext context) : IChatRepository
     {
-        _context.ChatHistory.Add(chatHistory);
-        return Task.CompletedTask;
-    }
-    public Task UpdateSessionAsync(ConversationSession session)
-    {
-        _context.Entry(session).State = EntityState.Modified;
-        return _context.SaveChangesAsync();
-    }
-    public Task AddSessionAsync(ConversationSession session)
-    {
-        _context.ConversationSessions.Add(session);
-        return Task.CompletedTask;
-    }
-    public Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge)
-    {
-        DateTime since = DateTime.UtcNow.Subtract(maxAge);
+        private readonly ApplicationDbContext _context = context;
 
-        return _context.ConversationSessions
-            .Where(s => s.UserId == userId && s.LastInteractionAt > since)
-            .OrderByDescending(s => s.LastInteractionAt)
-            .FirstOrDefaultAsync();
-    }
+        public Task AddChatHistoryAsync(ChatHistory chatHistory)
+        {
+            _ = _context.ChatHistory.Add(chatHistory);
+            return Task.CompletedTask;
+        }
 
-    public Task SaveChangesAsync()
-    {
-        return _context.SaveChangesAsync();
+        public Task UpdateSessionAsync(ConversationSession session)
+        {
+            _context.Entry(session).State = EntityState.Modified;
+            return _context.SaveChangesAsync();
+        }
+
+        public Task AddSessionAsync(ConversationSession session)
+        {
+            _ = _context.ConversationSessions.Add(session);
+            return Task.CompletedTask;
+        }
+
+        public Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge)
+        {
+            DateTime since = DateTime.UtcNow.Subtract(maxAge);
+
+            return _context.ConversationSessions
+                .Where(s => s.UserId == userId && s.LastInteractionAt > since)
+                .OrderByDescending(s => s.LastInteractionAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public Task SaveChangesAsync()
+        {
+            return _context.SaveChangesAsync();
+        }
     }
 }

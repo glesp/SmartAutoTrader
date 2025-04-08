@@ -2,7 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
 
 namespace SmartAutoTrader.API.Controllers
 {
@@ -29,7 +28,7 @@ namespace SmartAutoTrader.API.Controllers
                 }
 
                 // Convert request model to service parameters
-                RecommendationParameters parameters = new RecommendationParameters
+                RecommendationParameters parameters = new()
                 {
                     MinPrice = request.MinPrice,
                     MaxPrice = request.MaxPrice,
@@ -70,7 +69,7 @@ namespace SmartAutoTrader.API.Controllers
             try
             {
                 // Convert request model to service parameters
-                RecommendationParameters parameters = new RecommendationParameters
+                RecommendationParameters parameters = new()
                 {
                     MinPrice = request.MinPrice,
                     MaxPrice = request.MaxPrice,

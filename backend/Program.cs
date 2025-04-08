@@ -108,7 +108,7 @@ builder.Services.AddSwaggerGen(options =>
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
-                }
+                },
             },
             Array.Empty<string>()
         },

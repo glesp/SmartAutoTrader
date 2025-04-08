@@ -15,7 +15,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                Models.User user = await _authService.RegisterAsync(
+                User user = await _authService.RegisterAsync(
                     model.Username,
                     model.Email,
                     model.Password,
@@ -45,7 +45,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                (string token, Models.User user) = await _authService.LoginAsync(model.Email, model.Password);
+                (string token, User user) = await _authService.LoginAsync(model.Email, model.Password);
 
                 return Ok(new
                 {

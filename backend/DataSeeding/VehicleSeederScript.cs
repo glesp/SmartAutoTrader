@@ -32,7 +32,8 @@ namespace SmartAutoTrader.API.DataSeeding
             ["S-Class"] = (VehicleType.Sedan, FuelType.Petrol),
         };
 
-        private static readonly string[] value = new[] { "Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner" };
+        private static readonly string[] Value =["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
+        private static readonly string[] ValueArray = new[] { "Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey" };
 
         public void SeedVehicles(IServiceProvider serviceProvider, int count = 200)
         {
@@ -54,19 +55,32 @@ namespace SmartAutoTrader.API.DataSeeding
 
         private static List<Vehicle> GenerateVehicles(int count)
         {
-            Random random = new Random();
+            Random random = new();
             List<Vehicle> vehicles =[];
 
             string[] makes =
             [
-                "Toyota", "Honda", "Ford", "Volkswagen", "BMW", "Mercedes-Benz", "Audi", "Nissan", "Hyundai", "Kia",
-                "Tesla", "Mazda", "Subaru", "Chevrolet", "Lexus"
+                "Toyota",
+                "Honda",
+                "Ford",
+                "Volkswagen",
+                "BMW",
+                "Mercedes-Benz",
+                "Audi",
+                "Nissan",
+                "Hyundai",
+                "Kia",
+                "Tesla",
+                "Mazda",
+                "Subaru",
+                "Chevrolet",
+                "Lexus"
             ];
 
-            Dictionary<string, string[]> modelsByMake = new Dictionary<string, string[]>
+            Dictionary<string, string[]> modelsByMake = new()
             {
-                { "Toyota", value },
-                { "Honda", new[] { "Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey" } },
+                { "Toyota", Value },
+                { "Honda", ValueArray },
                 { "Ford", new[] { "F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger" } },
                 { "Volkswagen", new[] { "Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon" } },
                 { "BMW", new[] { "3 Series", "5 Series", "X3", "X5", "7 Series", "i4", "iX" } },
@@ -84,12 +98,31 @@ namespace SmartAutoTrader.API.DataSeeding
 
             string[] featuresList =
             [
-                "Leather Seats", "Sunroof", "Navigation System", "Bluetooth", "Backup Camera",
-                "Heated Seats", "Cruise Control", "Parking Sensors", "Blind Spot Monitor",
-                "Lane Departure Warning", "Keyless Entry", "Push Button Start", "Apple CarPlay",
-                "Android Auto", "Premium Sound System", "Third Row Seating", "Tow Package",
-                "Roof Rack", "Alloy Wheels", "Adaptive Cruise Control", "Remote Start",
-                "Ventilated Seats", "Heads-up Display", "360 Camera", "Wireless Charging"
+                "Leather Seats",
+                "Sunroof",
+                "Navigation System",
+                "Bluetooth",
+                "Backup Camera",
+                "Heated Seats",
+                "Cruise Control",
+                "Parking Sensors",
+                "Blind Spot Monitor",
+                "Lane Departure Warning",
+                "Keyless Entry",
+                "Push Button Start",
+                "Apple CarPlay",
+                "Android Auto",
+                "Premium Sound System",
+                "Third Row Seating",
+                "Tow Package",
+                "Roof Rack",
+                "Alloy Wheels",
+                "Adaptive Cruise Control",
+                "Remote Start",
+                "Ventilated Seats",
+                "Heads-up Display",
+                "360 Camera",
+                "Wireless Charging"
             ];
 
             for (int i = 0; i < count; i++)
@@ -105,7 +138,7 @@ namespace SmartAutoTrader.API.DataSeeding
                 string slug = $"{make}-{model}".Replace(" ", "").ToLower(System.Globalization.CultureInfo.CurrentCulture);
                 string imageFileName = $"{slug}.jpg";
 
-                Vehicle vehicle = new Vehicle
+                Vehicle vehicle = new()
                 {
                     Make = make,
                     Model = model,
@@ -126,7 +159,7 @@ namespace SmartAutoTrader.API.DataSeeding
                         new()
                         {
                             ImageUrl = $"images/vehicles/{imageFileName}",
-                            IsPrimary = true
+                            IsPrimary = true,
                         },
                     },
                     Features = featuresList.OrderBy(_ => random.Next()).Take(random.Next(3, 9))

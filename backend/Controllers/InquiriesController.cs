@@ -55,7 +55,7 @@ namespace SmartAutoTrader.API.Controllers
                 return NotFound(new { Message = "Vehicle not found" });
             }
 
-            Inquiry inquiry = new Inquiry
+            Inquiry inquiry = new()
             {
                 UserId = userId,
                 VehicleId = inquiryDto.VehicleId,

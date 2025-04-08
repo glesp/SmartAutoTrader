@@ -139,7 +139,7 @@ namespace SmartAutoTrader.API.Controllers
             {
                 int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-                BrowsingHistory history = new BrowsingHistory
+                BrowsingHistory history = new()
                 {
                     UserId = userId,
                     VehicleId = id,
@@ -219,11 +219,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("available-makes")]
         public IActionResult GetAvailableMakes()
         {
-            List<string> makes = _context.Vehicles
-                .Select(v => v.Make)
-                .Distinct()
-                .OrderBy(m => m)
-                .ToList();
+            List<string> makes =
+            [
+                .. _context.Vehicles
+                                .Select(v => v.Make)
+                                .Distinct()
+                                .OrderBy(m => m),
+            ];
 
             return Ok(makes);
         }
@@ -231,12 +233,14 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("available-models")]
         public IActionResult GetAvailableModels([FromQuery] string make)
         {
-            List<string> models = _context.Vehicles
-                .Where(v => v.Make == make)
-                .Select(v => v.Model)
-                .Distinct()
-                .OrderBy(m => m)
-                .ToList();
+            List<string> models =
+            [
+                .. _context.Vehicles
+                                .Where(v => v.Make == make)
+                                .Select(v => v.Model)
+                                .Distinct()
+                                .OrderBy(m => m),
+            ];
 
             return Ok(models);
         }

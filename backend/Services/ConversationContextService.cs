@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 
@@ -40,6 +38,7 @@ namespace SmartAutoTrader.API.Services
 
         // Track recommendations shown to the user
         public List<int> ShownVehicleIds { get; set; } =[];
+
         public string? ModelUsed { get; set; }
     }
 
@@ -87,7 +86,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Create a new context if we couldn't retrieve one
-                ConversationContext newContext = new ConversationContext
+                ConversationContext newContext = new()
                 {
                     LastInteraction = DateTime.UtcNow,
                 };
@@ -97,10 +96,10 @@ namespace SmartAutoTrader.API.Services
                 {
                     _ = await StartNewSessionAsync(userId);
                 }
-                
+
                 // If we detect it's a brand-new session, pick a model
                 // e.g. rotate among fast/refine/clarify:
-                string[] modelPool = new[] { "fast", "refine", "clarify" };
+                string[] modelPool =["fast", "refine", "clarify"];
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 
@@ -143,7 +142,7 @@ namespace SmartAutoTrader.API.Services
 
         public async Task<ConversationSession> StartNewSessionAsync(int userId)
         {
-            ConversationSession newSession = new ConversationSession
+            ConversationSession newSession = new()
             {
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,

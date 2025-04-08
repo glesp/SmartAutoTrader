@@ -53,7 +53,7 @@ namespace SmartAutoTrader.API.Controllers
             }
 
             // Add to favorites
-            UserFavorite favorite = new UserFavorite
+            UserFavorite favorite = new()
             {
                 UserId = userId,
                 VehicleId = vehicleId,
