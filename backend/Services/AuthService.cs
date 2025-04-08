@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Repositories;
 using BC = BCrypt.Net.BCrypt;
 
 namespace SmartAutoTrader.API.Services
@@ -19,16 +20,16 @@ namespace SmartAutoTrader.API.Services
         string GenerateJwtToken(User user);
     }
 
-    public class AuthService(ApplicationDbContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(IUserRepository userRepo, IConfiguration configuration) : IAuthService
     {
         private readonly IConfiguration _configuration = configuration;
-        private readonly ApplicationDbContext _context = context;
+        private readonly IUserRepository _userRepo = userRepo;
 
         public async Task<User> RegisterAsync(string username, string email, string password, string firstName,
             string lastName, string phoneNumber)
         {
             // Check if user already exists
-            if (await _context.Users.AnyAsync(u => u.Email == email || u.Username == username))
+            if (await _userRepo.ExistsAsync(email, username))
             {
                 throw new Exception("User with this email or username already exists.");
             }
@@ -45,8 +46,8 @@ namespace SmartAutoTrader.API.Services
                 DateRegistered = DateTime.Now,
             };
 
-            _ = _context.Users.Add(user);
-            _ = await _context.SaveChangesAsync();
+            await _userRepo.AddAsync(user);
+            await _userRepo.SaveChangesAsync();
 
             return user;
         }
@@ -54,7 +55,7 @@ namespace SmartAutoTrader.API.Services
         public async Task<(string token, User user)> LoginAsync(string email, string password)
         {
             // Find user by email
-            User? user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            User? user = await _userRepo.GetByEmailAsync(email);
 
             // Check if user exists and password is correct
             if (user == null || !BC.Verify(password, user.PasswordHash))

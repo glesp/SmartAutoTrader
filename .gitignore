@@ -1,11 +1,11 @@
 cat > .gitignore << 'EOL'
 # .NET
-backend/**/bin/
-backend/**/obj/
-backend/**/.vs/
-backend/**/*.user
-backend/**/.vscode/
-backend/**/Migrations/
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/.vscode/
+**/Migrations/
 
 # React
 frontend/node_modules/
