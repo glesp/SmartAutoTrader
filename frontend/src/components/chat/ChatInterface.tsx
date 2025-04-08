@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useContext } from 'react'
+import { useState, useRef, useEffect, useContext, useCallback } from 'react'
 import axios from 'axios'
 import { AuthContext } from '../../contexts/AuthContext'
 // Import Material-UI components
@@ -70,6 +70,7 @@ interface RecommendationParameters {
   preferredVehicleTypes?: number[] | string[]
   preferredFuelTypes?: number[] | string[]
   desiredFeatures?: string[]
+  matchedCategory?: string
 }
 
 interface ChatHistoryItem {
@@ -97,14 +98,6 @@ interface Conversation {
   messageCount: number
 }
 
-// Helper function to extract arrays from ASP.NET response format
-const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  if (data && '$values' in data) return data.$values
-  return []
-}
-
 // Helper function for date formatting
 const formatDate = (dateString: string): string => {
   try {
@@ -116,7 +109,7 @@ const formatDate = (dateString: string): string => {
       minute: '2-digit',
       hour12: true,
     })
-  } catch (error) {
+  } catch {
     return dateString
   }
 }
@@ -147,30 +140,8 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     'Family cars with low mileage',
   ]
 
-  // Load conversations on component mount
-  useEffect(() => {
-    if (token) {
-      loadConversations()
-    }
-  }, [token])
-
-  // Load messages when conversation changes
-  useEffect(() => {
-    if (token && currentConversationId) {
-      loadChatHistory(currentConversationId)
-    } else {
-      // Clear messages if no conversation is selected
-      setMessages([])
-    }
-  }, [token, currentConversationId])
-
-  // Scroll to bottom of messages when messages update
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Load available conversations
-  const loadConversations = async () => {
+  // Load conversations on component mount - callback reference
+  const loadConversations = useCallback(async () => {
     try {
       const response = await axios.get('/api/chat/conversations', {
         headers: {
@@ -194,51 +165,78 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     } catch (error) {
       console.error('Failed to load conversations:', error)
     }
-  }
+  }, [token, currentConversationId])
 
-  // Load chat history for a specific conversation
-  const loadChatHistory = async (conversationId: string) => {
-    try {
-      const response = await axios.get(
-        `/api/chat/history?conversationId=${conversationId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+  // Load chat history for a specific conversation - callback reference
+  const loadChatHistory = useCallback(
+    async (conversationId: string) => {
+      try {
+        const response = await axios.get(
+          `/api/chat/history?conversationId=${conversationId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
 
-      if (response.data) {
-        const historyData = Array.isArray(response.data)
-          ? response.data
-          : response.data.$values || []
+        if (response.data) {
+          const historyData = Array.isArray(response.data)
+            ? response.data
+            : response.data.$values || []
 
-        const formattedHistory = historyData
-          .map((msg: ChatHistoryItem) => ({
-            id: msg.id,
-            content: msg.userMessage,
-            sender: 'user' as const,
-            timestamp: new Date(msg.timestamp),
-            conversationId: msg.conversationId,
-          }))
-          .concat(
-            historyData.map((msg: ChatHistoryItem) => ({
-              id: `ai-${msg.id}`,
-              content: msg.aiResponse,
-              sender: 'ai' as const,
+          const formattedHistory = historyData
+            .map((msg: ChatHistoryItem) => ({
+              id: msg.id,
+              content: msg.userMessage,
+              sender: 'user' as const,
               timestamp: new Date(msg.timestamp),
               conversationId: msg.conversationId,
             }))
-          )
-          .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+            .concat(
+              historyData.map((msg: ChatHistoryItem) => ({
+                id: `ai-${msg.id}`,
+                content: msg.aiResponse,
+                sender: 'ai' as const,
+                timestamp: new Date(msg.timestamp),
+                conversationId: msg.conversationId,
+              }))
+            )
+            .sort(
+              (a: Message, b: Message) =>
+                a.timestamp.getTime() - b.timestamp.getTime()
+            )
 
-        setMessages(formattedHistory)
+          setMessages(formattedHistory)
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error)
       }
-    } catch (error) {
-      console.error('Failed to load chat history:', error)
+    },
+    [token]
+  )
+
+  // Use the callback references in useEffect hooks
+  useEffect(() => {
+    if (token) {
+      loadConversations()
     }
-  }
+  }, [token, loadConversations])
+
+  useEffect(() => {
+    if (token && currentConversationId) {
+      loadChatHistory(currentConversationId)
+    } else {
+      // Clear messages if no conversation is selected
+      setMessages([])
+    }
+  }, [token, currentConversationId, loadChatHistory])
+
+  // Scroll to bottom of messages when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   // Start a new conversation
   const startNewConversation = async () => {

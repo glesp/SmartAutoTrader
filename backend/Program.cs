@@ -48,7 +48,7 @@ builder.Services.AddAIRecommendationServices(builder.Configuration);
 builder.Services.AddScoped<IChatRecommendationService, ChatRecommendationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
