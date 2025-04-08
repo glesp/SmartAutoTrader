@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-# filepath: /Users/conorgillespie/Projects/SmartAutoTrader/PythonServices/parameter_extraction_service/parameter_extraction_service.py
+# filepath:
+# /Users/conorgillespie/Projects/SmartAutoTrader/PythonServices/parameter_extraction_service/parameter_extraction_service.py
 
+from retriever.retriever import find_best_match
 from flask import Flask, request, jsonify
 import requests
 import json
@@ -8,14 +10,13 @@ import logging
 import re
 import os
 import sys
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Any
 from dotenv import load_dotenv
 load_dotenv()
 
 # If your 'retriever' folder is inside the same directory, you may do:
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from retriever.retriever import find_best_match
 
 # Configure logging
 logging.basicConfig(
@@ -24,10 +25,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def word_count_clean(query: str) -> int:
     """Counts meaningful words in a cleaned-up user query."""
     cleaned = re.sub(r'[^a-zA-Z0-9 ]+', '', query).lower()
     return len(cleaned.strip().split())
+
 
 def extract_newest_user_fragment(query: str) -> str:
     """
@@ -35,6 +38,7 @@ def extract_newest_user_fragment(query: str) -> str:
     return only the latest user input.
     """
     return query.split(" - Additional info:")[-1].strip()
+
 
 app = Flask(__name__)
 
@@ -49,6 +53,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 FAST_MODEL = "meta-llama/llama-3-8b-instruct:free"
 REFINE_MODEL = "openchat/openchat-3.5:free"
 CLARIFY_MODEL = "mistralai/mixtral-8x7b-instruct:free"
+
 
 @app.route('/extract_parameters', methods=['POST'])
 def extract_parameters():
@@ -147,6 +152,7 @@ def extract_parameters():
         logger.exception("Exception occurred: %s", str(e))
         return jsonify(create_default_parameters()), 200
 
+
 def run_llm_fallback(user_query: str, force_model: Optional[str]) -> Optional[Dict[str, Any]]:
     """
     Fallback chain: fast → refine → clarify (or forced model).
@@ -174,7 +180,7 @@ def run_llm_fallback(user_query: str, force_model: Optional[str]) -> Optional[Di
             logger.info("Using forced model strategy with %s", force_model)
             # forced model first, then the others
             models_to_try = [model_order[force_model]] + [
-                m for k,m in model_order.items() if k != force_model
+                m for k, m in model_order.items() if k != force_model
             ]
         else:
             logger.warning("Invalid forceModel => defaulting to fast.")
@@ -201,6 +207,7 @@ def run_llm_fallback(user_query: str, force_model: Optional[str]) -> Optional[Di
             return processed
 
     return None
+
 
 def build_system_prompt(user_query: str,
                         valid_makes: List[str],
@@ -263,6 +270,7 @@ User query: {user_query}
 
 IMPORTANT: Return ONLY the JSON object with no additional text.
 """
+
 
 def try_extract_with_model(model: str, system_prompt: str, user_query: str) -> Optional[Dict[str, Any]]:
     """
@@ -333,6 +341,7 @@ def try_extract_with_model(model: str, system_prompt: str, user_query: str) -> O
         logger.exception("Unhandled exception in try_extract_with_model: %s", str(e))
         return None
 
+
 def is_valid_extraction(params: Dict[str, Any]) -> bool:
     """
     Decide if the extracted JSON is "good enough."
@@ -368,6 +377,7 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
     # Require at least 3 valid fields or off-topic
     return is_off_topic or total_valid >= 3
 
+
 def create_default_parameters(
     makes: Optional[List[str]] = None,
     fuel_types: Optional[List[str]] = None,
@@ -392,6 +402,7 @@ def create_default_parameters(
         "isOffTopic": False,
         "offTopicResponse": None
     }
+
 
 def process_parameters(
     params: Dict[str, Any],
@@ -443,7 +454,7 @@ def process_parameters(
 
     if isinstance(params.get("desiredFeatures"), list):
         result["desiredFeatures"] = [
-            f for f in params["desiredFeatures"] 
+            f for f in params["desiredFeatures"]
             if isinstance(f, str)
         ]
 
@@ -465,6 +476,7 @@ def process_parameters(
 
     return result
 
+
 def is_car_related(msg: str) -> bool:
     """
     Quick local check to skip LLM if definitely not about cars.
@@ -481,6 +493,7 @@ def is_car_related(msg: str) -> bool:
     msg_lower = msg.lower()
 
     return any(kw in msg_lower for kw in car_keywords)
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5006, debug=True)
