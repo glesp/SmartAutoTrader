@@ -2,12 +2,13 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Repositories;
 
 namespace SmartAutoTrader.API.Services
 {
     public interface IConversationContextService
     {
-        Task<ConversationContext> GetOrCreateContextAsync(int userId);
+        Task<ConversationContext?> GetOrCreateContextAsync(int userId);
 
         Task UpdateContextAsync(int userId, ConversationContext context);
 
@@ -42,11 +43,12 @@ namespace SmartAutoTrader.API.Services
         public string? ModelUsed { get; set; }
     }
 
-    public class ConversationContextService(ApplicationDbContext context, ILogger<ConversationContextService> logger) : IConversationContextService
+    public class ConversationContextService(IUserRepository userRepo, IChatRepository chatRepo, ILogger<ConversationContextService> logger) : IConversationContextService
     {
         // In-memory cache for active conversations (optional)
         private readonly Dictionary<int, ConversationContext> _activeContexts =[];
-        private readonly ApplicationDbContext _context = context;
+        private readonly IUserRepository _userRepo = userRepo;
+        private readonly IChatRepository _chatRepo = chatRepo;
         private readonly ILogger<ConversationContextService> _logger = logger;
 
         public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
@@ -130,8 +132,8 @@ namespace SmartAutoTrader.API.Services
                 session.SessionContext = JsonSerializer.Serialize(context);
                 session.LastInteractionAt = DateTime.UtcNow;
 
-                _context.Entry(session).State = EntityState.Modified;
-                _ = await _context.SaveChangesAsync();
+                await _chatRepo.UpdateSessionAsync(session);
+                await _chatRepo.SaveChangesAsync();
             }
             catch (Exception ex)
             {
@@ -149,8 +151,8 @@ namespace SmartAutoTrader.API.Services
                 SessionContext = JsonSerializer.Serialize(new ConversationContext()),
             };
 
-            _ = _context.ConversationSessions.Add(newSession);
-            _ = await _context.SaveChangesAsync();
+            await _chatRepo.AddSessionAsync(newSession);
+            await _chatRepo.SaveChangesAsync();
 
             // Clear any cached context
             _ = _activeContexts.Remove(userId);
@@ -158,15 +160,9 @@ namespace SmartAutoTrader.API.Services
             return newSession;
         }
 
-        public async Task<ConversationSession> GetCurrentSessionAsync(int userId)
+        public async Task<ConversationSession?> GetCurrentSessionAsync(int userId)
         {
-            // Get the most recent active session (less than 30 minutes old)
-            DateTime thirtyMinutesAgo = DateTime.UtcNow.AddMinutes(-30);
-
-            return await _context.ConversationSessions
-                .Where(s => s.UserId == userId && s.LastInteractionAt > thirtyMinutesAgo)
-                .OrderByDescending(s => s.LastInteractionAt)
-                .FirstOrDefaultAsync();
+            return await _chatRepo.GetRecentSessionAsync(userId, TimeSpan.FromMinutes(30));
         }
     }
 }

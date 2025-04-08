@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Repositories;
 using SmartAutoTrader.API.Validators;
 
 namespace SmartAutoTrader.API.Services
@@ -12,40 +11,9 @@ namespace SmartAutoTrader.API.Services
     {
         Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
     }
-
-    public class ChatMessage
-    {
-        public string? Content { get; set; }
-
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-        public bool IsClarification { get; set; }
-
-        public string? OriginalUserInput { get; set; }
-
-        public bool IsFollowUp { get; set; }
-
-        public string? ConversationId { get; set; }
-    }
-
-    public class ChatResponse
-    {
-        public string? Message { get; set; }
-
-        public List<Vehicle> RecommendedVehicles { get; set; } = [];
-
-        public RecommendationParameters? UpdatedParameters { get; set; }
-
-        public bool ClarificationNeeded { get; set; }
-
-        public string? OriginalUserInput { get; set; }
-
-        public string? ConversationId { get; set; }
-        public string? MatchedCategory { get; set; }
-    }
-
     public class ChatRecommendationService(
-        ApplicationDbContext context,
+        IUserRepository userRepo,
+        IChatRepository chatRepo,
         IConfiguration configuration,
         ILogger<ChatRecommendationService> logger,
         HttpClient httpClient,
@@ -53,7 +21,8 @@ namespace SmartAutoTrader.API.Services
         IConversationContextService contextService) : IChatRecommendationService
     {
         private readonly IConfiguration _configuration = configuration;
-        private readonly ApplicationDbContext _context = context;
+        private readonly IUserRepository _userRepo = userRepo;
+        private readonly IChatRepository _chatRepo = chatRepo;
         private readonly IConversationContextService _contextService = contextService;
         private readonly HttpClient _httpClient = httpClient;
         private readonly ILogger<ChatRecommendationService> _logger = logger;
@@ -84,9 +53,7 @@ namespace SmartAutoTrader.API.Services
                 conversationContext.LastInteraction = DateTime.UtcNow;
 
                 // Get user context for personalization
-                User? user = await _context.Users
-                    .Include(u => u.Preferences)
-                    .FirstOrDefaultAsync(u => u.Id == userId);
+                User? user = await _userRepo.GetByIdAsync(userId);
 
                 if (user == null)
                 {
@@ -99,17 +66,10 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Load related entities separately
-                user.Favorites = await _context.UserFavorites
-                    .Where(f => f.UserId == userId)
-                    .Include(f => f.Vehicle)
-                    .ToListAsync();
+                user.Favorites = await _userRepo.GetFavoritesWithVehiclesAsync(userId);
 
-                user.BrowsingHistory = await _context.BrowsingHistory
-                    .Where(h => h.UserId == userId)
-                    .OrderByDescending(h => h.ViewDate)
-                    .Take(5)
-                    .Include(h => h.Vehicle)
-                    .ToListAsync();
+                user.BrowsingHistory = await _userRepo
+                    .GetRecentBrowsingHistoryWithVehiclesAsync(userId, 5);
 
                 // Determine if this is a clarification or a follow-up query
                 string messageToProcess = message.Content;
@@ -365,8 +325,8 @@ namespace SmartAutoTrader.API.Services
                     ConversationSessionId = conversationSessionId,
                 };
 
-                _ = _context.ChatHistory.Add(chatHistory);
-                _ = await _context.SaveChangesAsync();
+                await _chatRepo.AddChatHistoryAsync(chatHistory);
+                await _chatRepo.SaveChangesAsync();
             }
             catch (Exception ex)
             {

@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.DataSeeding;
+using SmartAutoTrader.API.Repositories;
 using SmartAutoTrader.API.Services;
 using ZLogger;
 
@@ -45,6 +46,9 @@ builder.Services.AddScoped<VehicleSeeder>();
 builder.Services.AddHttpClient(); // For HttpClient
 builder.Services.AddAIRecommendationServices(builder.Configuration);
 builder.Services.AddScoped<IChatRecommendationService, ChatRecommendationService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
