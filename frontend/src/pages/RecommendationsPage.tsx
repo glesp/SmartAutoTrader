@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react'
+import { useContext, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
