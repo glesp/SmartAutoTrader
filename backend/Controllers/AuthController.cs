@@ -1,9 +1,9 @@
+using Microsoft.AspNetCore.Mvc;
+using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Services;
+
 namespace SmartAutoTrader.API.Controllers
 {
-    using Microsoft.AspNetCore.Mvc;
-    using SmartAutoTrader.API.Models;
-    using SmartAutoTrader.API.Services;
-
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController(IAuthService authService) : ControllerBase

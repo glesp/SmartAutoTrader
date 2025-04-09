@@ -1,9 +1,9 @@
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Repositories
 {
-    using Microsoft.EntityFrameworkCore;
-    using SmartAutoTrader.API.Data;
-    using SmartAutoTrader.API.Models;
-
     public interface IUserRepository
     {
         Task<User?> GetByEmailAsync(string email);

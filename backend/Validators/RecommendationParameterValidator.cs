@@ -1,7 +1,7 @@
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Validators
 {
-    using SmartAutoTrader.API.Models;
-
     public static class RecommendationParameterValidator
     {
         public static bool Validate(RecommendationParameters parameters, out string? errorMessage)
@@ -11,8 +11,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if FuelType values are valid
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
-                List<string> invalidFuelTypes = [];
-                List<FuelType> validatedFuelTypes = [];
+                List<string> invalidFuelTypes =[];
+                List<FuelType> validatedFuelTypes =[];
 
                 foreach (FuelType fuelType in parameters.PreferredFuelTypes)
                 {
@@ -28,7 +28,7 @@ namespace SmartAutoTrader.API.Validators
                 }
 
                 // If there are invalid fuel types, report them
-                if (invalidFuelTypes.Count!=0)
+                if (invalidFuelTypes.Count != 0)
                 {
                     errorMessage =
                         $"Invalid FuelType values: {string.Join(", ", invalidFuelTypes)}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(FuelType)))}";
@@ -42,8 +42,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if VehicleType values are valid
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
-                List<string> invalidVehicleTypes = [];
-                List<VehicleType> validatedVehicleTypes = [];
+                List<string> invalidVehicleTypes =[];
+                List<VehicleType> validatedVehicleTypes =[];
 
                 foreach (VehicleType vehicleType in parameters.PreferredVehicleTypes)
                 {
@@ -59,7 +59,7 @@ namespace SmartAutoTrader.API.Validators
                 }
 
                 // If there are invalid vehicle types, report them
-                if (invalidVehicleTypes.Count!=0)
+                if (invalidVehicleTypes.Count != 0)
                 {
                     errorMessage =
                         $"Invalid VehicleType values: {string.Join(", ", invalidVehicleTypes)}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(VehicleType)))}";

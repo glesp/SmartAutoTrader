@@ -1,8 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+using SmartAutoTrader.API.Enums;
+
 namespace SmartAutoTrader.API.Models
 {
-    using System.ComponentModel.DataAnnotations;
-    using SmartAutoTrader.API.Enums;
-
     public class Inquiry
     {
         [Key]

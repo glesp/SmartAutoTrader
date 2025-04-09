@@ -1,9 +1,9 @@
 // Models/RegisterModel.cs
 
+using System.ComponentModel.DataAnnotations;
+
 namespace SmartAutoTrader.API.Models
 {
-    using System.ComponentModel.DataAnnotations;
-
     public class RegisterModel
     {
         [Required]

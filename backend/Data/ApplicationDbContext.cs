@@ -1,8 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Data
 {
-    using Microsoft.EntityFrameworkCore;
-    using SmartAutoTrader.API.Models;
-
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
         public DbSet<Vehicle> Vehicles { get; set; }

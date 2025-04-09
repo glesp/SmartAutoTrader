@@ -1,13 +1,13 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Repositories;
+using SmartAutoTrader.API.Validators;
+
 namespace SmartAutoTrader.API.Services
 {
-    using System.Diagnostics;
-    using System.Globalization;
-    using System.Text;
-    using System.Text.Json;
-    using SmartAutoTrader.API.Models;
-    using SmartAutoTrader.API.Repositories;
-    using SmartAutoTrader.API.Validators;
-
     public interface IChatRecommendationService
     {
         Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
@@ -151,7 +151,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = [],
+                        RecommendedVehicles =[],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -255,7 +255,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles = [],
+                    RecommendedVehicles =[],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -304,7 +304,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
+            string[] contextualPronouns =["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -459,14 +459,14 @@ namespace SmartAutoTrader.API.Services
                 missingParameterTypes++;
             }
 
-            if (parameters.PreferredVehicleTypes.Count==0 &&
+            if (parameters.PreferredVehicleTypes.Count == 0 &&
                 !message.Contains("any type", StringComparison.CurrentCultureIgnoreCase) &&
                 !message.Contains("any vehicle", StringComparison.CurrentCultureIgnoreCase))
             {
                 missingParameterTypes++;
             }
 
-            if (parameters.PreferredMakes.Count==0 &&
+            if (parameters.PreferredMakes.Count == 0 &&
                 !message.Contains("any make", StringComparison.CurrentCultureIgnoreCase) &&
                 !message.Contains("any brand", StringComparison.CurrentCultureIgnoreCase))
             {
@@ -483,7 +483,7 @@ namespace SmartAutoTrader.API.Services
                 missingParameterTypes++;
             }
 
-            if (parameters.PreferredFuelTypes.Count==0)
+            if (parameters.PreferredFuelTypes.Count == 0)
             {
                 missingParameterTypes++;
             }
@@ -515,7 +515,7 @@ namespace SmartAutoTrader.API.Services
                     : clarification.Append("What's your budget range for this vehicle? ");
             }
 
-            if (parameters.PreferredVehicleTypes.Count==0)
+            if (parameters.PreferredVehicleTypes.Count == 0)
             {
                 _ = context.TopicContext.ContainsKey("discussing_family_needs")
                     ? clarification.Append(
@@ -523,10 +523,10 @@ namespace SmartAutoTrader.API.Services
                     : clarification.Append("What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
             }
 
-            if (parameters.PreferredMakes.Count==0)
+            if (parameters.PreferredMakes.Count == 0)
             {
                 // Check if user has rejected any makes
-                _ = context.ExplicitlyRejectedOptions.Count!=0
+                _ = context.ExplicitlyRejectedOptions.Count != 0
                     ? clarification.Append(
                         $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ")
                     : clarification.Append("Do you have any preferred manufacturers or brands? ");
@@ -584,12 +584,12 @@ namespace SmartAutoTrader.API.Services
             _ = response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
 
             // Add details about what was matched
-            if (parameters.PreferredVehicleTypes.Count!=0)
+            if (parameters.PreferredVehicleTypes.Count != 0)
             {
                 _ = response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
             }
 
-            if (parameters.PreferredMakes.Count!=0)
+            if (parameters.PreferredMakes.Count != 0)
             {
                 _ = response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
             }
@@ -632,7 +632,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Contextual follow-up cues
-            if (context.MentionedVehicleFeatures.Count!=0)
+            if (context.MentionedVehicleFeatures.Count != 0)
             {
                 _ = response.Append(
                     "You can ask me for more details about any of these vehicles, including specific features. ");
@@ -739,13 +739,13 @@ namespace SmartAutoTrader.API.Services
                                      makesElement.ValueKind == JsonValueKind.Array
                         ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : [],
+                        :[],
 
                     DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
                                       featuresElement.ValueKind == JsonValueKind.Array
                         ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : [],
+                        :[],
 
                     // Parse enums correctly
                     PreferredFuelTypes =
@@ -760,7 +760,7 @@ namespace SmartAutoTrader.API.Services
                                 .Where(f => f.HasValue)
                                 .Select(f => f!.Value)
                                 .ToList()
-                            : [],
+                            :[],
 
                     PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty(
                                                 "preferredVehicleTypes",
@@ -775,7 +775,7 @@ namespace SmartAutoTrader.API.Services
                             .Where(v => v.HasValue)
                             .Select(v => v!.Value)
                             .ToList()
-                        : [],
+                        :[],
                 };
 
                 // Validate the parameters

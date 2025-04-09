@@ -8,18 +8,18 @@
 
     <PropertyGroup>
         <AnalysisLevel>latest</AnalysisLevel>
-        <WarningsAsErrors>CS8618</WarningsAsErrors>
-
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
     <PropertyGroup>
-        <StyleCopAnalyzersSettingsFile>stylecop.json</StyleCopAnalyzersSettingsFile>
+        <StyleCopAnalyzersSettingsFile>$(MSBuildThisFileDirectory)nonexistent.stylecop.json</StyleCopAnalyzersSettingsFile>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
     </PropertyGroup>
-
 
     <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.0.3"/>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0"/>
+        <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.435" PrivateAssets="all" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">

@@ -1,7 +1,7 @@
+using System.Security.Claims;
+
 namespace SmartAutoTrader.API.Helpers
 {
-    using System.Security.Claims;
-
     public static class ClaimsHelper
     {
         public static int? GetUserIdFromClaims(ClaimsPrincipal user)

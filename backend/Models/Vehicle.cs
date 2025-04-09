@@ -1,8 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
 namespace SmartAutoTrader.API.Models
 {
-    using System.ComponentModel.DataAnnotations;
-    using System.Text.Json.Serialization;
-
     public enum FuelType
     {
         Petrol,

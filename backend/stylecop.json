@@ -1,23 +1,9 @@
 {
   "settings": {
-    "orderingRules": {
-      "elementOrder": "kind"
-    },
     "documentationRules": {
-      "companyName": "SmartAutoTrader",
-      "documentExposedElements": true,
-      "documentInternalElements": false
-    },
-    "rules": {
-      "SA1402": false,
-      "SA1516": false,
-      "SA1028": false,
-      "SA1413": false,
-      "SA1201": false,
-      "SA1202": false,
-      "SA1003": false,
-      "SA1010": false,
-      "SA1024": false
+      "companyName": "",
+      "documentInternalElements": false,
+      "documentPrivateElements": false
     }
   }
 }

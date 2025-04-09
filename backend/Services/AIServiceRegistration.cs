@@ -1,8 +1,8 @@
+using System.Globalization;
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Services
 {
-    using System.Globalization;
-    using SmartAutoTrader.API.Models;
-
     public static class AIServiceRegistration
     {
         public static IServiceCollection AddAIRecommendationServices(

@@ -1,10 +1,10 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SmartAutoTrader.API.Models;
+
 namespace SmartAutoTrader.API.Controllers
 {
-    using System.Security.Claims;
-    using Microsoft.AspNetCore.Authorization;
-    using Microsoft.AspNetCore.Mvc;
-    using SmartAutoTrader.API.Models;
-
     [ApiController]
     [Route("api/[controller]")]
     [Authorize] // Requires authentication
@@ -34,10 +34,10 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes ?? [],
-                    PreferredVehicleTypes = request.VehicleTypes ?? [],
-                    PreferredMakes = request.Makes ?? [],
-                    DesiredFeatures = request.Features ?? [],
+                    PreferredFuelTypes = request.FuelTypes ??[],
+                    PreferredVehicleTypes = request.VehicleTypes ??[],
+                    PreferredMakes = request.Makes ??[],
+                    DesiredFeatures = request.Features ??[],
 
                     TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
@@ -77,10 +77,10 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes ?? [],
-                    PreferredVehicleTypes = request.VehicleTypes ?? [],
-                    PreferredMakes = request.Makes ?? [],
-                    DesiredFeatures = request.Features ?? [],
+                    PreferredFuelTypes = request.FuelTypes ??[],
+                    PreferredVehicleTypes = request.VehicleTypes ??[],
+                    PreferredMakes = request.Makes ??[],
+                    DesiredFeatures = request.Features ??[],
                     TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
