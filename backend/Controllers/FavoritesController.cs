@@ -18,10 +18,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             List<Vehicle> favorites = await _context.UserFavorites
                 .Where(uf => uf.UserId == userId)
                 .Include(uf => uf.Vehicle)
@@ -36,10 +38,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPost("{vehicleId}")]
         public async Task<IActionResult> AddFavorite(int vehicleId)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             // Check if vehicle exists
             Vehicle? vehicle = await _context.Vehicles.FindAsync(vehicleId);
             if (vehicle == null)
@@ -74,10 +78,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpDelete("{vehicleId}")]
         public async Task<IActionResult> RemoveFavorite(int vehicleId)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             UserFavorite? favorite = await _context.UserFavorites
                 .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
@@ -96,10 +102,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("Check/{vehicleId}")]
         public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             bool isFavorite = await _context.UserFavorites
                 .AnyAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
@@ -110,10 +118,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("Count")]
         public async Task<ActionResult<int>> GetFavoritesCount()
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             int count = await _context.UserFavorites
                 .CountAsync(uf => uf.UserId == userId);
 

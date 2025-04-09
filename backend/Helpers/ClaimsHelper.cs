@@ -1,12 +1,13 @@
 using System.Security.Claims;
 
-namespace SmartAutoTrader.API.Helpers;
-
-public static class ClaimsHelper
+namespace SmartAutoTrader.API.Helpers
 {
-    public static int? GetUserIdFromClaims(ClaimsPrincipal user)
+    public static class ClaimsHelper
     {
-        var claim = user.FindFirst(ClaimTypes.NameIdentifier);
-        return int.TryParse(claim?.Value, out var userId) ? userId : null;
+        public static int? GetUserIdFromClaims(ClaimsPrincipal user)
+        {
+            Claim? claim = user.FindFirst(ClaimTypes.NameIdentifier);
+            return int.TryParse(claim?.Value, out int userId) ? userId : null;
+        }
     }
 }

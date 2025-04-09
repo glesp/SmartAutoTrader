@@ -13,13 +13,13 @@ namespace SmartAutoTrader.API.Models
 
         public int? MaxMileage { get; set; }
 
-        public List<FuelType> PreferredFuelTypes { get; set; } = new();
+        public List<FuelType> PreferredFuelTypes { get; set; } = [];
 
-        public List<VehicleType> PreferredVehicleTypes { get; set; } = new();
+        public List<VehicleType> PreferredVehicleTypes { get; set; } = [];
 
-        public List<string> PreferredMakes { get; set; } = new();
+        public List<string> PreferredMakes { get; set; } = [];
 
-        public List<string> DesiredFeatures { get; set; } = new();
+        public List<string> DesiredFeatures { get; set; } = [];
 
         public string? TextPrompt { get; set; }
 

@@ -19,10 +19,10 @@ namespace SmartAutoTrader.API.Services
                 "openrouter" => services.AddScoped<IAIRecommendationService, OpenRouterRecommendationService>(),
                 "openai" => throw new NotImplementedException("OpenAI provider not yet implemented"), // If you implement OpenAI in the future
 
-                                                                                                     // services.AddScoped<IAIRecommendationService, OpenAIRecommendationService>();
+                // services.AddScoped<IAIRecommendationService, OpenAIRecommendationService>();
                 "none" or "fallback" => throw new NotImplementedException("Fallback provider not yet implemented"), // For a simple fallback without AI, implement a FallbackRecommendationService
 
-                                                                                                                   // services.AddScoped<IAIRecommendationService, FallbackRecommendationService>();
+                // services.AddScoped<IAIRecommendationService, FallbackRecommendationService>();
                 _ => services.AddScoped<IAIRecommendationService, OpenRouterRecommendationService>(), // Default to Hugging Face
             };
             return services;

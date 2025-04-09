@@ -32,8 +32,8 @@ namespace SmartAutoTrader.API.DataSeeding
             ["S-Class"] = (VehicleType.Sedan, FuelType.Petrol),
         };
 
-        private static readonly string[] Value =["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
-        private static readonly string[] ValueArray = new[] { "Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey" };
+        private static readonly string[] Value = ["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
+        private static readonly string[] ValueArray = ["Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey"];
 
         public void SeedVehicles(IServiceProvider serviceProvider, int count = 200)
         {
@@ -56,7 +56,7 @@ namespace SmartAutoTrader.API.DataSeeding
         private static List<Vehicle> GenerateVehicles(int count)
         {
             Random random = new();
-            List<Vehicle> vehicles =[];
+            List<Vehicle> vehicles = [];
 
             string[] makes =
             [

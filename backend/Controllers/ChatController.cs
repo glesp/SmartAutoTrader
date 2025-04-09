@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,10 +32,11 @@ namespace SmartAutoTrader.API.Controllers
                     return BadRequest("Message content cannot be empty.");
                 }
 
-                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
                 if (userId is null)
+                {
                     return Unauthorized();
-
+                }
 
                 _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
 
@@ -75,14 +75,14 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? new(),
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ?? new(),
+                                .ToList() ?? [],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ?? new(),
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? new(),
+                                .ToList() ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
                         }
                         : null,
                 };
@@ -104,10 +104,12 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
                 if (userId is null)
+                {
                     return Unauthorized();
-                
+                }
+
                 // Get chat history from database
                 IQueryable<ChatHistory> query = _context.ChatHistory
                     .Where(ch => ch.UserId == userId);
@@ -145,10 +147,12 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
                 if (userId is null)
+                {
                     return Unauthorized();
-                
+                }
+
                 // Get recent conversations
                 var conversations = await _context.ConversationSessions
                     .Where(cs => cs.UserId == userId)
@@ -177,10 +181,12 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
                 if (userId is null)
+                {
                     return Unauthorized();
-                
+                }
+
                 // Create a new conversation session
                 ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
 
@@ -210,7 +216,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } =[];
+            public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -233,13 +239,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } =[];
+            public List<string> PreferredMakes { get; set; } = [];
 
-            public List<string> PreferredVehicleTypes { get; set; } =[];
+            public List<string> PreferredVehicleTypes { get; set; } = [];
 
-            public List<string> PreferredFuelTypes { get; set; } =[];
+            public List<string> PreferredFuelTypes { get; set; } = [];
 
-            public List<string> DesiredFeatures { get; set; } =[];
+            public List<string> DesiredFeatures { get; set; } = [];
         }
 
         public class ChatHistoryDto

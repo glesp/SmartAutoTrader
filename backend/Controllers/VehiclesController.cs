@@ -124,31 +124,36 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
-            var vehicle = await _context.Vehicles
+            Vehicle? vehicle = await _context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .FirstOrDefaultAsync(v => v.Id == id);
 
             if (vehicle is null)
+            {
                 return NotFound();
+            }
 
             // Optional history tracking for authenticated users
             if (User.Identity?.IsAuthenticated == true)
             {
-                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
                 if (userId is null)
+                {
                     return Unauthorized();
-                var history = new BrowsingHistory
-                    {
-                        UserId = userId.Value,
-                        VehicleId = id,
-                        ViewDate = DateTime.Now,
-                        ViewDurationSeconds = 0,
-                    };
-
-                    _context.BrowsingHistory.Add(history);
-                    await _context.SaveChangesAsync();
                 }
+
+                BrowsingHistory history = new BrowsingHistory
+                {
+                    UserId = userId.Value,
+                    VehicleId = id,
+                    ViewDate = DateTime.Now,
+                    ViewDurationSeconds = 0,
+                };
+
+                _ = _context.BrowsingHistory.Add(history);
+                _ = await _context.SaveChangesAsync();
+            }
 
             return vehicle;
         }

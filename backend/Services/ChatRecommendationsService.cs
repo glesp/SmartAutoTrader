@@ -149,7 +149,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = new List<Vehicle>(),
+                        RecommendedVehicles = [],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -160,7 +160,7 @@ namespace SmartAutoTrader.API.Services
 
                 // Merge with existing parameters if this is a follow-up or clarification
                 RecommendationParameters parameters;
-                if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification))
+                if (isFollowUpQuery || message.IsFollowUp || message.IsClarification)
                 {
                     parameters = MergeParameters(conversationContext.CurrentParameters, extractedParameters);
                     _logger.LogInformation("Merged parameters from context and new extraction");
@@ -253,7 +253,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles =[],
+                    RecommendedVehicles = [],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -302,7 +302,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns =["it", "that", "these", "those", "them"];
+            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -454,26 +454,38 @@ namespace SmartAutoTrader.API.Services
             int missingParameterTypes = 0;
 
             if (parameters.MinPrice == null && parameters.MaxPrice == null)
+            {
                 missingParameterTypes++;
+            }
 
             if (!parameters.PreferredVehicleTypes.Any() &&
                 !message.Contains("any type", StringComparison.CurrentCultureIgnoreCase) &&
                 !message.Contains("any vehicle", StringComparison.CurrentCultureIgnoreCase))
+            {
                 missingParameterTypes++;
+            }
 
             if (!parameters.PreferredMakes.Any() &&
                 !message.Contains("any make", StringComparison.CurrentCultureIgnoreCase) &&
                 !message.Contains("any brand", StringComparison.CurrentCultureIgnoreCase))
+            {
                 missingParameterTypes++;
+            }
 
             if (parameters.MinYear == null && parameters.MaxYear == null)
+            {
                 missingParameterTypes++;
+            }
 
             if (parameters.MaxMileage == null)
+            {
                 missingParameterTypes++;
+            }
 
             if (!parameters.PreferredFuelTypes.Any())
+            {
                 missingParameterTypes++;
+            }
 
             return missingParameterTypes >= 3;
         }
@@ -574,12 +586,12 @@ namespace SmartAutoTrader.API.Services
             _ = response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
 
             // Add details about what was matched
-            if (parameters.PreferredVehicleTypes.Any() == true)
+            if (parameters.PreferredVehicleTypes.Any())
             {
                 _ = response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
             }
 
-            if (parameters.PreferredMakes.Any() == true)
+            if (parameters.PreferredMakes.Any())
             {
                 _ = response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
             }
@@ -723,13 +735,13 @@ namespace SmartAutoTrader.API.Services
                                      makesElement.ValueKind == JsonValueKind.Array
                         ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : new(),
+                        : [],
 
                     DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
                                       featuresElement.ValueKind == JsonValueKind.Array
                         ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : new(),
+                        : [],
 
 
                     // Parse enums correctly
@@ -743,7 +755,7 @@ namespace SmartAutoTrader.API.Services
                             .Where(f => f.HasValue)
                             .Select(f => f!.Value)
                             .ToList()
-                        :[],
+                        : [],
 
                     PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
                                             vehicleTypesElement.ValueKind == JsonValueKind.Array
@@ -755,7 +767,7 @@ namespace SmartAutoTrader.API.Services
                             .Where(v => v.HasValue)
                             .Select(v => v!.Value)
                             .ToList()
-                        :[],
+                        : [],
                 };
 
                 // Validate the parameters

@@ -71,7 +71,9 @@ namespace SmartAutoTrader.API.Services
         {
             string? jwtKey = _configuration["Jwt:Key"];
             if (string.IsNullOrEmpty(jwtKey))
+            {
                 throw new InvalidOperationException("JWT key is missing from configuration.");
+            }
 
             byte[] key = Encoding.ASCII.GetBytes(jwtKey);
             SecurityTokenDescriptor tokenDescriptor = new()

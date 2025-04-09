@@ -1,6 +1,7 @@
-namespace SmartAutoTrader.API.Models;
-
-public class InquiryReplyDto
+namespace SmartAutoTrader.API.Models
 {
-    public string? Response { get; set; }
+    public class InquiryReplyDto
+    {
+        public string? Response { get; set; }
+    }
 }

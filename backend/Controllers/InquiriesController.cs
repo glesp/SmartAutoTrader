@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +18,11 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Inquiry>>> GetUserInquiries()
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
+            }
 
             List<Inquiry> inquiries = await _context.Inquiries
                 .Where(i => i.UserId == userId)
@@ -36,10 +37,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Inquiry>> GetInquiry(int id)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             Inquiry? inquiry = await _context.Inquiries
                 .Include(i => i.Vehicle)
                 .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
@@ -51,10 +54,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Inquiry>> CreateInquiry(InquiryCreateDto inquiryDto)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             // Check if vehicle exists
             Vehicle? vehicle = await _context.Vehicles.FindAsync(inquiryDto.VehicleId);
             if (vehicle == null)
@@ -149,10 +154,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPut("{id}/Close")]
         public async Task<IActionResult> CloseInquiry(int id)
         {
-            var userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
             if (userId is null)
+            {
                 return Unauthorized();
-            
+            }
+
             Inquiry? inquiry = await _context.Inquiries
                 .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
 

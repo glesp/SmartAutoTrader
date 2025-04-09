@@ -182,10 +182,10 @@ namespace SmartAutoTrader.API.Services
         {
             ParameterExpression parameter = Expression.Parameter(typeof(Vehicle), "v");
 
-            ReplaceParameterVisitor leftVisitor = new ReplaceParameterVisitor(expr1.Parameters[0], parameter);
+            ReplaceParameterVisitor leftVisitor = new(expr1.Parameters[0], parameter);
             Expression left = leftVisitor.Visit(expr1.Body);
 
-            ReplaceParameterVisitor rightVisitor = new ReplaceParameterVisitor(expr2.Parameters[0], parameter);
+            ReplaceParameterVisitor rightVisitor = new(expr2.Parameters[0], parameter);
             Expression right = rightVisitor.Visit(expr2.Body);
 
             return Expression.Lambda<Func<Vehicle, bool>>(

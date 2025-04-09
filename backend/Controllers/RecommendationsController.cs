@@ -34,10 +34,10 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes ?? new(),
-                    PreferredVehicleTypes = request.VehicleTypes ?? new(),
-                    PreferredMakes = request.Makes ?? new(),
-                    DesiredFeatures = request.Features ?? new(),
+                    PreferredFuelTypes = request.FuelTypes ?? [],
+                    PreferredVehicleTypes = request.VehicleTypes ?? [],
+                    PreferredMakes = request.Makes ?? [],
+                    DesiredFeatures = request.Features ?? [],
 
                     TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
@@ -77,15 +77,15 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes ?? new(),
-                    PreferredVehicleTypes = request.VehicleTypes ?? new(),
-                    PreferredMakes = request.Makes ?? new(),
-                    DesiredFeatures = request.Features ?? new(),
+                    PreferredFuelTypes = request.FuelTypes ?? [],
+                    PreferredVehicleTypes = request.VehicleTypes ?? [],
+                    PreferredMakes = request.Makes ?? [],
+                    DesiredFeatures = request.Features ?? [],
                     TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
 
-                
+
 
                 // Get recommendations from service
                 IEnumerable<Vehicle> recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
