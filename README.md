@@ -8,6 +8,7 @@ This repository is organized as a monorepo containing both frontend and backend 
 
 - `/frontend`: React application with Material UI
 - `/backend`: .NET Core API with SQLite database
+- `/python: Python MicroServices for RAG/LLM
 
 ## Features
 
