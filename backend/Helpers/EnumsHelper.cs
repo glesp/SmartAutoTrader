@@ -117,12 +117,7 @@ namespace SmartAutoTrader.API.Helpers
 
         public static List<FuelType> ParseFuelTypeList(IEnumerable<string> values)
         {
-            List<FuelType> result =[];
-
-            if (values == null)
-            {
-                return result;
-            }
+            List<FuelType> result = [];
 
             foreach (string value in values)
             {
@@ -137,12 +132,7 @@ namespace SmartAutoTrader.API.Helpers
 
         public static List<VehicleType> ParseVehicleTypeList(IEnumerable<string> values)
         {
-            List<VehicleType> result =[];
-
-            if (values == null)
-            {
-                return result;
-            }
+            List<VehicleType> result = [];
 
             foreach (string value in values)
             {

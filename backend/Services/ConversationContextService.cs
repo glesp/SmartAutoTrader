@@ -6,13 +6,13 @@ namespace SmartAutoTrader.API.Services
 {
     public interface IConversationContextService
     {
-        Task<ConversationContext?> GetOrCreateContextAsync(int userId);
+        Task<ConversationContext> GetOrCreateContextAsync(int userId);
 
         Task UpdateContextAsync(int userId, ConversationContext context);
 
         Task<ConversationSession> StartNewSessionAsync(int userId);
 
-        Task<ConversationSession> GetCurrentSessionAsync(int userId);
+        Task<ConversationSession?> GetCurrentSessionAsync(int userId);
     }
 
     // This class represents the state we want to track throughout a conversation
@@ -37,7 +37,7 @@ namespace SmartAutoTrader.API.Services
         public Dictionary<string, object> TopicContext { get; set; } =[];
 
         // Track recommendations shown to the user
-        public List<int> ShownVehicleIds { get; set; } =[];
+        public List<int> ShownVehicleIds { get; set; } = [];
 
         public string? ModelUsed { get; set; }
     }

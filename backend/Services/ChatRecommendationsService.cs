@@ -130,7 +130,7 @@ namespace SmartAutoTrader.API.Services
                     {
                         Message =
                             "Sorry, I couldn't process your request. Could you try rephrasing or be a bit more specific?",
-                        UpdatedParameters = conversationContext.CurrentParameters ?? new RecommendationParameters(),
+                        UpdatedParameters = conversationContext.CurrentParameters,
                         ClarificationNeeded = true,
                         OriginalUserInput = message.Content,
                         ConversationId = message.ConversationId,
@@ -149,7 +149,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles =[],
+                        RecommendedVehicles = new List<Vehicle>(),
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -160,8 +160,7 @@ namespace SmartAutoTrader.API.Services
 
                 // Merge with existing parameters if this is a follow-up or clarification
                 RecommendationParameters parameters;
-                if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification) &&
-                    conversationContext.CurrentParameters != null)
+                if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification))
                 {
                     parameters = MergeParameters(conversationContext.CurrentParameters, extractedParameters);
                     _logger.LogInformation("Merged parameters from context and new extraction");
@@ -421,123 +420,64 @@ namespace SmartAutoTrader.API.Services
             RecommendationParameters existingParams,
             RecommendationParameters newParams)
         {
-            // Start with the new parameters
             RecommendationParameters mergedParams = newParams;
 
-            // For each field, prefer new values if present, otherwise keep the existing ones
-
-            // Price range
             mergedParams.MinPrice ??= existingParams.MinPrice;
             mergedParams.MaxPrice ??= existingParams.MaxPrice;
-
-            // Year range
             mergedParams.MinYear ??= existingParams.MinYear;
             mergedParams.MaxYear ??= existingParams.MaxYear;
-
-            // Vehicle types - MERGE instead of replace
-            if (mergedParams.PreferredVehicleTypes != null && existingParams.PreferredVehicleTypes != null)
-            {
-                mergedParams.PreferredVehicleTypes = mergedParams.PreferredVehicleTypes
-                    .Union(existingParams.PreferredVehicleTypes)
-                    .ToList();
-            }
-            else if (existingParams.PreferredVehicleTypes != null)
-            {
-                mergedParams.PreferredVehicleTypes = existingParams.PreferredVehicleTypes;
-            }
-
-            // Makes - MERGE instead of replace
-            if (mergedParams.PreferredMakes != null && existingParams.PreferredMakes != null)
-            {
-                mergedParams.PreferredMakes = mergedParams.PreferredMakes
-                    .Union(existingParams.PreferredMakes)
-                    .ToList();
-            }
-            else if (existingParams.PreferredMakes != null)
-            {
-                mergedParams.PreferredMakes = existingParams.PreferredMakes;
-            }
-
-            // Fuel types - MERGE instead of replace
-            if (mergedParams.PreferredFuelTypes != null && existingParams.PreferredFuelTypes != null)
-            {
-                mergedParams.PreferredFuelTypes = mergedParams.PreferredFuelTypes
-                    .Union(existingParams.PreferredFuelTypes)
-                    .ToList();
-            }
-            else if (existingParams.PreferredFuelTypes != null)
-            {
-                mergedParams.PreferredFuelTypes = existingParams.PreferredFuelTypes;
-            }
-
-            // Features - MERGE instead of replace
-            if (mergedParams.DesiredFeatures != null && existingParams.DesiredFeatures != null)
-            {
-                mergedParams.DesiredFeatures = mergedParams.DesiredFeatures
-                    .Union(existingParams.DesiredFeatures)
-                    .ToList();
-            }
-            else if (existingParams.DesiredFeatures != null)
-            {
-                mergedParams.DesiredFeatures = existingParams.DesiredFeatures;
-            }
-
-            // Max mileage
             mergedParams.MaxMileage ??= existingParams.MaxMileage;
+
+            mergedParams.PreferredVehicleTypes = mergedParams.PreferredVehicleTypes
+                .Union(existingParams.PreferredVehicleTypes)
+                .ToList();
+
+            mergedParams.PreferredMakes = mergedParams.PreferredMakes
+                .Union(existingParams.PreferredMakes)
+                .ToList();
+
+            mergedParams.PreferredFuelTypes = mergedParams.PreferredFuelTypes
+                .Union(existingParams.PreferredFuelTypes)
+                .ToList();
+
+            mergedParams.DesiredFeatures = mergedParams.DesiredFeatures
+                .Union(existingParams.DesiredFeatures)
+                .ToList();
 
             return mergedParams;
         }
 
+
         // This method determines if we need clarification based on the extracted parameters
         private static bool NeedsClarification(RecommendationParameters parameters, string message)
         {
-            // Count how many parameter types are missing
             int missingParameterTypes = 0;
 
-            // Check if essential parameters are missing
             if (parameters.MinPrice == null && parameters.MaxPrice == null)
-            {
                 missingParameterTypes++;
-            }
 
-            if ((parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any()) &&
-                !message.Contains("any type", StringComparison.CurrentCultureIgnoreCase) && !message.Contains(
-                    "any vehicle",
-                    StringComparison.CurrentCultureIgnoreCase))
-            {
+            if (!parameters.PreferredVehicleTypes.Any() &&
+                !message.Contains("any type", StringComparison.CurrentCultureIgnoreCase) &&
+                !message.Contains("any vehicle", StringComparison.CurrentCultureIgnoreCase))
                 missingParameterTypes++;
-            }
 
-            if ((parameters.PreferredMakes == null || !parameters.PreferredMakes.Any()) &&
-                !message.Contains("any make", StringComparison.CurrentCultureIgnoreCase) && !message.Contains(
-                    "any brand",
-                    StringComparison.CurrentCultureIgnoreCase))
-            {
+            if (!parameters.PreferredMakes.Any() &&
+                !message.Contains("any make", StringComparison.CurrentCultureIgnoreCase) &&
+                !message.Contains("any brand", StringComparison.CurrentCultureIgnoreCase))
                 missingParameterTypes++;
-            }
 
-            // same for year
             if (parameters.MinYear == null && parameters.MaxYear == null)
-            {
                 missingParameterTypes++;
-            }
 
-            // same for mileage
             if (parameters.MaxMileage == null)
-            {
                 missingParameterTypes++;
-            }
 
-            // same for preferred fuel type
-            if (parameters.PreferredFuelTypes == null || !parameters.PreferredFuelTypes.Any())
-            {
+            if (!parameters.PreferredFuelTypes.Any())
                 missingParameterTypes++;
-            }
 
-
-            // Ask for clarification is more than 3 parameter types are missing
             return missingParameterTypes >= 3;
         }
+
 
         // Generate a personalized clarification message based on context
         private static string GenerateClarificationMessage(
@@ -564,7 +504,7 @@ namespace SmartAutoTrader.API.Services
                     : clarification.Append("What's your budget range for this vehicle? ");
             }
 
-            if (parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any())
+            if (!parameters.PreferredVehicleTypes.Any())
             {
                 _ = context.TopicContext.ContainsKey("discussing_family_needs")
                     ? clarification.Append(
@@ -573,7 +513,7 @@ namespace SmartAutoTrader.API.Services
                         "What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
             }
 
-            if (parameters.PreferredMakes == null || !parameters.PreferredMakes.Any())
+            if (!parameters.PreferredMakes.Any())
             {
                 // Check if user has rejected any makes
                 _ = context.ExplicitlyRejectedOptions.Any()
@@ -612,12 +552,12 @@ namespace SmartAutoTrader.API.Services
                     _ = response.Append("Consider broadening your price range. ");
                 }
 
-                if (parameters.PreferredMakes?.Count == 1)
+                if (parameters.PreferredMakes.Count == 1)
                 {
                     _ = response.Append("Try including more manufacturers in your search. ");
                 }
 
-                if (parameters.PreferredVehicleTypes?.Count == 1)
+                if (parameters.PreferredVehicleTypes.Count == 1)
                 {
                     _ = response.Append("Consider exploring different vehicle types. ");
                 }
@@ -634,12 +574,12 @@ namespace SmartAutoTrader.API.Services
             _ = response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
 
             // Add details about what was matched
-            if (parameters.PreferredVehicleTypes?.Any() == true)
+            if (parameters.PreferredVehicleTypes.Any() == true)
             {
                 _ = response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
             }
 
-            if (parameters.PreferredMakes?.Any() == true)
+            if (parameters.PreferredMakes.Any() == true)
             {
                 _ = response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
             }
@@ -779,19 +719,18 @@ namespace SmartAutoTrader.API.Services
                         : null,
 
                     // Parse array values safely
-                    PreferredMakes =
-                        jsonDoc.RootElement.TryGetProperty("preferredMakes", out JsonElement makesElement) &&
-                        makesElement.ValueKind == JsonValueKind.Array
-                            ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                                .Select(e => e.GetString()).ToList()
-                            :[],
+                    PreferredMakes = jsonDoc.RootElement.TryGetProperty("preferredMakes", out JsonElement makesElement) &&
+                                     makesElement.ValueKind == JsonValueKind.Array
+                        ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                            .Select(e => e.GetString()!).ToList()
+                        : new(),
 
-                    DesiredFeatures =
-                        jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
-                        featuresElement.ValueKind == JsonValueKind.Array
-                            ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                                .Select(e => e.GetString()).ToList()
-                            :[],
+                    DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
+                                      featuresElement.ValueKind == JsonValueKind.Array
+                        ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
+                            .Select(e => e.GetString()!).ToList()
+                        : new(),
+
 
                     // Parse enums correctly
                     PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
@@ -802,7 +741,7 @@ namespace SmartAutoTrader.API.Services
                                 ? fuel
                                 : (FuelType?)null)
                             .Where(f => f.HasValue)
-                            .Select(f => f.Value)
+                            .Select(f => f!.Value)
                             .ToList()
                         :[],
 
@@ -814,7 +753,7 @@ namespace SmartAutoTrader.API.Services
                                 ? vehicle
                                 : (VehicleType?)null)
                             .Where(v => v.HasValue)
-                            .Select(v => v.Value)
+                            .Select(v => v!.Value)
                             .ToList()
                         :[],
                 };

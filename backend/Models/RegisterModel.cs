@@ -1,18 +1,23 @@
 // Models/RegisterModel.cs
+
+using System.ComponentModel.DataAnnotations;
+
 namespace SmartAutoTrader.API.Models
 {
     public class RegisterModel
     {
-        public string? Username { get; set; }
+        [Required]
+        public string Username { get; set; } = default!;
 
-        public string? Email { get; set; }
+        [Required] [EmailAddress] public string Email { get; set; } = default!;
 
-        public string? Password { get; set; }
+        [Required] public string Password { get; set; } = default!;
 
-        public string? FirstName { get; set; }
+        [Required]
+        public string FirstName { get; set; } = default!;
 
-        public string? LastName { get; set; }
+        [Required] public string LastName { get; set; } = default!;
 
-        public string? PhoneNumber { get; set; }
+        [Required] public string PhoneNumber { get; set; } = default!;
     }
 }

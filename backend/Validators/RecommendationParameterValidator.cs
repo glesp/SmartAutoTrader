@@ -4,7 +4,7 @@ namespace SmartAutoTrader.API.Validators
 {
     public static class RecommendationParameterValidator
     {
-        public static bool Validate(RecommendationParameters parameters, out string errorMessage)
+        public static bool Validate(RecommendationParameters parameters, out string? errorMessage)
         {
             errorMessage = null;
 
@@ -16,12 +16,6 @@ namespace SmartAutoTrader.API.Validators
 
                 foreach (FuelType fuelType in parameters.PreferredFuelTypes)
                 {
-                    // Skip null values
-                    if (fuelType == null)
-                    {
-                        continue;
-                    }
-
                     // Check if the value is a valid enum
                     if (!Enum.IsDefined(typeof(FuelType), fuelType))
                     {
@@ -53,12 +47,6 @@ namespace SmartAutoTrader.API.Validators
 
                 foreach (VehicleType vehicleType in parameters.PreferredVehicleTypes)
                 {
-                    // Skip null values
-                    if (vehicleType == null)
-                    {
-                        continue;
-                    }
-
                     // Check if the value is a valid enum
                     if (!Enum.IsDefined(typeof(VehicleType), vehicleType))
                     {

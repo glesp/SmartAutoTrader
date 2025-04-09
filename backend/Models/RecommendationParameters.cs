@@ -13,17 +13,17 @@ namespace SmartAutoTrader.API.Models
 
         public int? MaxMileage { get; set; }
 
-        public List<FuelType>? PreferredFuelTypes { get; set; }
+        public List<FuelType> PreferredFuelTypes { get; set; } = new();
 
-        public List<VehicleType>? PreferredVehicleTypes { get; set; }
+        public List<VehicleType> PreferredVehicleTypes { get; set; } = new();
 
-        public List<string>? PreferredMakes { get; set; }
+        public List<string> PreferredMakes { get; set; } = new();
 
-        public List<string>? DesiredFeatures { get; set; }
+        public List<string> DesiredFeatures { get; set; } = new();
 
-        public string? TextPrompt { get; set; } // Add text prompt field
+        public string? TextPrompt { get; set; }
 
-        public int? MaxResults { get; set; } = 5; // Default to 5 recommendations
+        public int? MaxResults { get; set; } = 5;
 
         public bool IsOffTopic { get; set; }
 
@@ -32,8 +32,8 @@ namespace SmartAutoTrader.API.Models
         public string? RetrieverSuggestion { get; set; }
 
         public string? ModelUsed { get; set; }
-
     }
+
 
     // Interface for any AI recommendation service (allows easy swapping)
     public interface IAIRecommendationService

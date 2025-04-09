@@ -34,13 +34,15 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes,
-                    PreferredVehicleTypes = request.VehicleTypes,
-                    PreferredMakes = request.Makes,
-                    DesiredFeatures = request.Features,
-                    TextPrompt = request.TextPrompt, // Added text prompt
+                    PreferredFuelTypes = request.FuelTypes ?? new(),
+                    PreferredVehicleTypes = request.VehicleTypes ?? new(),
+                    PreferredMakes = request.Makes ?? new(),
+                    DesiredFeatures = request.Features ?? new(),
+
+                    TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
+
 
                 // Log the text prompt for debugging
                 if (!string.IsNullOrEmpty(request.TextPrompt))
@@ -75,13 +77,15 @@ namespace SmartAutoTrader.API.Controllers
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes,
-                    PreferredVehicleTypes = request.VehicleTypes,
-                    PreferredMakes = request.Makes,
-                    DesiredFeatures = request.Features,
-                    TextPrompt = request.TextPrompt, // Added text prompt
+                    PreferredFuelTypes = request.FuelTypes ?? new(),
+                    PreferredVehicleTypes = request.VehicleTypes ?? new(),
+                    PreferredMakes = request.Makes ?? new(),
+                    DesiredFeatures = request.Features ?? new(),
+                    TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
+
+                
 
                 // Get recommendations from service
                 IEnumerable<Vehicle> recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);

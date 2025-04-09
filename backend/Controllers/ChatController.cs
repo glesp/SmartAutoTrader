@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Services;
 
@@ -32,13 +33,10 @@ namespace SmartAutoTrader.API.Controllers
                     return BadRequest("Message content cannot be empty.");
                 }
 
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    _logger.LogWarning("Failed to extract user ID from claims");
-                    return Unauthorized("Invalid authentication token.");
-                }
+                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
+                    return Unauthorized();
+
 
                 _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
 
@@ -46,7 +44,7 @@ namespace SmartAutoTrader.API.Controllers
                 if (!message.IsClarification && !message.IsFollowUp && string.IsNullOrEmpty(message.ConversationId))
                 {
                     // Start a new conversation session
-                    ConversationSession session = await _contextService.StartNewSessionAsync(userId);
+                    ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
                     message.ConversationId = session.Id.ToString();
                 }
 
@@ -61,15 +59,7 @@ namespace SmartAutoTrader.API.Controllers
                     ConversationId = message.ConversationId,
                 };
 
-                ChatResponse response = await _chatService.ProcessMessageAsync(userId, chatMessage);
-
-                // Check for null values to avoid NullReferenceException
-                if (response == null)
-                {
-                    return StatusCode(500, "An error occurred while processing your message.");
-                }
-
-                // Map the response to a DTO with null checks
+                ChatResponse response = await _chatService.ProcessMessageAsync((int)userId, chatMessage);
                 ChatResponseDto responseDto = new()
                 {
                     Message = response.Message,
@@ -77,7 +67,7 @@ namespace SmartAutoTrader.API.Controllers
                     ClarificationNeeded = response.ClarificationNeeded,
                     OriginalUserInput = response.OriginalUserInput,
                     ConversationId = response.ConversationId,
-                    Parameters = response.UpdatedParameters != null
+                    Parameters = response.UpdatedParameters is not null
                         ? new RecommendationParametersDto
                         {
                             MinPrice = response.UpdatedParameters.MinPrice,
@@ -85,15 +75,18 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes,
-                            PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes
-                                ?.Select(t => t.ToString())?.ToList(),
-                            PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?.Select(f => f.ToString())
-                                ?.ToList(),
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures,
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? new(),
+                            PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
+                                .Select(t => t.ToString())
+                                .ToList() ?? new(),
+                            PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
+                                .Select(f => f.ToString())
+                                .ToList() ?? new(),
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? new(),
                         }
                         : null,
                 };
+
 
                 return Ok(responseDto);
             }
@@ -107,18 +100,14 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("history")]
         public async Task<IActionResult> GetChatHistory(
             [FromQuery] int limit = 10,
-            [FromQuery] string conversationId = null)
+            [FromQuery] string conversationId = "")
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    _logger.LogWarning("Failed to extract user ID from claims");
-                    return Unauthorized("Invalid authentication token.");
-                }
-
+                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
+                    return Unauthorized();
+                
                 // Get chat history from database
                 IQueryable<ChatHistory> query = _context.ChatHistory
                     .Where(ch => ch.UserId == userId);
@@ -156,13 +145,10 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    return Unauthorized("Invalid authentication token.");
-                }
-
+                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
+                    return Unauthorized();
+                
                 // Get recent conversations
                 var conversations = await _context.ConversationSessions
                     .Where(cs => cs.UserId == userId)
@@ -191,15 +177,12 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    return Unauthorized("Invalid authentication token.");
-                }
-
+                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
+                    return Unauthorized();
+                
                 // Create a new conversation session
-                ConversationSession session = await _contextService.StartNewSessionAsync(userId);
+                ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
 
                 return Ok(new { conversationId = session.Id });
             }

@@ -69,15 +69,18 @@ namespace SmartAutoTrader.API.Services
 
         public string GenerateJwtToken(User user)
         {
-            byte[] key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            string? jwtKey = _configuration["Jwt:Key"];
+            if (string.IsNullOrEmpty(jwtKey))
+                throw new InvalidOperationException("JWT key is missing from configuration.");
 
+            byte[] key = Encoding.ASCII.GetBytes(jwtKey);
             SecurityTokenDescriptor tokenDescriptor = new()
             {
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Name, user.Username!),
+                    new Claim(ClaimTypes.Email, user.Email!),
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials =

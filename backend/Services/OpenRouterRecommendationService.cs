@@ -94,7 +94,7 @@ namespace SmartAutoTrader.API.Services
                     .Select(v => new
                     {
                         Vehicle = v,
-                        MatchCount = v.Features
+                        MatchCount = v.Features?
                             .Count(f => normalizedFeatureSet.Contains(
                                 f.Name?.Trim().ToLowerInvariant() ?? string.Empty)),
                     })

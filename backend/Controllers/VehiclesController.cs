@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Controllers
@@ -16,8 +16,8 @@ namespace SmartAutoTrader.API.Controllers
         // GET: api/Vehicles
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles(
-            [FromQuery] string make = null,
-            [FromQuery] string model = null,
+            [FromQuery] string? make = null,
+            [FromQuery] string? model = null,
             [FromQuery] int? minYear = null,
             [FromQuery] int? maxYear = null,
             [FromQuery] decimal? minPrice = null,
@@ -124,45 +124,33 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
-            Vehicle? vehicle = await _context.Vehicles
+            var vehicle = await _context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .FirstOrDefaultAsync(v => v.Id == id);
 
-            if (vehicle == null)
-            {
+            if (vehicle is null)
                 return NotFound();
-            }
 
-            // Record viewing in browsing history if user is authenticated
-            if (User.Identity.IsAuthenticated)
+            // Optional history tracking for authenticated users
+            if (User.Identity?.IsAuthenticated == true)
             {
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
+                    return Unauthorized();
+                var history = new BrowsingHistory
+                    {
+                        UserId = userId.Value,
+                        VehicleId = id,
+                        ViewDate = DateTime.Now,
+                        ViewDurationSeconds = 0,
+                    };
 
-                BrowsingHistory history = new()
-                {
-                    UserId = userId,
-                    VehicleId = id,
-                    ViewDate = DateTime.Now,
-                    ViewDurationSeconds = 0, // Can be updated later
-                };
-
-                _ = _context.BrowsingHistory.Add(history);
-                _ = await _context.SaveChangesAsync();
-            }
+                    _context.BrowsingHistory.Add(history);
+                    await _context.SaveChangesAsync();
+                }
 
             return vehicle;
-        }
-
-        // POST: api/Vehicles
-        [HttpPost]
-        [Authorize] // Only authenticated users can add vehicles (in your case, admins)
-        public async Task<ActionResult<Vehicle>> PostVehicle(Vehicle vehicle)
-        {
-            _ = _context.Vehicles.Add(vehicle);
-            _ = await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
         }
 
         // PUT: api/Vehicles/5
