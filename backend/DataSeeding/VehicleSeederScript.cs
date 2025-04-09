@@ -1,11 +1,11 @@
 // Updated VehicleSeeder with local image mapping
 
-using System.Globalization;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Models;
-
 namespace SmartAutoTrader.API.DataSeeding
 {
+    using System.Globalization;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Models;
+
     public class VehicleSeeder
     {
         private static readonly Dictionary<string, (VehicleType, FuelType)> ModelMeta = new()
@@ -33,9 +33,10 @@ namespace SmartAutoTrader.API.DataSeeding
             ["S-Class"] = (VehicleType.Sedan, FuelType.Petrol),
         };
 
-        private static readonly string[] Value =["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
+        private static readonly string[] Value = ["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
         private static readonly string[] ValueArray = ["Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey"];
-        private static readonly string[] value = new [] { "F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger" };
+        private static readonly string[] ValueValue = ["F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger"];
+        private static readonly string[] value = new[] { "Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon" };
 
         public void SeedVehicles(IServiceProvider serviceProvider, int count = 200)
         {
@@ -58,7 +59,7 @@ namespace SmartAutoTrader.API.DataSeeding
         private static List<Vehicle> GenerateVehicles(int count)
         {
             Random random = new();
-            List<Vehicle> vehicles =[];
+            List<Vehicle> vehicles = [];
 
             string[] makes =
             [
@@ -83,8 +84,8 @@ namespace SmartAutoTrader.API.DataSeeding
             {
                 { "Toyota", Value },
                 { "Honda", ValueArray },
-                { "Ford", value },
-                { "Volkswagen", new[] { "Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon" } },
+                { "Ford", ValueValue },
+                { "Volkswagen", value },
                 { "BMW", new[] { "3 Series", "5 Series", "X3", "X5", "7 Series", "i4", "iX" } },
                 { "Mercedes-Benz", new[] { "C-Class", "E-Class", "GLC", "GLE", "S-Class", "A-Class", "EQC" } },
                 { "Audi", new[] { "A4", "A6", "Q5", "Q7", "e-tron", "A3", "Q3" } },
@@ -139,7 +140,7 @@ namespace SmartAutoTrader.API.DataSeeding
                     : ((VehicleType)random.Next(Enum.GetValues(typeof(VehicleType)).Length),
                         (FuelType)random.Next(Enum.GetValues(typeof(FuelType)).Length));
 
-                string slug = $"{make}-{model}".Replace(" ", "").ToLower(CultureInfo.CurrentCulture);
+                string slug = $"{make}-{model}".Replace(" ", string.Empty).ToLower(CultureInfo.CurrentCulture);
                 string imageFileName = $"{slug}.jpg";
 
                 Vehicle vehicle = new()

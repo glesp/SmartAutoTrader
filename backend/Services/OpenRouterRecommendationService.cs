@@ -1,11 +1,11 @@
-using System.Globalization;
-using System.Linq.Expressions;
-using System.Text.Json;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
-
 namespace SmartAutoTrader.API.Services
 {
+    using System.Globalization;
+    using System.Linq.Expressions;
+    using System.Text.Json;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+
     public class OpenRouterRecommendationService(
         IVehicleRepository vehicleRepo,
         IConfiguration configuration,
@@ -37,7 +37,7 @@ namespace SmartAutoTrader.API.Services
 
                 List<Vehicle> filteredVehicles = await GetFilteredVehiclesAsync(parameters);
 
-                if (!filteredVehicles.Any())
+                if (filteredVehicles.Count==0)
                 {
                     _logger.LogWarning("No available vehicles found for filtering criteria.");
                     return new List<Vehicle>();

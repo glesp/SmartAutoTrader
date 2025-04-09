@@ -65,7 +65,6 @@ builder.Services.AddControllers()
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
 
-
 // Configure CORS
 builder.Services.AddCors(
     options =>

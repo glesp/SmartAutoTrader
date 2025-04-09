@@ -1,13 +1,13 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
-using BC = BCrypt.Net.BCrypt;
-
 namespace SmartAutoTrader.API.Services
 {
+    using System.IdentityModel.Tokens.Jwt;
+    using System.Security.Claims;
+    using System.Text;
+    using Microsoft.IdentityModel.Tokens;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+    using BC = BCrypt.Net.BCrypt;
+
     public interface IAuthService
     {
         Task<User> RegisterAsync(

@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace SmartAutoTrader.API.Models
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class InquiryCreateDto
     {
         public int VehicleId { get; set; }

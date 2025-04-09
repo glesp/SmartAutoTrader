@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Models;
-
 namespace SmartAutoTrader.API.Repositories
 {
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Models;
+
     public interface IUserRepository
     {
         Task<User?> GetByEmailAsync(string email);
@@ -44,7 +44,6 @@ namespace SmartAutoTrader.API.Repositories
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
-
         public Task<bool> ExistsAsync(string email, string username)
         {
             return _context.Users.AnyAsync(u => u.Email == email || u.Username == username);
@@ -67,7 +66,6 @@ namespace SmartAutoTrader.API.Repositories
                 .Include(h => h.Vehicle)
                 .ToListAsync();
         }
-
 
         public Task AddAsync(User user)
         {

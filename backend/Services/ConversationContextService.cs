@@ -1,9 +1,9 @@
-using System.Text.Json;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
-
 namespace SmartAutoTrader.API.Services
 {
+    using System.Text.Json;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+
     public interface IConversationContextService
     {
         Task<ConversationContext> GetOrCreateContextAsync(int userId);
@@ -29,15 +29,15 @@ namespace SmartAutoTrader.API.Services
         // Track user intent and context
         public string LastUserIntent { get; set; } = string.Empty;
 
-        public List<string> MentionedVehicleFeatures { get; set; } =[];
+        public List<string> MentionedVehicleFeatures { get; set; } = [];
 
-        public List<string> ExplicitlyRejectedOptions { get; set; } =[];
+        public List<string> ExplicitlyRejectedOptions { get; set; } = [];
 
         // Track active conversation topics
-        public Dictionary<string, object> TopicContext { get; set; } =[];
+        public Dictionary<string, object> TopicContext { get; set; } = [];
 
         // Track recommendations shown to the user
-        public List<int> ShownVehicleIds { get; set; } =[];
+        public List<int> ShownVehicleIds { get; set; } = [];
 
         public string? ModelUsed { get; set; }
     }
@@ -102,7 +102,7 @@ namespace SmartAutoTrader.API.Services
 
                 // If we detect it's a brand-new session, pick a model
                 // e.g. rotate among fast/refine/clarify:
-                string[] modelPool =["fast", "refine", "clarify"];
+                string[] modelPool = ["fast", "refine", "clarify"];
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 

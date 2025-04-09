@@ -1,10 +1,10 @@
-using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Models;
-
 namespace SmartAutoTrader.API.Repositories
 {
+    using System.Linq.Expressions;
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Models;
+
     public interface IVehicleRepository
     {
         Task<Vehicle?> GetByIdAsync(int id);

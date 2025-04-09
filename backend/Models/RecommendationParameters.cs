@@ -17,9 +17,9 @@ namespace SmartAutoTrader.API.Models
 
         public List<VehicleType> PreferredVehicleTypes { get; set; } = [];
 
-        public List<string> PreferredMakes { get; set; } =[];
+        public List<string> PreferredMakes { get; set; } = [];
 
-        public List<string> DesiredFeatures { get; set; } =[];
+        public List<string> DesiredFeatures { get; set; } = [];
 
         public string? TextPrompt { get; set; }
 

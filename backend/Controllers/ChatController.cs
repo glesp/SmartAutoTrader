@@ -1,13 +1,13 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Helpers;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
-
 namespace SmartAutoTrader.API.Controllers
 {
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Helpers;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Services;
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -75,18 +75,17 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ??[],
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ??[],
+                                .ToList() ?? [],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ??[],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ??[],
+                                .ToList() ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
                         }
                         : null,
                 };
-
 
                 return Ok(responseDto);
             }
@@ -218,7 +217,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } =[];
+            public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -241,13 +240,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } =[];
+            public List<string> PreferredMakes { get; set; } = [];
 
-            public List<string> PreferredVehicleTypes { get; set; } =[];
+            public List<string> PreferredVehicleTypes { get; set; } = [];
 
-            public List<string> PreferredFuelTypes { get; set; } =[];
+            public List<string> PreferredFuelTypes { get; set; } = [];
 
-            public List<string> DesiredFeatures { get; set; } =[];
+            public List<string> DesiredFeatures { get; set; } = [];
         }
 
         public class ChatHistoryDto
