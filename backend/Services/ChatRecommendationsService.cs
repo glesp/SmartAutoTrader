@@ -151,7 +151,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles =[],
+                        RecommendedVehicles = [],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -255,7 +255,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles =[],
+                    RecommendedVehicles = [],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -304,7 +304,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns =["it", "that", "these", "those", "them"];
+            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -739,13 +739,13 @@ namespace SmartAutoTrader.API.Services
                                      makesElement.ValueKind == JsonValueKind.Array
                         ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        :[],
+                        : [],
 
                     DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
                                       featuresElement.ValueKind == JsonValueKind.Array
                         ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        :[],
+                        : [],
 
                     // Parse enums correctly
                     PreferredFuelTypes =
@@ -760,7 +760,7 @@ namespace SmartAutoTrader.API.Services
                                 .Where(f => f.HasValue)
                                 .Select(f => f!.Value)
                                 .ToList()
-                            :[],
+                            : [],
 
                     PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty(
                                                 "preferredVehicleTypes",
@@ -775,7 +775,7 @@ namespace SmartAutoTrader.API.Services
                             .Where(v => v.HasValue)
                             .Select(v => v!.Value)
                             .ToList()
-                        :[],
+                        : [],
                 };
 
                 // Validate the parameters

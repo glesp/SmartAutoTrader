@@ -75,14 +75,14 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ??[],
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ??[],
+                                .ToList() ?? [],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ??[],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ??[],
+                                .ToList() ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
                         }
                         : null,
                 };
@@ -217,7 +217,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } =[];
+            public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -240,13 +240,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } =[];
+            public List<string> PreferredMakes { get; set; } = [];
 
-            public List<string> PreferredVehicleTypes { get; set; } =[];
+            public List<string> PreferredVehicleTypes { get; set; } = [];
 
-            public List<string> PreferredFuelTypes { get; set; } =[];
+            public List<string> PreferredFuelTypes { get; set; } = [];
 
-            public List<string> DesiredFeatures { get; set; } =[];
+            public List<string> DesiredFeatures { get; set; } = [];
         }
 
         public class ChatHistoryDto

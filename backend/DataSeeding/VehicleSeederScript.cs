@@ -33,11 +33,11 @@ namespace SmartAutoTrader.API.DataSeeding
             ["S-Class"] = (VehicleType.Sedan, FuelType.Petrol),
         };
 
-        private static readonly string[] Value =["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
-        private static readonly string[] ValueArray =["Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey"];
-        private static readonly string[] ValueValue =["F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger"];
-        private static readonly string[] Value1 =["Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon"];
-        private static readonly string[] Value2 =["3 Series", "5 Series", "X3", "X5", "7 Series", "i4", "iX"];
+        private static readonly string[] Value = ["Corolla", "Camry", "RAV4", "Prius", "Highlander", "Tacoma", "4Runner"];
+        private static readonly string[] ValueArray = ["Civic", "Accord", "CR-V", "Pilot", "Fit", "HR-V", "Odyssey"];
+        private static readonly string[] ValueValue = ["F-150", "Focus", "Escape", "Explorer", "Mustang", "Edge", "Ranger"];
+        private static readonly string[] Value1 = ["Golf", "Passat", "Tiguan", "Atlas", "Jetta", "ID.4", "Arteon"];
+        private static readonly string[] Value2 = ["3 Series", "5 Series", "X3", "X5", "7 Series", "i4", "iX"];
 
         public void SeedVehicles(IServiceProvider serviceProvider, int count = 200)
         {
@@ -60,7 +60,7 @@ namespace SmartAutoTrader.API.DataSeeding
         private static List<Vehicle> GenerateVehicles(int count)
         {
             Random random = new();
-            List<Vehicle> vehicles =[];
+            List<Vehicle> vehicles = [];
 
             string[] makes =
             [
