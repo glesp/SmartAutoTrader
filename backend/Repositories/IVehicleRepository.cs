@@ -20,7 +20,6 @@ namespace SmartAutoTrader.API.Repositories
         Task SaveChangesAsync();
     }
 
-
     public class VehicleRepository(ApplicationDbContext context) : IVehicleRepository
     {
         private readonly ApplicationDbContext _context = context;
@@ -28,17 +27,17 @@ namespace SmartAutoTrader.API.Repositories
         public Task<Vehicle?> GetByIdAsync(int id)
         {
             return _context.Vehicles
-                        .Include(v => v.Images)
-                        .Include(v => v.Features)
-                        .FirstOrDefaultAsync(v => v.Id == id);
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .FirstOrDefaultAsync(v => v.Id == id);
         }
 
         public Task<List<Vehicle>> GetAllAsync()
         {
             return _context.Vehicles
-                        .Include(v => v.Images)
-                        .Include(v => v.Features)
-                        .ToListAsync();
+                .Include(v => v.Images)
+                .Include(v => v.Features)
+                .ToListAsync();
         }
 
         public Task<List<Vehicle>> SearchAsync(Expression<Func<Vehicle, bool>> predicate)

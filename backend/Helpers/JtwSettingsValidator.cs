@@ -8,7 +8,7 @@ namespace SmartAutoTrader.API.Helpers
             [
                 "Jwt:Key",
                 "Jwt:Issuer",
-                "Jwt:Audience",
+                "Jwt:Audience"
             ];
 
             foreach (string key in requiredKeys)

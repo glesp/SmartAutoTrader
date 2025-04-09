@@ -1,5 +1,6 @@
-using System.Text.Json;
+using System.Globalization;
 using System.Linq.Expressions;
+using System.Text.Json;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 
@@ -12,9 +13,9 @@ namespace SmartAutoTrader.API.Services
         HttpClient httpClient) : IAIRecommendationService
     {
         private readonly IConfiguration _configuration = configuration;
-        private readonly IVehicleRepository _vehicleRepo = vehicleRepo;
         private readonly HttpClient _httpClient = httpClient;
         private readonly ILogger<OpenRouterRecommendationService> _logger = logger;
+        private readonly IVehicleRepository _vehicleRepo = vehicleRepo;
 
         public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
         {
@@ -22,7 +23,8 @@ namespace SmartAutoTrader.API.Services
             {
                 _logger.LogInformation(
                     "Fetching recommendations for user ID: {UserId} with parameters: {Parameters}",
-                    userId, JsonSerializer.Serialize(parameters));
+                    userId,
+                    JsonSerializer.Serialize(parameters));
 
                 // Log the important parameter values we'll be filtering on
                 _logger.LogInformation(
@@ -56,7 +58,11 @@ namespace SmartAutoTrader.API.Services
                 {
                     _logger.LogInformation(
                         "Recommended vehicle: {Year} {Make} {Model}, Type={Type}, Fuel={Fuel}",
-                        vehicle.Year, vehicle.Make, vehicle.Model, vehicle.VehicleType, vehicle.FuelType);
+                        vehicle.Year,
+                        vehicle.Make,
+                        vehicle.Model,
+                        vehicle.VehicleType,
+                        vehicle.FuelType);
                 }
 
                 return filteredVehicles;
@@ -91,13 +97,14 @@ namespace SmartAutoTrader.API.Services
                     .ToHashSet();
 
                 return vehicles
-                    .Select(v => new
-                    {
-                        Vehicle = v,
-                        MatchCount = v.Features?
-                            .Count(f => normalizedFeatureSet.Contains(
-                                f.Name?.Trim().ToLowerInvariant() ?? string.Empty)),
-                    })
+                    .Select(
+                        v => new
+                        {
+                            Vehicle = v,
+                            MatchCount = v.Features?
+                                .Count(
+                                    f => normalizedFeatureSet.Contains(f.Name?.Trim().ToLowerInvariant() ?? string.Empty)),
+                        })
                     .OrderByDescending(v => v.MatchCount)
                     .ThenBy(v => v.Vehicle.Price)
                     .Select(v => v.Vehicle)
@@ -169,7 +176,7 @@ namespace SmartAutoTrader.API.Services
 
                 expression = CombineExpressions(
                     expression,
-                    v => normalizedMakes.Contains(v.Make.ToLower(System.Globalization.CultureInfo.CurrentCulture)));
+                    v => normalizedMakes.Contains(v.Make.ToLower(CultureInfo.CurrentCulture)));
             }
 
             return expression;
@@ -188,14 +195,14 @@ namespace SmartAutoTrader.API.Services
             ReplaceParameterVisitor rightVisitor = new(expr2.Parameters[0], parameter);
             Expression right = rightVisitor.Visit(expr2.Body);
 
-            return Expression.Lambda<Func<Vehicle, bool>>(
-                Expression.AndAlso(left, right), parameter);
+            return Expression.Lambda<Func<Vehicle, bool>>(Expression.AndAlso(left, right), parameter);
         }
 
-        private sealed class ReplaceParameterVisitor(ParameterExpression oldParameter, ParameterExpression newParameter) : ExpressionVisitor
+        private sealed class ReplaceParameterVisitor(ParameterExpression oldParameter, ParameterExpression newParameter)
+            : ExpressionVisitor
         {
-            private readonly ParameterExpression _oldParameter = oldParameter;
             private readonly ParameterExpression _newParameter = newParameter;
+            private readonly ParameterExpression _oldParameter = oldParameter;
 
             protected override Expression VisitParameter(ParameterExpression node)
             {

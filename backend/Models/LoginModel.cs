@@ -1,4 +1,5 @@
 // Models/LoginModel.cs
+
 namespace SmartAutoTrader.API.Models
 {
     public class LoginModel

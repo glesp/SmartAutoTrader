@@ -23,16 +23,17 @@ namespace SmartAutoTrader.API.Controllers
                     model.LastName,
                     model.PhoneNumber);
 
-                return Ok(new
-                {
-                    user.Id,
-                    user.Username,
-                    user.Email,
-                    user.FirstName,
-                    user.LastName,
-                    user.PhoneNumber,
-                    Message = "Registration successful",
-                });
+                return Ok(
+                    new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.Email,
+                        user.FirstName,
+                        user.LastName,
+                        user.PhoneNumber,
+                        Message = "Registration successful",
+                    });
             }
             catch (Exception ex)
             {
@@ -47,19 +48,20 @@ namespace SmartAutoTrader.API.Controllers
             {
                 (string token, User user) = await _authService.LoginAsync(model.Email, model.Password);
 
-                return Ok(new
-                {
-                    Token = token,
-                    User = new
+                return Ok(
+                    new
                     {
-                        user.Id,
-                        user.Username,
-                        user.Email,
-                        user.FirstName,
-                        user.LastName,
-                    },
-                    Message = "Login successful",
-                });
+                        Token = token,
+                        User = new
+                        {
+                            user.Id,
+                            user.Username,
+                            user.Email,
+                            user.FirstName,
+                            user.LastName,
+                        },
+                        Message = "Login successful",
+                    });
             }
             catch (Exception ex)
             {

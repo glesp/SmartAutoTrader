@@ -11,8 +11,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if FuelType values are valid
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
-                List<string> invalidFuelTypes = [];
-                List<FuelType> validatedFuelTypes = [];
+                List<string> invalidFuelTypes =[];
+                List<FuelType> validatedFuelTypes =[];
 
                 foreach (FuelType fuelType in parameters.PreferredFuelTypes)
                 {
@@ -42,8 +42,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if VehicleType values are valid
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
-                List<string> invalidVehicleTypes = [];
-                List<VehicleType> validatedVehicleTypes = [];
+                List<string> invalidVehicleTypes =[];
+                List<VehicleType> validatedVehicleTypes =[];
 
                 foreach (VehicleType vehicleType in parameters.PreferredVehicleTypes)
                 {

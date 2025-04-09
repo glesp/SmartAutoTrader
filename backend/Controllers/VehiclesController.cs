@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -94,7 +95,7 @@ namespace SmartAutoTrader.API.Controllers
             }
 
             // Apply sorting
-            query = sortBy.ToLower(System.Globalization.CultureInfo.CurrentCulture) switch
+            query = sortBy.ToLower(CultureInfo.CurrentCulture) switch
             {
                 "price" => ascending ? query.OrderBy(v => v.Price) : query.OrderByDescending(v => v.Price),
                 "year" => ascending ? query.OrderBy(v => v.Year) : query.OrderByDescending(v => v.Year),
@@ -215,9 +216,9 @@ namespace SmartAutoTrader.API.Controllers
             List<string> makes =
             [
                 .. _context.Vehicles
-                                .Select(v => v.Make)
-                                .Distinct()
-                                .OrderBy(m => m),
+                    .Select(v => v.Make)
+                    .Distinct()
+                    .OrderBy(m => m)
             ];
 
             return Ok(makes);
@@ -229,10 +230,10 @@ namespace SmartAutoTrader.API.Controllers
             List<string> models =
             [
                 .. _context.Vehicles
-                                .Where(v => v.Make == make)
-                                .Select(v => v.Model)
-                                .Distinct()
-                                .OrderBy(m => m),
+                    .Where(v => v.Make == make)
+                    .Select(v => v.Model)
+                    .Distinct()
+                    .OrderBy(m => m)
             ];
 
             return Ok(models);

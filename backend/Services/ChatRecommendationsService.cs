@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using SmartAutoTrader.API.Models;
@@ -21,13 +22,13 @@ namespace SmartAutoTrader.API.Services
         IAIRecommendationService recommendationService,
         IConversationContextService contextService) : IChatRecommendationService
     {
-        private readonly IConfiguration _configuration = configuration;
-        private readonly IUserRepository _userRepo = userRepo;
         private readonly IChatRepository _chatRepo = chatRepo;
+        private readonly IConfiguration _configuration = configuration;
         private readonly IConversationContextService _contextService = contextService;
         private readonly HttpClient _httpClient = httpClient;
         private readonly ILogger<ChatRecommendationService> _logger = logger;
         private readonly IAIRecommendationService _recommendationService = recommendationService;
+        private readonly IUserRepository _userRepo = userRepo;
 
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
         {
@@ -70,7 +71,7 @@ namespace SmartAutoTrader.API.Services
                 user.Favorites = await _userRepo.GetFavoritesWithVehiclesAsync(userId);
 
                 user.BrowsingHistory = await _userRepo
-                    .GetRecentBrowsingHistoryWithVehiclesAsync(userId, 5);
+                    .GetRecentBrowsingHistoryWithVehiclesAsync(userId);
 
                 // Determine if this is a clarification or a follow-up query
                 string messageToProcess = message.Content;
@@ -105,7 +106,9 @@ namespace SmartAutoTrader.API.Services
                 // ⚠️ NEW: Check if this is a vague query from RAG fallback
                 if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
                 {
-                    _logger.LogInformation("Vague RAG match triggered. Suggesting clarification: {Suggestion}", extractedParameters.RetrieverSuggestion);
+                    _logger.LogInformation(
+                        "Vague RAG match triggered. Suggesting clarification: {Suggestion}",
+                        extractedParameters.RetrieverSuggestion);
 
                     return new ChatResponse
                     {
@@ -149,7 +152,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = [],
+                        RecommendedVehicles =[],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -253,7 +256,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles = [],
+                    RecommendedVehicles =[],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -276,7 +279,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for follow-up indicators
-            string lowerMessage = message.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+            string lowerMessage = message.ToLower(CultureInfo.CurrentCulture);
             string[] followUpIndicators =
             [
                 "instead",
@@ -302,7 +305,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
+            string[] contextualPronouns =["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -370,7 +373,7 @@ namespace SmartAutoTrader.API.Services
                 "sport"
             ];
 
-            string lowerMessage = message.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+            string lowerMessage = message.ToLower(CultureInfo.CurrentCulture);
 
             foreach (string feature in featureKeywords)
             {
@@ -505,8 +508,7 @@ namespace SmartAutoTrader.API.Services
                 _ = clarification.Append("Building on our previous conversation, ");
             }
 
-            _ = clarification.Append(
-                "I'd like to help you find the perfect vehicle, but I need a bit more information. ");
+            _ = clarification.Append("I'd like to help you find the perfect vehicle, but I need a bit more information. ");
 
             // Ask about missing parameters, considering context
             if (parameters.MinPrice == null && parameters.MaxPrice == null)
@@ -521,8 +523,7 @@ namespace SmartAutoTrader.API.Services
                 _ = context.TopicContext.ContainsKey("discussing_family_needs")
                     ? clarification.Append(
                         "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ")
-                    : clarification.Append(
-                        "What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
+                    : clarification.Append("What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
             }
 
             if (!parameters.PreferredMakes.Any())
@@ -605,7 +606,9 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 _ = response.Append("to ");
-                _ = parameters.MaxPrice.HasValue ? response.Append($"€{parameters.MaxPrice:N0}. ") : response.Append("any. ");
+                _ = parameters.MaxPrice.HasValue
+                    ? response.Append($"€{parameters.MaxPrice:N0}. ")
+                    : response.Append("any. ");
             }
 
             if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
@@ -623,8 +626,7 @@ namespace SmartAutoTrader.API.Services
             // Add personalized guidance based on context
             if (context.TopicContext.ContainsKey("discussing_family_needs"))
             {
-                _ = response.Append(
-                    "These options should provide good space and safety features for your family needs. ");
+                _ = response.Append("These options should provide good space and safety features for your family needs. ");
             }
 
             if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
@@ -643,16 +645,20 @@ namespace SmartAutoTrader.API.Services
         }
 
         // Extract parameters from message using the Python parameter extraction service
-        private async Task<RecommendationParameters> ExtractParametersAsync(string message, string? forceModelOverride = null)
+        private async Task<RecommendationParameters> ExtractParametersAsync(
+            string message,
+            string? forceModelOverride = null)
         {
             try
             {
                 // Get the parameter extraction endpoint from configuration
                 string endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ??
-                                  "http://localhost:5006/extract_parameters";
+                               "http://localhost:5006/extract_parameters";
                 int timeoutSeconds = int.TryParse(
                     _configuration["Services:ParameterExtraction:Timeout"],
-                    out int timeout) ? timeout : 30;
+                    out int timeout)
+                    ? timeout
+                    : 30;
 
                 // Optionally get the force model flag from configuration (e.g., "fast", "refine", or "clarify")
                 string? forceModel = _configuration["Services:ParameterExtraction:ForceModel"];
@@ -676,7 +682,8 @@ namespace SmartAutoTrader.API.Services
 
                 _logger.LogInformation(
                     "SENDING REQUEST to {Endpoint} with payload: {Payload}",
-                    endpoint, JsonSerializer.Serialize(requestPayload));
+                    endpoint,
+                    JsonSerializer.Serialize(requestPayload));
                 HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
 
                 if (!response.IsSuccessStatusCode)
@@ -735,39 +742,44 @@ namespace SmartAutoTrader.API.Services
                                      makesElement.ValueKind == JsonValueKind.Array
                         ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : [],
+                        :[],
 
                     DesiredFeatures = jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
                                       featuresElement.ValueKind == JsonValueKind.Array
                         ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
                             .Select(e => e.GetString()!).ToList()
-                        : [],
+                        :[],
 
 
                     // Parse enums correctly
-                    PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
-                                         fuelTypesElement.ValueKind == JsonValueKind.Array
-                        ? fuelTypesElement.EnumerateArray()
-                            .Where(e => e.ValueKind == JsonValueKind.String)
-                            .Select(e => Enum.TryParse(e.GetString(), true, out FuelType fuel)
-                                ? fuel
-                                : (FuelType?)null)
-                            .Where(f => f.HasValue)
-                            .Select(f => f!.Value)
-                            .ToList()
-                        : [],
+                    PreferredFuelTypes =
+                        jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
+                        fuelTypesElement.ValueKind == JsonValueKind.Array
+                            ? fuelTypesElement.EnumerateArray()
+                                .Where(e => e.ValueKind == JsonValueKind.String)
+                                .Select(
+                                    e => Enum.TryParse(e.GetString(), true, out FuelType fuel)
+                                        ? fuel
+                                        : (FuelType?)null)
+                                .Where(f => f.HasValue)
+                                .Select(f => f!.Value)
+                                .ToList()
+                            :[],
 
-                    PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
+                    PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty(
+                                                "preferredVehicleTypes",
+                                                out JsonElement vehicleTypesElement) &&
                                             vehicleTypesElement.ValueKind == JsonValueKind.Array
                         ? vehicleTypesElement.EnumerateArray()
                             .Where(e => e.ValueKind == JsonValueKind.String)
-                            .Select(e => Enum.TryParse(e.GetString(), true, out VehicleType vehicle)
-                                ? vehicle
-                                : (VehicleType?)null)
+                            .Select(
+                                e => Enum.TryParse(e.GetString(), true, out VehicleType vehicle)
+                                    ? vehicle
+                                    : (VehicleType?)null)
                             .Where(v => v.HasValue)
                             .Select(v => v!.Value)
                             .ToList()
-                        : [],
+                        :[],
                 };
 
                 // Validate the parameters
@@ -781,7 +793,7 @@ namespace SmartAutoTrader.API.Services
                                         && isOffTopicElement.ValueKind == JsonValueKind.True;
 
                 if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out JsonElement responseElement)
-                    && responseElement.ValueKind == JsonValueKind.String)
+                                          && responseElement.ValueKind == JsonValueKind.String)
                 {
                     parameters.OffTopicResponse = responseElement.GetString();
                 }
@@ -792,7 +804,6 @@ namespace SmartAutoTrader.API.Services
                 {
                     parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
                 }
-
 
                 _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
                 return parameters;
@@ -808,6 +819,5 @@ namespace SmartAutoTrader.API.Services
                 };
             }
         }
-
     }
 }

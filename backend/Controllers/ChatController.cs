@@ -75,14 +75,14 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ??[],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ?? [],
+                                .ToList() ??[],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ?? [],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
+                                .ToList() ??[],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ??[],
                         }
                         : null,
                 };
@@ -123,14 +123,15 @@ namespace SmartAutoTrader.API.Controllers
                 List<ChatHistoryDto> history = await query
                     .OrderByDescending(ch => ch.Timestamp)
                     .Take(limit)
-                    .Select(ch => new ChatHistoryDto
-                    {
-                        Id = ch.Id,
-                        UserMessage = ch.UserMessage,
-                        AIResponse = ch.AIResponse,
-                        Timestamp = ch.Timestamp.ToString("o"),
-                        ConversationId = ch.ConversationSessionId.ToString(),
-                    })
+                    .Select(
+                        ch => new ChatHistoryDto
+                        {
+                            Id = ch.Id,
+                            UserMessage = ch.UserMessage,
+                            AIResponse = ch.AIResponse,
+                            Timestamp = ch.Timestamp.ToString("o"),
+                            ConversationId = ch.ConversationSessionId.ToString(),
+                        })
                     .ToListAsync();
 
                 return Ok(history);
@@ -158,13 +159,14 @@ namespace SmartAutoTrader.API.Controllers
                     .Where(cs => cs.UserId == userId)
                     .OrderByDescending(cs => cs.LastInteractionAt)
                     .Take(limit)
-                    .Select(cs => new
-                    {
-                        cs.Id,
-                        cs.CreatedAt,
-                        cs.LastInteractionAt,
-                        MessageCount = _context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
-                    })
+                    .Select(
+                        cs => new
+                        {
+                            cs.Id,
+                            cs.CreatedAt,
+                            cs.LastInteractionAt,
+                            MessageCount = _context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
+                        })
                     .ToListAsync();
 
                 return Ok(conversations);
@@ -216,7 +218,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } = [];
+            public List<Vehicle> RecommendedVehicles { get; set; } =[];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -239,13 +241,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } = [];
+            public List<string> PreferredMakes { get; set; } =[];
 
-            public List<string> PreferredVehicleTypes { get; set; } = [];
+            public List<string> PreferredVehicleTypes { get; set; } =[];
 
-            public List<string> PreferredFuelTypes { get; set; } = [];
+            public List<string> PreferredFuelTypes { get; set; } =[];
 
-            public List<string> DesiredFeatures { get; set; } = [];
+            public List<string> DesiredFeatures { get; set; } =[];
         }
 
         public class ChatHistoryDto

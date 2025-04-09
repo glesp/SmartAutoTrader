@@ -10,7 +10,12 @@ namespace SmartAutoTrader.API.Services
 {
     public interface IAuthService
     {
-        Task<User> RegisterAsync(string username, string email, string password, string firstName, string lastName,
+        Task<User> RegisterAsync(
+            string username,
+            string email,
+            string password,
+            string firstName,
+            string lastName,
             string phoneNumber);
 
         Task<(string token, User user)> LoginAsync(string email, string password);
@@ -23,8 +28,13 @@ namespace SmartAutoTrader.API.Services
         private readonly IConfiguration _configuration = configuration;
         private readonly IUserRepository _userRepo = userRepo;
 
-        public async Task<User> RegisterAsync(string username, string email, string password, string firstName,
-            string lastName, string phoneNumber)
+        public async Task<User> RegisterAsync(
+            string username,
+            string email,
+            string password,
+            string firstName,
+            string lastName,
+            string phoneNumber)
         {
             // Check if user already exists
             if (await _userRepo.ExistsAsync(email, username))
@@ -78,12 +88,13 @@ namespace SmartAutoTrader.API.Services
             byte[] key = Encoding.ASCII.GetBytes(jwtKey);
             SecurityTokenDescriptor tokenDescriptor = new()
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username!),
-                    new Claim(ClaimTypes.Email, user.Email!),
-                }),
+                Subject = new ClaimsIdentity(
+                    new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                        new Claim(ClaimTypes.Name, user.Username!),
+                        new Claim(ClaimTypes.Email, user.Email!),
+                    }),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials =
                     new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
