@@ -6,6 +6,11 @@ using SmartAutoTrader.API.Repositories;
 
 namespace SmartAutoTrader.API.Services
 {
+    // Interface for any AI recommendation service (allows easy swapping)
+    public interface IAIRecommendationService
+    {
+        Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
+    }
     public class OpenRouterRecommendationService(
         IVehicleRepository vehicleRepo,
         IConfiguration configuration,

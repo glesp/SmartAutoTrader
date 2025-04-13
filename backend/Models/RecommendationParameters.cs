@@ -33,10 +33,4 @@ namespace SmartAutoTrader.API.Models
 
         public string? ModelUsed { get; set; }
     }
-
-    // Interface for any AI recommendation service (allows easy swapping)
-    public interface IAIRecommendationService
-    {
-        Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
-    }
 }

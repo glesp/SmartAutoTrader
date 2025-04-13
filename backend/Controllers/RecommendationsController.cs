@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartAutoTrader.API.Models;
+using SmartAutoTrader.API.Services;
 
 namespace SmartAutoTrader.API.Controllers
 {
