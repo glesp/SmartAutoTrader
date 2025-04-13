@@ -639,3 +639,1883 @@ Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType 
 INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
 VALUES (@p0, @p1, @p2, @p3)
 RETURNING "Id";
+Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (153ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (2ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (2ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*)
+FROM "Vehicles" AS "v"
+WHERE "v"."Status" = 0
+Executed DbCommand (0ms) [Parameters=[@__p_1='?' (DbType = Int32), @__p_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Status" = 0
+    ORDER BY "v"."DateListed" DESC
+    LIMIT @__p_1 OFFSET @__p_0
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."DateListed" DESC, "t"."Id", "v0"."Id"
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (3ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 61
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: I need an SUV under €30,000
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"I need an SUV under \u20AC30,000","forceModel":null}
+Final extracted parameters: {"MinPrice":0,"MaxPrice":30000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"I need an SUV under \u20AC30,000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1994ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 693), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 64), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 27)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":0,"MaxPrice":30000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"I need an SUV under \u20AC30,000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Petrol, Diesel, Electric, Hybrid, VehicleTypes=SUV
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_4
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_5))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 694), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (2ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 62
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: Family cars with low mileage
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Family cars with low mileage","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1819ms
+Parameter extraction completed successfully
+Executed DbCommand (5ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (1ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 571), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Clarification needed for user query
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 376), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 28)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 62
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: Family cars with low mileage - Additional info: Tesla Nissan Ford
+About to call parameter extraction for message: Family cars with low mileage - Additional info: Tesla Nissan Ford
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Family cars with low mileage - Additional info: Tesla Nissan Ford","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Tesla Nissan Ford","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":"Sounds like you\u0027re after something like \u0027luxury electric suv over 40000\u0027. Could you give me more details \u2014 maybe a budget or fuel type?","ModelUsed":null}
+Vague RAG match triggered. Suggesting clarification: Sounds like you're after something like 'luxury electric suv over 40000'. Could you give me more details — maybe a budget or fuel type?
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 62
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000
+About to call parameter extraction for message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 3228ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 794), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 114), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 29)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Diesel, Hybrid, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_4
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_5))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 794), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 62
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing follow-up query. Combined message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit
+About to call parameter extraction for message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1857ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 872), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (1ms) [Parameters=[@p0='?' (Size = 153), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 25)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Diesel, Hybrid, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_4
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_5))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 872), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 62
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing follow-up query. Combined message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit - Follow-up: Same but NO mileage limit!
+About to call parameter extraction for message: Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit - Follow-up: Same but NO mileage limit!
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit - Follow-up: Same but NO mileage limit!","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit - Follow-up: Same but NO mileage limit!","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1607ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 952), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 193), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 26)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":60000,"MinYear":null,"MaxYear":null,"MaxMileage":30000,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[0,1,2,4,5,7],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Family cars with low mileage - Additional info: Diesel or Hybrid, under 60000 - Follow-up: same but no mileage limit - Follow-up: Same but NO mileage limit!","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Diesel, Hybrid, VehicleTypes=Sedan, SUV, Hatchback, Coupe, Convertible, Van
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_4
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_5))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 952), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 63
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: I need an SUV under €30,000
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"I need an SUV under \u20AC30,000","forceModel":null}
+Final extracted parameters: {"MinPrice":0,"MaxPrice":30000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"I need an SUV under \u20AC30,000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1490ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 694), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 64), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 27)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":0,"MaxPrice":30000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[0,1,2,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"I need an SUV under \u20AC30,000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Petrol, Diesel, Electric, Hybrid, VehicleTypes=SUV
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_4
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_5))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 694), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 516), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 64
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: I need an SUV from ford tesla nissan honda
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"I need an SUV from ford tesla nissan honda","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"I need an SUV from ford tesla nissan honda","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1939ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 599), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Clarification needed for user query
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 376), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 42)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 64
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: I need an SUV from ford tesla nissan honda - Additional info: suv as isaid. no other issues just not super high mileage
+About to call parameter extraction for message: I need an SUV from ford tesla nissan honda - Additional info: suv as isaid. no other issues just not super high mileage
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"I need an SUV from ford tesla nissan honda - Additional info: suv as isaid. no other issues just not super high mileage","forceModel":null}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"I need an SUV from ford tesla nissan honda - Additional info: suv as isaid. no other issues just not super high mileage","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 3062ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 753), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 156), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 57)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"I need an SUV from ford tesla nissan honda - Additional info: suv as isaid. no other issues just not super high mileage","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=, FuelTypes=, VehicleTypes=
+Applying filter expression for vehicle search
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleImages" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Returning 5 vehicles based on parameter filtering
+Recommended vehicle: 2012 Chevrolet Silverado, Type=Estate, Fuel=Diesel
+Recommended vehicle: 2019 Ford Mustang, Type=Coupe, Fuel=Petrol
+Recommended vehicle: 2024 Kia Telluride, Type=Coupe, Fuel=Hybrid
+Recommended vehicle: 2011 Hyundai Kona, Type=Sedan, Fuel=Hybrid
+Recommended vehicle: 2017 Hyundai Santa Fe, Type=Van, Fuel=Electric
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 768), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (2ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__vehicleId_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "UserFavorites" AS "u"
+    WHERE "u"."UserId" = @__userId_0 AND "u"."VehicleId" = @__vehicleId_1)
+Executed DbCommand (1,006ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (1ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."Country", "t"."DateListed", "t"."Description", "t"."EngineSize", "t"."FuelType", "t"."HorsePower", "t"."Make", "t"."Mileage", "t"."Model", "t"."Price", "t"."Status", "t"."Transmission", "t"."VehicleType", "t"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM (
+    SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+    FROM "Vehicles" AS "v"
+    WHERE "v"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "VehicleImages" AS "v0" ON "t"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "t"."Id" = "v1"."VehicleId"
+ORDER BY "t"."Id", "v0"."Id"
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "BrowsingHistory" ("UserId", "VehicleId", "ViewDate", "ViewDurationSeconds")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Application is shutting down...
+Executed DbCommand (5ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT COUNT(*) FROM "sqlite_master" WHERE "type" = 'table' AND "rootpage" IS NOT NULL;
+Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT EXISTS (
+    SELECT 1
+    FROM "Vehicles" AS "v")
+Now listening on: https://localhost:7001
+Application started. Press Ctrl+C to shut down.
+Hosting environment: Development
+Content root path: /Users/conorgillespie/Projects/SmartAutoTrader/backend
+Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (2ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 65
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 521), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Randomly selected model strategy: refine
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: Need an electric vehicle from tesla ford nissan or honda
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Need an electric vehicle from tesla ford nissan or honda","forceModel":"refine"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"Need an electric vehicle from tesla ford nissan or honda","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 5217ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 631), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Clarification needed for user query
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 376), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 56)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 65
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: Need an electric vehicle from tesla ford nissan or honda - Additional info: SUV or hatchback of sedan
+About to call parameter extraction for message: Need an electric vehicle from tesla ford nissan or honda - Additional info: SUV or hatchback of sedan
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Need an electric vehicle from tesla ford nissan or honda - Additional info: SUV or hatchback of sedan","forceModel":"refine"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[2],"PreferredVehicleTypes":[1,2,0],"PreferredMakes":["Tesla","Ford","Nissan","Honda"],"DesiredFeatures":[],"TextPrompt":"Need an electric vehicle from tesla ford nissan or honda - Additional info: SUV or hatchback of sedan","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 2222ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 758), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 138), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 25)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[2],"PreferredVehicleTypes":[1,2,0],"PreferredMakes":["Tesla","Ford","Nissan","Honda"],"DesiredFeatures":[],"TextPrompt":"Need an electric vehicle from tesla ford nissan or honda - Additional info: SUV or hatchback of sedan","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=Tesla, Ford, Nissan, Honda, FuelTypes=Electric, VehicleTypes=SUV, Hatchback, Sedan
+Filtering by manufacturers: tesla, ford, nissan, honda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_2
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_3))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 757), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 66
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 519), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Randomly selected model strategy: fast
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: Need an SUV under 70000 any manufacturer diesel or hybrid
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Need an SUV under 70000 any manufacturer diesel or hybrid","forceModel":"fast"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":70000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Need an SUV under 70000 any manufacturer diesel or hybrid","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 1815ms
+Parameter extraction completed successfully
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 743), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 94), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 57)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":70000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Need an SUV under 70000 any manufacturer diesel or hybrid","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Diesel, Hybrid, VehicleTypes=SUV
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_3
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_4))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 745), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 66
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing follow-up query. Combined message: Need an SUV under 70000 any manufacturer diesel or hybrid - Follow-up: again
+About to call parameter extraction for message: Need an SUV under 70000 any manufacturer diesel or hybrid - Follow-up: again
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"Need an SUV under 70000 any manufacturer diesel or hybrid - Follow-up: again","forceModel":"fast"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":70000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Need an SUV under 70000 any manufacturer diesel or hybrid - Follow-up: again","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 2207ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 783), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 113), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 5)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":70000,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[1,3],"PreferredVehicleTypes":[1],"PreferredMakes":["BMW","Audi","Mercedes","Toyota","Honda","Ford","Volkswagen","Nissan","Hyundai","Kia","Tesla","Volvo","Mazda"],"DesiredFeatures":[],"TextPrompt":"Need an SUV under 70000 any manufacturer diesel or hybrid - Follow-up: again","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=BMW, Audi, Mercedes, Toyota, Honda, Ford, Volkswagen, Nissan, Hyundai, Kia, Tesla, Volvo, Mazda, FuelTypes=Diesel, Hybrid, VehicleTypes=SUV
+Filtering by manufacturers: bmw, audi, mercedes, toyota, honda, ford, volkswagen, nissan, hyundai, kia, tesla, volvo, mazda
+Applying filter expression for vehicle search
+Error retrieving recommendations for user ID 1
+System.InvalidOperationException: The LINQ expression '__normalizedMakes_3
+    .Contains(StructuralTypeShaperExpression: 
+        SmartAutoTrader.API.Models.Vehicle
+        ValueBufferExpression: 
+            ProjectionBindingExpression: EmptyProjectionMember
+        IsNullable: False
+    .Make.ToLower(__CurrentCulture_4))' could not be translated. Additional information: Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information.
+Translation of method 'string.ToLower' failed. If this method can be mapped to your custom function, see https://go.microsoft.com/fwlink/?linkid=2132413 for more information. Either rewrite the query in a form that can be translated, or switch to client evaluation explicitly by inserting a call to 'AsEnumerable', 'AsAsyncEnumerable', 'ToList', or 'ToListAsync'. See https://go.microsoft.com/fwlink/?linkid=2101038 for more information.
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.TranslateSubquery(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Sqlite.Query.Internal.SqliteSqlTranslatingExpressionVisitor.VisitBinary(BinaryExpression binaryExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.TranslateInternal(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalSqlTranslatingExpressionVisitor.Translate(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateExpression(Expression expression, Boolean applyDefaultTypeMapping)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateLambdaExpression(ShapedQueryExpression shapedQueryExpression, LambdaExpression lambdaExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.TranslateWhere(ShapedQueryExpression source, LambdaExpression predicate)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.QueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.RelationalQueryableMethodTranslatingExpressionVisitor.Translate(Expression expression)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass12_0`1.<ExecuteAsync>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryable`1.GetAsyncEnumerator(CancellationToken cancellationToken)
+   at System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1.GetAsyncEnumerator()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetFilteredVehiclesAsync(RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 91
+   at SmartAutoTrader.API.Services.OpenRouterRecommendationService.GetRecommendationsAsync(Int32 userId, RecommendationParameters parameters) in /Users/conorgillespie/Projects/SmartAutoTrader/backend/Services/OpenRouterRecommendationService.cs:line 43
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 783), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 517), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ConversationSessions" ("CreatedAt", "LastInteractionAt", "SessionContext", "UserId")
+VALUES (@p0, @p1, @p2, @p3)
+RETURNING "Id";
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__convoId_1='?' (DbType = Int32), @__p_2='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."UserMessage", "c"."AIResponse", "c"."Timestamp", CAST("c"."ConversationSessionId" AS TEXT)
+FROM "ChatHistory" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."ConversationSessionId" = @__convoId_1
+ORDER BY "c"."Timestamp" DESC
+LIMIT @__p_2
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", (
+    SELECT COUNT(*)
+    FROM "ChatHistory" AS "c0"
+    WHERE "c0"."ConversationSessionId" = "c"."Id") AS "MessageCount"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT @__p_1
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 67
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 521), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Randomly selected model strategy: refine
+Executed DbCommand (1ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (2ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+About to call parameter extraction for message: need an SUV or sedan or hatchback any manufacturer please any fuel type
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"need an SUV or sedan or hatchback any manufacturer please any fuel type","forceModel":"refine"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"need an SUV or sedan or hatchback any manufacturer please any fuel type","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 9528ms
+Parameter extraction completed successfully
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (1ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 661), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Clarification needed for user query
+Executed DbCommand (1ms) [Parameters=[@p0='?' (Size = 376), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 71)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 67
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: under 90000
+About to call parameter extraction for message: need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: under 90000
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: under 90000","forceModel":"refine"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: under 90000","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":"Sounds like you\u0027re after something like \u0027luxury sedan over 30000\u0027. Could you give me more details \u2014 maybe a budget or fuel type?","ModelUsed":null}
+Vague RAG match triggered. Suggesting clarification: Sounds like you're after something like 'luxury sedan over 30000'. Could you give me more details — maybe a budget or fuel type?
+Processing chat message from user ID: 1
+Processing chat message for user ID: 1
+Using existing conversation session: 67
+Executed DbCommand (1ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@__id_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."DateRegistered", "t"."Email", "t"."FirstName", "t"."LastName", "t"."PasswordHash", "t"."PhoneNumber", "t"."Username", "u0"."Id", "u0"."PreferenceType", "u0"."UserId", "u0"."Value", "u0"."Weight"
+FROM (
+    SELECT "u"."Id", "u"."DateRegistered", "u"."Email", "u"."FirstName", "u"."LastName", "u"."PasswordHash", "u"."PhoneNumber", "u"."Username"
+    FROM "Users" AS "u"
+    WHERE "u"."Id" = @__id_0
+    LIMIT 1
+) AS "t"
+LEFT JOIN "UserPreferences" AS "u0" ON "t"."Id" = "u0"."UserId"
+ORDER BY "t"."Id"
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "u"."Id", "u"."DateAdded", "u"."UserId", "u"."VehicleId", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM "UserFavorites" AS "u"
+INNER JOIN "Vehicles" AS "v" ON "u"."VehicleId" = "v"."Id"
+WHERE "u"."UserId" = @__userId_0
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__p_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+SELECT "t"."Id", "t"."UserId", "t"."VehicleId", "t"."ViewDate", "t"."ViewDurationSeconds", "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year"
+FROM (
+    SELECT "b"."Id", "b"."UserId", "b"."VehicleId", "b"."ViewDate", "b"."ViewDurationSeconds"
+    FROM "BrowsingHistory" AS "b"
+    WHERE "b"."UserId" = @__userId_0
+    ORDER BY "b"."ViewDate" DESC
+    LIMIT @__p_1
+) AS "t"
+INNER JOIN "Vehicles" AS "v" ON "t"."VehicleId" = "v"."Id"
+ORDER BY "t"."ViewDate" DESC
+Processing clarification. Combined message: need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: any fuel type dont mind!
+About to call parameter extraction for message: need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: any fuel type dont mind!
+Calling parameter extraction service at http://localhost:5006/extract_parameters
+SENDING REQUEST to http://localhost:5006/extract_parameters with payload: {"query":"need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: any fuel type dont mind!","forceModel":"refine"}
+Final extracted parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: any fuel type dont mind!","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+⏱️ LLM extraction took 4377ms
+Parameter extraction completed successfully
+Merged parameters from context and new extraction
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 749), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;
+Using parameters: SmartAutoTrader.API.Models.RecommendationParameters
+Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 152), @p1='?' (DbType = Int32), @p2='?' (DbType = DateTime), @p3='?' (DbType = Int32), @p4='?' (Size = 24)], CommandType='Text', CommandTimeout='30']
+INSERT INTO "ChatHistory" ("AIResponse", "ConversationSessionId", "Timestamp", "UserId", "UserMessage")
+VALUES (@p0, @p1, @p2, @p3, @p4)
+RETURNING "Id";
+Fetching recommendations for user ID: 1 with parameters: {"MinPrice":null,"MaxPrice":null,"MinYear":null,"MaxYear":null,"MaxMileage":null,"PreferredFuelTypes":[],"PreferredVehicleTypes":[],"PreferredMakes":[],"DesiredFeatures":[],"TextPrompt":"need an SUV or sedan or hatchback any manufacturer please any fuel type - Additional info: any fuel type dont mind!","MaxResults":5,"IsOffTopic":false,"OffTopicResponse":null,"RetrieverSuggestion":null,"ModelUsed":null}
+Key filter values: Makes=, FuelTypes=, VehicleTypes=
+Applying filter expression for vehicle search
+Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+SELECT "v"."Id", "v"."Country", "v"."DateListed", "v"."Description", "v"."EngineSize", "v"."FuelType", "v"."HorsePower", "v"."Make", "v"."Mileage", "v"."Model", "v"."Price", "v"."Status", "v"."Transmission", "v"."VehicleType", "v"."Year", "v0"."Id", "v0"."ImageUrl", "v0"."IsPrimary", "v0"."VehicleId", "v1"."Id", "v1"."Name", "v1"."VehicleId"
+FROM "Vehicles" AS "v"
+LEFT JOIN "VehicleImages" AS "v0" ON "v"."Id" = "v0"."VehicleId"
+LEFT JOIN "VehicleFeatures" AS "v1" ON "v"."Id" = "v1"."VehicleId"
+WHERE "v"."Status" = 0
+ORDER BY "v"."Id", "v0"."Id"
+Returning 5 vehicles based on parameter filtering
+Recommended vehicle: 2012 Chevrolet Silverado, Type=Estate, Fuel=Diesel
+Recommended vehicle: 2019 Ford Mustang, Type=Coupe, Fuel=Petrol
+Recommended vehicle: 2024 Kia Telluride, Type=Coupe, Fuel=Hybrid
+Recommended vehicle: 2011 Hyundai Kona, Type=Sedan, Fuel=Hybrid
+Recommended vehicle: 2017 Hyundai Santa Fe, Type=Van, Fuel=Electric
+Executed DbCommand (0ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__since_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+SELECT "c"."Id", "c"."CreatedAt", "c"."LastInteractionAt", "c"."SessionContext", "c"."UserId"
+FROM "ConversationSessions" AS "c"
+WHERE "c"."UserId" = @__userId_0 AND "c"."LastInteractionAt" > @__since_1
+ORDER BY "c"."LastInteractionAt" DESC
+LIMIT 1
+Executed DbCommand (0ms) [Parameters=[@p4='?' (DbType = Int32), @p0='?' (DbType = DateTime), @p1='?' (DbType = DateTime), @p2='?' (Size = 764), @p3='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+UPDATE "ConversationSessions" SET "CreatedAt" = @p0, "LastInteractionAt" = @p1, "SessionContext" = @p2, "UserId" = @p3
+WHERE "Id" = @p4
+RETURNING 1;

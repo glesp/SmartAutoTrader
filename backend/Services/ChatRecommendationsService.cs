@@ -49,6 +49,18 @@ namespace SmartAutoTrader.API.Services
                 ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId);
 
                 string? modelUsedForSession = conversationContext.ModelUsed;
+                
+                if (modelUsedForSession == null)
+                {
+                    // Initialize with a random model choice
+                    string[] modelStrategies = ["fast", "refine", "clarify"];
+                    modelUsedForSession = modelStrategies[new Random().Next(modelStrategies.Length)];
+                    conversationContext.ModelUsed = modelUsedForSession;
+    
+                    // Save the selected model to context
+                    await _contextService.UpdateContextAsync(userId, conversationContext);
+                    _logger.LogInformation("Randomly selected model strategy: {ModelStrategy}", modelUsedForSession);
+                }
 
                 // Update conversation context with basic tracking info
                 conversationContext.MessageCount++;
