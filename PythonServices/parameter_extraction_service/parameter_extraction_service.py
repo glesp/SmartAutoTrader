@@ -12,6 +12,7 @@ import os
 import sys
 from typing import Dict, List, Optional, Any
 from dotenv import load_dotenv
+import datetime
 load_dotenv()
 
 # If your 'retriever' folder is inside the same directory, you may do:
@@ -59,20 +60,23 @@ CLARIFY_MODEL = "mistralai/mixtral-8x7b-instruct:free"
 def extract_parameters():
     """
     Main endpoint for parameter extraction from user queries.
-    Includes local retrieval for short or vague queries,
-    plus fallback logic for LLM calls.
+    Now includes conversation history and detects user intent.
     """
     try:
         logger.info("Received request: %s", request.json)
         data = request.json or {}
+        
         if 'query' not in data:
             logger.error("No 'query' provided in request.")
             return jsonify({"error": "No query provided"}), 400
 
         user_query = data['query']
         force_model = data.get("forceModel")
-
-        logger.info("Processing query: %s (forceModel=%s)", user_query, force_model)
+        # NEW: Get conversation history from request
+        conversation_history = data.get("conversationHistory", [])
+        
+        logger.info("Processing query: %s (forceModel=%s) with %d history items", 
+                   user_query, force_model, len(conversation_history))
 
         # 1) Quick check for off-topic or trivial
         if not is_car_related(user_query):
@@ -90,13 +94,15 @@ def extract_parameters():
                 "isOffTopic": True,
                 "offTopicResponse": (
                     "I'm your automotive assistant. Let me know what kind of vehicle you're looking for!"
-                )
+                ),
+                "intent": "new_query"  # Default intent for off-topic
             }), 200
 
         # 2) If short or vague but at least car-related, try local retrieval
         query_fragment = extract_newest_user_fragment(user_query)
         if word_count_clean(query_fragment) < 4:
             match_cat, score = find_best_match(query_fragment)
+            
             if score < 0.5:
                 logger.info("Local retrieval found weak match: %s (%.2f)", match_cat, score)
                 return jsonify({
@@ -112,7 +118,9 @@ def extract_parameters():
                     "isOffTopic": False,
                     "offTopicResponse": None,
                     "clarificationNeeded": True,
+                    "clarificationNeededFor": ["category"],  # NEW: specific clarification reason
                     "matchedCategory": match_cat,
+                    "intent": "new_query",
                     "retrieverSuggestion": (
                         f"Sounds like you're after something like '{match_cat}'. "
                         "Could you give me more details — maybe a budget or fuel type?"
@@ -121,36 +129,157 @@ def extract_parameters():
 
             else:
                 logger.info("Local retrieval matched: %s (%.2f)", match_cat, score)
-                return jsonify({
-                    "minPrice": None,
-                    "maxPrice": None,
-                    "minYear": None,
-                    "maxYear": None,
-                    "maxMileage": None,
-                    "preferredMakes": [],
-                    "preferredFuelTypes": [],
-                    "preferredVehicleTypes": [],
-                    "desiredFeatures": [],
-                    "isOffTopic": False,
-                    "offTopicResponse": None,
-                    "retrieverSuggestion": (
-                        f"Maybe you're looking for: '{match_cat}'? "
-                        "Add more details or say 'change' if needed!"
-                    )
-                }), 200
+                # NEW: Instead of directly responding, use the matched category to ground the LLM
+                # We'll capture the category and pass it through to the LLM call
+                matched_category = match_cat
+        else:
+            matched_category = None
 
-        # 3) Otherwise, run normal model fallback
-        extracted_params = run_llm_fallback(user_query, force_model)
+        # 3) Run LLM with conversation history and matched category (if any)
+        extracted_params = run_llm_with_history(
+            user_query, 
+            conversation_history, 
+            matched_category, 
+            force_model
+        )
+        
         if extracted_params:
             logger.info("Final extracted parameters: %s", extracted_params)
             return jsonify(extracted_params), 200
         else:
             logger.error("All models failed or no valid extraction.")
-            return jsonify(create_default_parameters()), 200
+            return jsonify(create_default_parameters(intent="new_query")), 200
 
     except Exception as e:
         logger.exception("Exception occurred: %s", str(e))
-        return jsonify(create_default_parameters()), 200
+        return jsonify(create_default_parameters(intent="new_query")), 200
+
+
+def run_llm_with_history(
+    user_query: str, 
+    conversation_history: List[Dict[str, str]], 
+    matched_category: Optional[str] = None,
+    force_model: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Enhanced LLM call that considers conversation history and detected categories.
+    """
+    valid_manufacturers = [
+        "BMW", "Audi", "Mercedes", "Toyota", "Honda", "Ford",
+        "Volkswagen", "Nissan", "Hyundai", "Kia", "Tesla", "Volvo", "Mazda"
+    ]
+    valid_fuel_types = ["Petrol", "Diesel", "Electric", "Hybrid"]
+    valid_vehicle_types = [
+        "Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Wagon", "Van", "Truck"
+    ]
+
+    model_order = {
+        "fast": FAST_MODEL,
+        "refine": REFINE_MODEL,
+        "clarify": CLARIFY_MODEL
+    }
+
+    if force_model is None:
+        logger.info("No forceModel => use fast only.")
+        models_to_try = [FAST_MODEL]
+    else:
+        if force_model in model_order:
+            logger.info("Using forced model strategy with %s", force_model)
+            # forced model first, then the others
+            models_to_try = [model_order[force_model]] + [
+                m for k,m in model_order.items() if k != force_model
+            ]
+        else:
+            logger.warning("Invalid forceModel => defaulting to fast.")
+            models_to_try = [FAST_MODEL]
+
+    system_prompt = build_enhanced_system_prompt(
+        user_query,
+        conversation_history,
+        matched_category,
+        valid_manufacturers,
+        valid_fuel_types,
+        valid_vehicle_types
+    )
+
+    # Track if this is likely a follow-up based on conversation history
+    is_likely_followup = len(conversation_history) > 0
+    has_followup_indicators = any(marker in user_query.lower() for marker in [
+        "change", "instead", "also show", "but", "rather", "make it"
+    ])
+
+    for model in models_to_try:
+        extracted = try_extract_with_model(model, system_prompt, user_query)
+        logger.info("Model %s returned: %s", model, extracted)
+
+        if extracted and is_valid_extraction(extracted):
+            processed = process_parameters(
+                extracted,
+                valid_manufacturers,
+                valid_fuel_types,
+                valid_vehicle_types
+            )
+            
+            # Default intent correction based on context clues
+            if is_likely_followup and processed["intent"] == "new_query" and has_followup_indicators:
+                logger.info("Correcting intent from new_query to refine_criteria based on context")
+                processed["intent"] = "refine_criteria"
+            elif not "intent" in processed:
+                processed["intent"] = "new_query"
+                
+            # Examine query for price indicators and correct if needed
+            if "under" in user_query.lower() or "less than" in user_query.lower():
+                # Find numbers in the query
+                import re
+                numbers = re.findall(r'\d+(?:\.\d+)?', user_query)
+                if numbers and not processed.get("maxPrice"):
+                    try:
+                        # Try to set maxPrice if price indicators exist but weren't captured
+                        price = float(numbers[0])
+                        if price > 1000:  # Likely a price, not a year
+                            processed["maxPrice"] = price
+                            logger.info(f"Corrected missing maxPrice to {price} based on query text")
+                    except (ValueError, IndexError):
+                        pass
+            
+            # If the query mentions "relatively new" or "recent" but no year was extracted
+            if ("relatively new" in user_query.lower() or "recent" in user_query.lower()) and not processed.get("minYear"):
+                current_year = datetime.datetime.now().year
+                processed["minYear"] = current_year - 2
+                logger.info(f"Setting minYear to {current_year-2} based on 'relatively new' in query")
+                
+            # Handle clarification fields
+            if processed.get("clarificationNeeded", False) and "clarificationNeededFor" not in processed:
+                missing_params = []
+                if not processed.get("preferredMakes") and "any make" not in user_query.lower() and "any manufacturer" not in user_query.lower():
+                    missing_params.append("make")
+                if not processed.get("preferredVehicleTypes") and "any type" not in user_query.lower() and "any vehicle" not in user_query.lower():
+                    missing_params.append("vehicle_type")
+                if not processed.get("preferredFuelTypes") and "any fuel" not in user_query.lower():
+                    missing_params.append("fuel_type")
+                if not processed.get("minPrice") and not processed.get("maxPrice"):
+                    missing_params.append("price")
+                if not processed.get("minYear") and not processed.get("maxYear"):
+                    missing_params.append("year")
+                
+                processed["clarificationNeededFor"] = missing_params
+            
+            # Don't request clarification if we already have enough info
+            if processed.get("clarificationNeeded", False):
+                # Key parameters that make clarification unnecessary
+                has_price = processed.get('minPrice') is not None or processed.get('maxPrice') is not None
+                has_vehicle_type = len(processed.get('preferredVehicleTypes', [])) > 0
+                
+                # If we have price and vehicle type, we have enough to proceed
+                if has_price and has_vehicle_type:
+                    processed["clarificationNeeded"] = False
+                    processed["clarificationNeededFor"] = []
+                    logger.info("Disabled clarification request since we have price and vehicle type")
+            
+            return processed
+
+    logger.error("All models failed or no valid extraction.")
+    return None
 
 
 def run_llm_fallback(user_query: str, force_model: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -272,6 +401,112 @@ IMPORTANT: Return ONLY the JSON object with no additional text.
 """
 
 
+def build_enhanced_system_prompt(
+    user_query: str,
+    conversation_history: List[Dict[str, str]],
+    matched_category: Optional[str],
+    valid_makes: List[str],
+    valid_fuels: List[str],
+    valid_vehicles: List[str]
+) -> str:
+    """
+    Build an enhanced system prompt that includes conversation history
+    and detected categories to guide the LLM.
+    """
+    history_context = ""
+    if conversation_history:
+        history_context = "Recent conversation history:\n"
+        # Format the last 2-3 turns (limited for context window)
+        for turn in conversation_history[-3:]:
+            if "user" in turn:
+                history_context += f"User: {turn['user']}\n"
+            if "ai" in turn:
+                history_context += f"Assistant: {turn['ai']}\n"
+        history_context += "\n"
+    
+    category_context = ""
+    if matched_category:
+        category_context = f"Context: The user might be asking about {matched_category} vehicles.\n\n"
+    
+    current_year = datetime.datetime.now().year
+    
+    return f"""
+You are an automotive assistant for Smart Auto Trader, helping customers find their ideal vehicle.
+Extract search parameters from the user's query, considering the conversation history.
+
+{history_context}
+{category_context}
+
+YOUR RESPONSE MUST ONLY CONTAIN VALID JSON with this exact format:
+
+{{
+  "minPrice": null,
+  "maxPrice": null,
+  "minYear": null,
+  "maxYear": null,
+  "maxMileage": null,
+  "preferredMakes": [],
+  "preferredFuelTypes": [],
+  "preferredVehicleTypes": [],
+  "desiredFeatures": [],
+  "isOffTopic": false,
+  "offTopicResponse": null,
+  "clarificationNeeded": false,
+  "clarificationNeededFor": [],
+  "intent": "new_query"
+}}
+
+RULES:
+- ONLY include values the user explicitly requests
+- All numeric values must be numbers or null
+- Leave arrays EMPTY unless specifically mentioned
+- Set 'isOffTopic' to true ONLY for non-car-related queries
+- For 'intent', choose one of these values:
+  * "new_query" - This is a completely new search with no relation to previous searches
+  * "replace_criteria" - User wants to replace previous search criteria
+  * "add_criteria" - User wants to add to previous criteria (e.g., "also show me...")
+  * "refine_criteria" - User wants to narrow down previous results or change parameters
+
+PRICE HANDLING:
+- When the user says "under X" or "less than X", set maxPrice to X and minPrice to null
+- When the user says "over X" or "more than X", set minPrice to X and maxPrice to null
+- When the user says "between X and Y", set minPrice to X and maxPrice to Y
+- When the user says "around X", set minPrice to 0.8*X and maxPrice to 1.2*X
+
+YEAR AND AGE HANDLING:
+- When the user asks for "relatively new" or "recent" models, set minYear to {current_year-2}
+- When the user asks for "new" vehicles, set minYear to {current_year-1}
+- When the user asks for "brand new" vehicles, set minYear to {current_year}
+- When the user specifies "older", set maxYear to {current_year-5}
+
+GENERAL PREFERENCES:
+- If the user says "any make" or "any manufacturer", keep preferredMakes as an empty array []
+- If the user says "any fuel type", keep preferredFuelTypes as an empty array []
+- If the user says "any vehicle type", keep preferredVehicleTypes as an empty array []
+
+INTENT DETERMINATION (CRITICAL):
+- Any follow-up message should almost never be "new_query" unless it's completely unrelated to previous messages
+- If the user is modifying a previous search (changing price, adding makes, etc.), use "refine_criteria"
+- If the user says "change that to", "make it", or similar phrases, use "refine_criteria"
+- If the user says "also include", "also show", "add", use "add_criteria"
+- If the user completely changes focus (e.g., from SUVs to sedans only), use "replace_criteria"
+- When in doubt for follow-ups, prefer "refine_criteria" over "new_query"
+
+EXAMPLES:
+- "I need an SUV under 50000" → {{"maxPrice": 50000, "preferredVehicleTypes": ["SUV"], "intent": "new_query"}}
+- "Change it to under 70000" → {{"maxPrice": 70000, "intent": "refine_criteria"}}
+- "Also show me sedans" → {{"preferredVehicleTypes": ["Sedan"], "intent": "add_criteria"}}
+- "I want a Tesla" → {{"preferredMakes": ["Tesla"], "intent": "replace_criteria"}}
+- "BMW SUVs only" → {{"preferredMakes": ["BMW"], "preferredVehicleTypes": ["SUV"], "intent": "replace_criteria"}}
+
+Valid makes: {', '.join(valid_makes)}
+Valid fuel types: {', '.join(valid_fuels)}
+Valid vehicle types: {', '.join(valid_vehicles)}
+
+The user's query is: "{user_query}"
+"""
+
+
 def try_extract_with_model(model: str, system_prompt: str, user_query: str) -> Optional[Dict[str, Any]]:
     """
     Attempt to get valid JSON from an LLM model via OpenRouter.
@@ -345,12 +580,15 @@ def try_extract_with_model(model: str, system_prompt: str, user_query: str) -> O
 def is_valid_extraction(params: Dict[str, Any]) -> bool:
     """
     Decide if the extracted JSON is "good enough."
-    By default, require at least 3 valid fields or offTopic is True.
-    Adjust to your preference.
+    More lenient for follow-up or refinement queries than for new queries.
     """
     if not isinstance(params, dict):
         return False
 
+    # Check for intent to determine validation strictness
+    intent = params.get("intent", "new_query").lower()
+    is_refinement = intent in ["refine_criteria", "add_criteria", "replace_criteria"]
+    
     # Count numeric fields that are not null
     numeric_fields = ['minPrice', 'maxPrice', 'minYear', 'maxYear', 'maxMileage']
     numeric_count = sum(
@@ -372,35 +610,59 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
         isinstance(params['offTopicResponse'], str)
     )
 
-    total_valid = numeric_count + array_count
+    # Check specifically for price and vehicle type as they are high-value parameters
+    has_price = params.get('minPrice') is not None or params.get('maxPrice') is not None
+    has_vehicle_type = (
+        isinstance(params.get('preferredVehicleTypes'), list) and 
+        len(params.get('preferredVehicleTypes', [])) > 0
+    )
 
-    # Require at least 3 valid fields or off-topic
-    return is_off_topic or total_valid >= 3
+    total_valid = numeric_count + array_count
+    
+    # Multiple validation paths for different scenarios
+    if is_off_topic:
+        return True
+    elif is_refinement:
+        # For refinement queries, be very lenient - only 1 field needed
+        return total_valid >= 1
+    elif has_price and has_vehicle_type:
+        # Price + vehicle type is a high-quality combination
+        return True
+    elif has_price and array_count > 0:
+        # Price + any array field is good enough
+        return True
+    elif has_vehicle_type and numeric_count > 0:
+        # Vehicle type + any numeric field is good enough
+        return True
+    else:
+        # For other cases, require only 2 valid fields instead of 3
+        return total_valid >= 2
 
 
 def create_default_parameters(
     makes: Optional[List[str]] = None,
     fuel_types: Optional[List[str]] = None,
-    vehicle_types: Optional[List[str]] = None
+    vehicle_types: Optional[List[str]] = None,
+    intent: str = "new_query"
 ) -> Dict[str, Any]:
     """
     Returns a fallback set of parameters if no extraction succeeded.
     """
-    makes = makes or []
-    fuel_types = fuel_types or []
-    vehicle_types = vehicle_types or []
     return {
         "minPrice": None,
-        "maxPrice": None,
+        "maxPrice": None, 
         "minYear": None,
         "maxYear": None,
         "maxMileage": None,
-        "preferredMakes": makes,
-        "preferredFuelTypes": fuel_types,
-        "preferredVehicleTypes": vehicle_types,
+        "preferredMakes": makes or [],
+        "preferredFuelTypes": fuel_types or [],
+        "preferredVehicleTypes": vehicle_types or [],
         "desiredFeatures": [],
         "isOffTopic": False,
-        "offTopicResponse": None
+        "offTopicResponse": None,
+        "clarificationNeeded": False,
+        "clarificationNeededFor": [],
+        "intent": intent
     }
 
 
@@ -412,7 +674,7 @@ def process_parameters(
 ) -> Dict[str, Any]:
     """
     Convert raw extracted dict into final structure, applying validation
-    and default fill for empty arrays if not off-topic.
+    and only filling defaults when appropriate.
     """
     result = {
         "minPrice": None,
@@ -425,7 +687,10 @@ def process_parameters(
         "preferredVehicleTypes": [],
         "desiredFeatures": [],
         "isOffTopic": False,
-        "offTopicResponse": None
+        "offTopicResponse": None,
+        "intent": "new_query",
+        "clarificationNeeded": False,
+        "clarificationNeededFor": []
     }
 
     # numeric fields
@@ -433,7 +698,7 @@ def process_parameters(
         if field in params and params[field] is not None and isinstance(params[field], (int, float)):
             result[field] = params[field]
 
-    # array fields with validation
+    # array fields with validation - no default filling
     if isinstance(params.get("preferredMakes"), list):
         result["preferredMakes"] = [
             m for m in params["preferredMakes"]
@@ -457,6 +722,20 @@ def process_parameters(
             f for f in params["desiredFeatures"]
             if isinstance(f, str)
         ]
+        
+    # Copy intent field if it exists
+    if "intent" in params and isinstance(params["intent"], str):
+        result["intent"] = params["intent"].lower()
+        
+    # Copy clarification fields
+    if "clarificationNeeded" in params and isinstance(params["clarificationNeeded"], bool):
+        result["clarificationNeeded"] = params["clarificationNeeded"]
+        
+    if "clarificationNeededFor" in params and isinstance(params["clarificationNeededFor"], list):
+        result["clarificationNeededFor"] = [
+            item for item in params["clarificationNeededFor"] 
+            if isinstance(item, str)
+        ]
 
     # off-topic check
     if isinstance(params.get("isOffTopic"), bool):
@@ -464,16 +743,13 @@ def process_parameters(
 
     if result["isOffTopic"] and isinstance(params.get("offTopicResponse"), str):
         result["offTopicResponse"] = params["offTopicResponse"]
-
-    # If not off-topic, fill in defaults for empty arrays
-    if not result["isOffTopic"]:
-        if not result["preferredMakes"]:
-            result["preferredMakes"] = valid_makes.copy()
-        if not result["preferredFuelTypes"]:
-            result["preferredFuelTypes"] = valid_fuel_types.copy()
-        if not result["preferredVehicleTypes"]:
-            result["preferredVehicleTypes"] = valid_vehicle_types.copy()
-
+        
+    # Copy retriever suggestion if present
+    if "retrieverSuggestion" in params and isinstance(params["retrieverSuggestion"], str):
+        result["retrieverSuggestion"] = params["retrieverSuggestion"]
+    
+    # Don't add default values - let the backend handle this case
+    
     return result
 
 

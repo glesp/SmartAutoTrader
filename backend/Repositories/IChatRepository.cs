@@ -14,6 +14,8 @@ namespace SmartAutoTrader.API.Repositories
 
         Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge);
 
+        Task<List<ConversationTurn>> GetRecentHistoryAsync(int userId, int conversationSessionId, int maxItems = 3);
+
         Task SaveChangesAsync();
     }
 
@@ -37,6 +39,24 @@ namespace SmartAutoTrader.API.Repositories
         {
             _ = _context.ConversationSessions.Add(session);
             return Task.CompletedTask;
+        }
+
+        public async Task<List<ConversationTurn>> GetRecentHistoryAsync(
+        int userId,
+        int conversationSessionId,
+        int maxItems = 3)
+        {
+            return await context.ChatHistory
+                .Where(h => h.UserId == userId && h.ConversationSessionId == conversationSessionId)
+                .OrderByDescending(h => h.Timestamp)
+                .Take(maxItems)
+                .Select(h => new ConversationTurn
+                {
+                    UserMessage = h.UserMessage,
+                    AIResponse = h.AIResponse,
+                    Timestamp = h.Timestamp,
+                })
+                .ToListAsync();
         }
 
         public Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge)

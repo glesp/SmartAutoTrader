@@ -32,5 +32,9 @@ namespace SmartAutoTrader.API.Models
         public string? RetrieverSuggestion { get; set; }
 
         public string? ModelUsed { get; set; }
+
+        public string? Intent { get; set; }
+
+        public List<string> ClarificationNeededFor { get; set; } = [];
     }
 }
