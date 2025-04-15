@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 using SmartAutoTrader.API.Validators;
@@ -1014,25 +1015,27 @@ namespace SmartAutoTrader.API.Services
 
                     // Parse enums correctly
                     PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
-                                        fuelTypesElement.ValueKind == JsonValueKind.Array
+                                         fuelTypesElement.ValueKind == JsonValueKind.Array
                         ? fuelTypesElement.EnumerateArray()
                             .Where(e => e.ValueKind == JsonValueKind.String)
-                            .Select(e => Enum.TryParse<FuelType>(e.GetString(), true, out FuelType fuel)
+                            // Replace standard TryParse with your helper:
+                            .Select(e => EnumHelpers.TryParseFuelType(e.GetString() ?? "", out FuelType fuel) // <-- Use your helper
                                 ? fuel
                                 : (FuelType?)null)
-                            .Where(f => f.HasValue)
+                            .Where(f => f.HasValue) // Keep this to filter out any strings your helper still couldn't parse
                             .Select(f => f.Value)
                             .ToList()
                         : new List<FuelType>(),
 
                     PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
-                                           vehicleTypesElement.ValueKind == JsonValueKind.Array
+                                            vehicleTypesElement.ValueKind == JsonValueKind.Array
                         ? vehicleTypesElement.EnumerateArray()
                             .Where(e => e.ValueKind == JsonValueKind.String)
-                            .Select(e => Enum.TryParse<VehicleType>(e.GetString(), true, out VehicleType vehicle)
+                            // Replace standard TryParse with your helper:
+                            .Select(e => EnumHelpers.TryParseVehicleType(e.GetString() ?? "", out VehicleType vehicle) // Use your helper
                                 ? vehicle
                                 : (VehicleType?)null)
-                            .Where(v => v.HasValue)
+                            .Where(v => v.HasValue) // Keep this to filter out any strings your helper still couldn't parse
                             .Select(v => v.Value)
                             .ToList()
                         : new List<VehicleType>(),

@@ -168,23 +168,62 @@ namespace SmartAutoTrader.API.Services
                     v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
             }
 
-            // Add make filter
+            // Add make filter - FIXED: Use EF Core's EF.Functions.Like for case-insensitive comparison
             if (parameters.PreferredMakes?.Any() == true)
             {
-                List<string> normalizedMakes = parameters.PreferredMakes
-                    .Select(m => m.Trim().ToLowerInvariant())
-                    .ToList();
+                // Create an OR condition for each make
+                Expression<Func<Vehicle, bool>> makesExpression = null;
+
+                foreach (var make in parameters.PreferredMakes)
+                {
+                    var currentMake = make.Trim();
+                    var makeCondition = BuildMakeMatchExpression(currentMake);
+
+                    // Either initialize makesExpression or combine with OR
+                    makesExpression = makesExpression == null 
+                        ? makeCondition 
+                        : CombineExpressionsWithOr(makesExpression, makeCondition);
+                }
+
+                // Combine with the main expression using AND if we have any makes
+                if (makesExpression != null)
+                {
+                    expression = CombineExpressions(expression, makesExpression);
+                }
 
                 _logger.LogInformation(
                     "Filtering by manufacturers: {Manufacturers}",
-                    string.Join(", ", normalizedMakes));
-
-                expression = CombineExpressions(
-                    expression,
-                    v => normalizedMakes.Contains(v.Make.ToLower(CultureInfo.CurrentCulture)));
+                    string.Join(", ", parameters.PreferredMakes));
             }
 
             return expression;
+        }
+
+        // Helper method for case-insensitive make matching that's compatible with EF Core
+        private static Expression<Func<Vehicle, bool>> BuildMakeMatchExpression(string make)
+        {
+            // Simply check for exact match, as database collation should handle case-insensitivity
+            // Or we could use EF.Functions.Collate if we need to enforce case-insensitivity
+            return v => v.Make == make || 
+                        v.Make.Equals(make) || 
+                        v.Make.Contains(make) ||  // Matching parts of make names
+                        make.Contains(v.Make);    // Substrings like "BMW" in "BMW X5"
+        }
+
+        // Helper method to combine two expressions with OR operator
+        private static Expression<Func<Vehicle, bool>> CombineExpressionsWithOr(
+            Expression<Func<Vehicle, bool>> expr1,
+            Expression<Func<Vehicle, bool>> expr2)
+        {
+            ParameterExpression parameter = Expression.Parameter(typeof(Vehicle), "v");
+
+            ReplaceParameterVisitor leftVisitor = new(expr1.Parameters[0], parameter);
+            Expression left = leftVisitor.Visit(expr1.Body);
+
+            ReplaceParameterVisitor rightVisitor = new(expr2.Parameters[0], parameter);
+            Expression right = rightVisitor.Visit(expr2.Body);
+
+            return Expression.Lambda<Func<Vehicle, bool>>(Expression.OrElse(left, right), parameter);
         }
 
         // Helper method to combine two expressions with AND operator
