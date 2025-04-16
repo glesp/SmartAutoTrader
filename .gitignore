@@ -38,3 +38,22 @@ repomix-output.txt
 
 #images
 .jpg
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Databases
+*.db
+*.db-journal
+
+# Logs
+Logs/
+*.log
+app_log.txt
+
+# VS Code / .NET / etc.
+.vscode/
+[Bb]in/
+[Oo]bj/
