@@ -15,7 +15,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                Models.User user = await _authService.RegisterAsync(
+                User user = await _authService.RegisterAsync(
                     model.Username,
                     model.Email,
                     model.Password,
@@ -23,16 +23,17 @@ namespace SmartAutoTrader.API.Controllers
                     model.LastName,
                     model.PhoneNumber);
 
-                return Ok(new
-                {
-                    user.Id,
-                    user.Username,
-                    user.Email,
-                    user.FirstName,
-                    user.LastName,
-                    user.PhoneNumber,
-                    Message = "Registration successful",
-                });
+                return Ok(
+                    new
+                    {
+                        user.Id,
+                        user.Username,
+                        user.Email,
+                        user.FirstName,
+                        user.LastName,
+                        user.PhoneNumber,
+                        Message = "Registration successful",
+                    });
             }
             catch (Exception ex)
             {
@@ -45,21 +46,22 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                (string token, Models.User user) = await _authService.LoginAsync(model.Email, model.Password);
+                (string token, User user) = await _authService.LoginAsync(model.Email, model.Password);
 
-                return Ok(new
-                {
-                    Token = token,
-                    User = new
+                return Ok(
+                    new
                     {
-                        user.Id,
-                        user.Username,
-                        user.Email,
-                        user.FirstName,
-                        user.LastName,
-                    },
-                    Message = "Login successful",
-                });
+                        Token = token,
+                        User = new
+                        {
+                            user.Id,
+                            user.Username,
+                            user.Email,
+                            user.FirstName,
+                            user.LastName,
+                        },
+                        Message = "Login successful",
+                    });
             }
             catch (Exception ex)
             {

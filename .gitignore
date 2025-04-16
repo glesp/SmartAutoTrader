@@ -1,13 +1,15 @@
-cat > .gitignore << 'EOL'
-# .NET
+# .NET Core / VS Code / Rider
 **/bin/
 **/obj/
 **/.vs/
 **/*.user
 **/.vscode/
 **/Migrations/
+[Bb]in/
+[Oo]bj/
+.idea/
 
-# React
+# React Frontend
 frontend/node_modules/
 frontend/.pnp
 frontend/.pnp.js
@@ -22,30 +24,12 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
-# IDEs and editors
-**/.idea/
-*.swp
-*.swo
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-EOL
-
-# other
-repomix-output.txt
-
-#images
-<<<<<<< HEAD
-.jpg
-
 # Python
+venv/
 __pycache__/
 *.pyc
-venv/
 
-# Databases
+# Databases (Local/Generated)
 *.db
 *.db-journal
 
@@ -54,10 +38,16 @@ Logs/
 *.log
 app_log.txt
 
-# VS Code / .NET / etc.
-.vscode/
-[Bb]in/
-[Oo]bj/
-=======
-.jpg
->>>>>>> d05f0311fc4851aa5a49234b2dad906fe455f6d5
+# IDEs and editors (General)
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Other / Project Specific
+repomix-output.txt
+*.jpg
+*.jpeg

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react'
+import { useContext } from 'react'
 import { AuthContext } from '../../contexts/AuthContext'
 import { Vehicle } from '../../types/models.ts'
 import { VehicleRecommendationsProps } from '../../types/models.ts'
@@ -23,7 +23,6 @@ const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
 
 const VehicleRecommendations = ({
   recommendedVehicles,
-  parameters,
 }: VehicleRecommendationsProps) => {
   const { user } = useContext(AuthContext)
 
@@ -73,23 +72,6 @@ const VehicleRecommendations = ({
       4: 'Plugin Hybrid',
     }
     return fuelTypes[fuelType] || 'Unknown'
-  }
-
-  // Map vehicle type numbers to strings
-  const getVehicleTypeName = (vehicleType: number | string): string => {
-    if (typeof vehicleType === 'string') return vehicleType
-
-    const vehicleTypes: Record<number, string> = {
-      0: 'Sedan',
-      1: 'SUV',
-      2: 'Hatchback',
-      3: 'Coupe',
-      4: 'Convertible',
-      5: 'Wagon',
-      6: 'Van',
-      7: 'Truck',
-    }
-    return vehicleTypes[vehicleType] || 'Unknown'
   }
 
   // Alternative content when user is not authenticated

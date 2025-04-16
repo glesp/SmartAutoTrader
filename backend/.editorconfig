@@ -3,33 +3,65 @@ root = true
 
 [*.cs]
 
-# === Documentation Rules ===
-dotnet_diagnostic.SA1600.severity = none      # Elements must be documented
-dotnet_diagnostic.SA1604.severity = none      # Documentation must have summary
-dotnet_diagnostic.SA1633.severity = none      # File must have header
-dotnet_diagnostic.SA1649.severity = none      # File name should match first type name
+############ Documentation Rules ############
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1604.severity = none
+dotnet_diagnostic.SA1633.severity = none
+dotnet_diagnostic.SA1649.severity = none
 
-# === Naming Rules ===
-dotnet_diagnostic.SA1309.severity = none      # Field names should not begin with underscore
+############ Naming Rules ############
+dotnet_diagnostic.SA1309.severity = none
 
-# === Readability Rules ===
-dotnet_diagnostic.SA1101.severity = none      # Prefix local calls with 'this.'
-dotnet_diagnostic.SA1122.severity = none      # Use string.Empty for empty strings
+############ Readability Rules ############
+dotnet_diagnostic.SA1101.severity = none
+dotnet_diagnostic.SA1122.severity = none
 
-# === Layout Rules ===
-dotnet_diagnostic.SA1503.severity = none      # Braces should not be omitted
-dotnet_diagnostic.SA1507.severity = none      # Blank line should not be followed by blank line
-dotnet_diagnostic.SA1508.severity = none      # Closing brace must not be followed by blank line
-dotnet_diagnostic.SA1512.severity = none      # Single-line comment must not be followed by blank line
+############ Layout Rules ############
+dotnet_diagnostic.SA1503.severity = none
+dotnet_diagnostic.SA1507.severity = none
+dotnet_diagnostic.SA1508.severity = none
+dotnet_diagnostic.SA1512.severity = none
 
-# === Ordering Rules ===
-dotnet_diagnostic.SA1200.severity = none      # Using directives must appear inside namespace
-dotnet_diagnostic.SA1210.severity = none      # Using directives must be ordered
-dotnet_diagnostic.SA1216.severity = none      # Static using directives must be ordered
+############ Ordering Rules ############
+dotnet_diagnostic.SA1200.severity = none
+dotnet_diagnostic.SA1210.severity = none
+dotnet_diagnostic.SA1216.severity = none
 
-# === Arithmetic Precedence ===
-dotnet_diagnostic.SA1407.severity = none      # Arithmetic expressions must declare precedence explicitly
-dotnet_diagnostic.SA1408.severity = none      # Conditional expressions must declare precedence explicitly
+############ Arithmetic Precedence ############
+dotnet_diagnostic.SA1407.severity = none
+dotnet_diagnostic.SA1408.severity = none
 
-# === General ===
+############ CA Rules (Code Analysis) ############
+dotnet_diagnostic.CA1848.severity = none   # Prefer LoggerMessage delegate
+dotnet_diagnostic.CA1305.severity = none   # Use IFormatProvider with ToString()
+dotnet_diagnostic.CA1860.severity = none   # Prefer Count > 0 instead of Any()
+dotnet_diagnostic.CA1861.severity = none   # Prefer static readonly array reuse
+dotnet_diagnostic.CA2201.severity = none   # Avoid System.Exception
+dotnet_diagnostic.CA1822.severity = none   # Can be made static
+dotnet_diagnostic.CA1316.severity = none   # Tuple element name casing
+
+############ Formatting Preferences ############
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+csharp_space_between_brackets = false
+
+############ General Analyzer Severity ############
 dotnet_analyzer_diagnostic.severity = warning
+
+# === More StyleCop Suppressions ===
+dotnet_diagnostic.SA1003.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1202.severity = none
+dotnet_diagnostic.SA1204.severity = none
+dotnet_diagnostic.SA1402.severity = none
+dotnet_diagnostic.SA1316.severity = none
+dotnet_diagnostic.SA1024.severity = none
+dotnet_diagnostic.SA1118.severity = none
+
+# === IDE Code Style Suppressions ===
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0052.severity = none
+dotnet_diagnostic.IDE0060.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+

@@ -61,10 +61,10 @@ namespace SmartAutoTrader.API.Models
         public User? User { get; set; }
 
         [Required]
-        public string? PreferenceType { get; set; } // e.g., "PriceRange", "VehicleType", "FuelType"
+        public string PreferenceType { get; set; } = null!; // e.g., "PriceRange", "VehicleType", "FuelType"
 
         [Required]
-        public string? Value { get; set; } // Store as JSON if needed for complex values
+        public string Value { get; set; } = null!; // Store as JSON if needed for complex values
 
         public float Weight { get; set; } = 1.0f; // Default weight = 1
     }

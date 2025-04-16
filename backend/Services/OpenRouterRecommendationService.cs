@@ -1,12 +1,16 @@
-using System.Text.Json;
+using System.Globalization;
 using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
+using System.Text.Json;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 
 namespace SmartAutoTrader.API.Services
 {
+    // Interface for any AI recommendation service (allows easy swapping)
+    public interface IAIRecommendationService
+    {
+        Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
+    }
     public class OpenRouterRecommendationService(
         IVehicleRepository vehicleRepo,
         IConfiguration configuration,
@@ -14,9 +18,9 @@ namespace SmartAutoTrader.API.Services
         HttpClient httpClient) : IAIRecommendationService
     {
         private readonly IConfiguration _configuration = configuration;
-        private readonly IVehicleRepository _vehicleRepo = vehicleRepo;
         private readonly HttpClient _httpClient = httpClient;
         private readonly ILogger<OpenRouterRecommendationService> _logger = logger;
+        private readonly IVehicleRepository _vehicleRepo = vehicleRepo;
 
         public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
         {
@@ -24,7 +28,8 @@ namespace SmartAutoTrader.API.Services
             {
                 _logger.LogInformation(
                     "Fetching recommendations for user ID: {UserId} with parameters: {Parameters}",
-                    userId, JsonSerializer.Serialize(parameters));
+                    userId,
+                    JsonSerializer.Serialize(parameters));
 
                 // Log the important parameter values we'll be filtering on
                 _logger.LogInformation(
@@ -37,7 +42,7 @@ namespace SmartAutoTrader.API.Services
 
                 List<Vehicle> filteredVehicles = await GetFilteredVehiclesAsync(parameters);
 
-                if (!filteredVehicles.Any())
+                if (filteredVehicles.Count == 0)
                 {
                     _logger.LogWarning("No available vehicles found for filtering criteria.");
                     return new List<Vehicle>();
@@ -58,7 +63,11 @@ namespace SmartAutoTrader.API.Services
                 {
                     _logger.LogInformation(
                         "Recommended vehicle: {Year} {Make} {Model}, Type={Type}, Fuel={Fuel}",
-                        vehicle.Year, vehicle.Make, vehicle.Model, vehicle.VehicleType, vehicle.FuelType);
+                        vehicle.Year,
+                        vehicle.Make,
+                        vehicle.Model,
+                        vehicle.VehicleType,
+                        vehicle.FuelType);
                 }
 
                 return filteredVehicles;
@@ -74,17 +83,18 @@ namespace SmartAutoTrader.API.Services
         {
             // Build a combined expression for filtering
             Expression<Func<Vehicle, bool>> filterExpression = BuildFilterExpression(parameters);
-            
+
             // Log the filter criteria
             _logger.LogInformation("Applying filter expression for vehicle search");
-            
+
             // Execute the query through the repository
-            var vehicles = await _vehicleRepo.SearchAsync(filterExpression);
-            
+            List<Vehicle> vehicles = await _vehicleRepo.SearchAsync(filterExpression);
+
             // Optional in-memory feature ranking
             if (parameters.DesiredFeatures?.Any() == true)
             {
-                _logger.LogInformation("Ranking by optional features: {Features}",
+                _logger.LogInformation(
+                    "Ranking by optional features: {Features}",
                     string.Join(", ", parameters.DesiredFeatures));
 
                 HashSet<string> normalizedFeatureSet = parameters.DesiredFeatures
@@ -92,13 +102,14 @@ namespace SmartAutoTrader.API.Services
                     .ToHashSet();
 
                 return vehicles
-                    .Select(v => new
-                    {
-                        Vehicle = v,
-                        MatchCount = v.Features
-                            .Count(f => normalizedFeatureSet.Contains(
-                                f.Name?.Trim().ToLowerInvariant() ?? string.Empty))
-                    })
+                    .Select(
+                        v => new
+                        {
+                            Vehicle = v,
+                            MatchCount = v.Features?
+                                .Count(
+                                    f => normalizedFeatureSet.Contains(f.Name?.Trim().ToLowerInvariant() ?? string.Empty)),
+                        })
                     .OrderByDescending(v => v.MatchCount)
                     .ThenBy(v => v.Vehicle.Price)
                     .Select(v => v.Vehicle)
@@ -107,104 +118,135 @@ namespace SmartAutoTrader.API.Services
 
             return vehicles;
         }
-        
+
         private Expression<Func<Vehicle, bool>> BuildFilterExpression(RecommendationParameters parameters)
         {
             // Start with a base expression that always evaluates to true
             Expression<Func<Vehicle, bool>> expression = v => v.Status == VehicleStatus.Available;
-            
+
             // Add price range filters
             if (parameters.MinPrice.HasValue)
             {
                 expression = CombineExpressions(expression, v => v.Price >= parameters.MinPrice.Value);
             }
-            
+
             if (parameters.MaxPrice.HasValue)
             {
                 expression = CombineExpressions(expression, v => v.Price <= parameters.MaxPrice.Value);
             }
-            
+
             // Add year range filters
             if (parameters.MinYear.HasValue)
             {
                 expression = CombineExpressions(expression, v => v.Year >= parameters.MinYear.Value);
             }
-            
+
             if (parameters.MaxYear.HasValue)
             {
                 expression = CombineExpressions(expression, v => v.Year <= parameters.MaxYear.Value);
             }
-            
+
             // Add mileage filter
             if (parameters.MaxMileage.HasValue)
             {
                 expression = CombineExpressions(expression, v => v.Mileage <= parameters.MaxMileage.Value);
             }
-            
+
             // Add fuel type filter
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
                 expression = CombineExpressions(
-                    expression, 
-                    v => parameters.PreferredFuelTypes.Contains(v.FuelType)
-                );
+                    expression,
+                    v => parameters.PreferredFuelTypes.Contains(v.FuelType));
             }
-            
+
             // Add vehicle type filter
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
                 expression = CombineExpressions(
-                    expression, 
-                    v => parameters.PreferredVehicleTypes.Contains(v.VehicleType)
-                );
+                    expression,
+                    v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
             }
-            
-            // Add make filter
+
+            // Add make filter - FIXED: Use EF Core's EF.Functions.Like for case-insensitive comparison
             if (parameters.PreferredMakes?.Any() == true)
             {
-                var normalizedMakes = parameters.PreferredMakes
-                    .Select(m => m.Trim().ToLowerInvariant())
-                    .ToList();
-                
-                _logger.LogInformation("Filtering by manufacturers: {Manufacturers}",
-                    string.Join(", ", normalizedMakes));
-                
-                expression = CombineExpressions(
-                    expression, 
-                    v => normalizedMakes.Contains(v.Make.ToLower())
-                );
+                // Create an OR condition for each make
+                Expression<Func<Vehicle, bool>> makesExpression = null;
+
+                foreach (var make in parameters.PreferredMakes)
+                {
+                    var currentMake = make.Trim();
+                    var makeCondition = BuildMakeMatchExpression(currentMake);
+
+                    // Either initialize makesExpression or combine with OR
+                    makesExpression = makesExpression == null
+                        ? makeCondition
+                        : CombineExpressionsWithOr(makesExpression, makeCondition);
+                }
+
+                // Combine with the main expression using AND if we have any makes
+                if (makesExpression != null)
+                {
+                    expression = CombineExpressions(expression, makesExpression);
+                }
+
+                _logger.LogInformation(
+                    "Filtering by manufacturers: {Manufacturers}",
+                    string.Join(", ", parameters.PreferredMakes));
             }
-            
+
             return expression;
         }
-        
-        // Helper method to combine two expressions with AND operator
-        private Expression<Func<Vehicle, bool>> CombineExpressions(
-            Expression<Func<Vehicle, bool>> expr1, 
+
+        // Helper method for case-insensitive make matching that's compatible with EF Core
+        private static Expression<Func<Vehicle, bool>> BuildMakeMatchExpression(string make)
+        {
+            // Simply check for exact match, as database collation should handle case-insensitivity
+            // Or we could use EF.Functions.Collate if we need to enforce case-insensitivity
+            return v => v.Make == make ||
+                        v.Make.Equals(make) ||
+                        v.Make.Contains(make) ||  // Matching parts of make names
+                        make.Contains(v.Make);    // Substrings like "BMW" in "BMW X5"
+        }
+
+        // Helper method to combine two expressions with OR operator
+        private static Expression<Func<Vehicle, bool>> CombineExpressionsWithOr(
+            Expression<Func<Vehicle, bool>> expr1,
             Expression<Func<Vehicle, bool>> expr2)
         {
-            var parameter = Expression.Parameter(typeof(Vehicle), "v");
-            
-            var leftVisitor = new ReplaceParameterVisitor(expr1.Parameters[0], parameter);
-            var left = leftVisitor.Visit(expr1.Body);
-            
-            var rightVisitor = new ReplaceParameterVisitor(expr2.Parameters[0], parameter);
-            var right = rightVisitor.Visit(expr2.Body);
-            
-            return Expression.Lambda<Func<Vehicle, bool>>(
-                Expression.AndAlso(left, right), parameter);
-        }
-        
-        private class ReplaceParameterVisitor : System.Linq.Expressions.ExpressionVisitor
-        {
-            private readonly ParameterExpression _oldParameter;
-            private readonly ParameterExpression _newParameter;
+            ParameterExpression parameter = Expression.Parameter(typeof(Vehicle), "v");
 
-            public ReplaceParameterVisitor(ParameterExpression oldParameter, ParameterExpression newParameter)
-            {
-                _oldParameter = oldParameter;
-                _newParameter = newParameter;
-            }
+            ReplaceParameterVisitor leftVisitor = new(expr1.Parameters[0], parameter);
+            Expression left = leftVisitor.Visit(expr1.Body);
+
+            ReplaceParameterVisitor rightVisitor = new(expr2.Parameters[0], parameter);
+            Expression right = rightVisitor.Visit(expr2.Body);
+
+            return Expression.Lambda<Func<Vehicle, bool>>(Expression.OrElse(left, right), parameter);
+        }
+
+        // Helper method to combine two expressions with AND operator
+        private static Expression<Func<Vehicle, bool>> CombineExpressions(
+            Expression<Func<Vehicle, bool>> expr1,
+            Expression<Func<Vehicle, bool>> expr2)
+        {
+            ParameterExpression parameter = Expression.Parameter(typeof(Vehicle), "v");
+
+            ReplaceParameterVisitor leftVisitor = new(expr1.Parameters[0], parameter);
+            Expression left = leftVisitor.Visit(expr1.Body);
+
+            ReplaceParameterVisitor rightVisitor = new(expr2.Parameters[0], parameter);
+            Expression right = rightVisitor.Visit(expr2.Body);
+
+            return Expression.Lambda<Func<Vehicle, bool>>(Expression.AndAlso(left, right), parameter);
+        }
+
+        private sealed class ReplaceParameterVisitor(ParameterExpression oldParameter, ParameterExpression newParameter)
+            : ExpressionVisitor
+        {
+            private readonly ParameterExpression _newParameter = newParameter;
+            private readonly ParameterExpression _oldParameter = oldParameter;
 
             protected override Expression VisitParameter(ParameterExpression node)
             {

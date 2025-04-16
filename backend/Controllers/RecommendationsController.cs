@@ -29,17 +29,18 @@ namespace SmartAutoTrader.API.Controllers
                 }
 
                 // Convert request model to service parameters
-                RecommendationParameters parameters = new RecommendationParameters
+                RecommendationParameters parameters = new()
                 {
                     MinPrice = request.MinPrice,
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes,
-                    PreferredVehicleTypes = request.VehicleTypes,
-                    PreferredMakes = request.Makes,
-                    DesiredFeatures = request.Features,
-                    TextPrompt = request.TextPrompt, // Added text prompt
+                    PreferredFuelTypes = request.FuelTypes ?? [],
+                    PreferredVehicleTypes = request.VehicleTypes ?? [],
+                    PreferredMakes = request.Makes ?? [],
+                    DesiredFeatures = request.Features ?? [],
+
+                    TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
 
@@ -50,7 +51,8 @@ namespace SmartAutoTrader.API.Controllers
                 }
 
                 // Get recommendations from service
-                IEnumerable<Vehicle> recommendations = await _recommendationService.GetRecommendationsAsync(userId, parameters);
+                IEnumerable<Vehicle> recommendations =
+                    await _recommendationService.GetRecommendationsAsync(userId, parameters);
 
                 // Return recommendations
                 return Ok(recommendations);
@@ -70,17 +72,17 @@ namespace SmartAutoTrader.API.Controllers
             try
             {
                 // Convert request model to service parameters
-                RecommendationParameters parameters = new RecommendationParameters
+                RecommendationParameters parameters = new()
                 {
                     MinPrice = request.MinPrice,
                     MaxPrice = request.MaxPrice,
                     MinYear = request.MinYear,
                     MaxYear = request.MaxYear,
-                    PreferredFuelTypes = request.FuelTypes,
-                    PreferredVehicleTypes = request.VehicleTypes,
-                    PreferredMakes = request.Makes,
-                    DesiredFeatures = request.Features,
-                    TextPrompt = request.TextPrompt, // Added text prompt
+                    PreferredFuelTypes = request.FuelTypes ?? [],
+                    PreferredVehicleTypes = request.VehicleTypes ?? [],
+                    PreferredMakes = request.Makes ?? [],
+                    DesiredFeatures = request.Features ?? [],
+                    TextPrompt = request.TextPrompt,
                     MaxResults = request.MaxResults ?? 5,
                 };
 
@@ -96,28 +98,5 @@ namespace SmartAutoTrader.API.Controllers
                 return StatusCode(500, "An error occurred while testing recommendations");
             }
         }
-    }
-
-    public class RecommendationRequestModel
-    {
-        public decimal? MinPrice { get; set; }
-
-        public decimal? MaxPrice { get; set; }
-
-        public int? MinYear { get; set; }
-
-        public int? MaxYear { get; set; }
-
-        public List<FuelType>? FuelTypes { get; set; }
-
-        public List<VehicleType>? VehicleTypes { get; set; }
-
-        public List<string>? Makes { get; set; }
-
-        public List<string>? Features { get; set; }
-
-        public string? TextPrompt { get; set; } // Added text prompt
-
-        public int? MaxResults { get; set; }
     }
 }

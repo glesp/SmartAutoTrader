@@ -1,3 +1,4 @@
+using System.Globalization;
 using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Helpers
@@ -20,7 +21,7 @@ namespace SmartAutoTrader.API.Helpers
             }
 
             // Additional fuzzy matching for common terms
-            switch (value.ToLower(System.Globalization.CultureInfo.CurrentCulture).Trim())
+            switch (value.ToLower(CultureInfo.CurrentCulture).Trim())
             {
                 case "gas":
                 case "gasoline":
@@ -61,7 +62,7 @@ namespace SmartAutoTrader.API.Helpers
             }
 
             // Additional fuzzy matching for common terms
-            switch (value.ToLower(System.Globalization.CultureInfo.CurrentCulture).Trim())
+            switch (value.ToLower(CultureInfo.CurrentCulture).Trim())
             {
                 case "suv":
                 case "crossover":
@@ -117,12 +118,7 @@ namespace SmartAutoTrader.API.Helpers
 
         public static List<FuelType> ParseFuelTypeList(IEnumerable<string> values)
         {
-            List<FuelType> result =[];
-
-            if (values == null)
-            {
-                return result;
-            }
+            List<FuelType> result = [];
 
             foreach (string value in values)
             {
@@ -137,12 +133,7 @@ namespace SmartAutoTrader.API.Helpers
 
         public static List<VehicleType> ParseVehicleTypeList(IEnumerable<string> values)
         {
-            List<VehicleType> result =[];
-
-            if (values == null)
-            {
-                return result;
-            }
+            List<VehicleType> result = [];
 
             foreach (string value in values)
             {

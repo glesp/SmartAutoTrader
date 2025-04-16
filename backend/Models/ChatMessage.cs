@@ -1,16 +1,17 @@
-namespace SmartAutoTrader.API.Models;
-
-public class ChatMessage
+namespace SmartAutoTrader.API.Models
 {
-    public string? Content { get; set; }
+    public class ChatMessage
+    {
+        public string Content { get; set; } = string.Empty;
 
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
-    public bool IsClarification { get; set; }
+        public bool IsClarification { get; set; }
 
-    public string? OriginalUserInput { get; set; }
+        public string? OriginalUserInput { get; set; }
 
-    public bool IsFollowUp { get; set; }
+        public bool IsFollowUp { get; set; }
 
-    public string? ConversationId { get; set; }
+        public string? ConversationId { get; set; }
+    }
 }

@@ -1,10 +1,10 @@
 # embed_model_loader.py
 # Loads a CPU-friendly embedding model once at startup
 
-import os
 from sentence_transformers import SentenceTransformer
 
 _model = None
+
 
 def load_embedding_model():
     global _model

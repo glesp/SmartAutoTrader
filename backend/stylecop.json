@@ -1,9 +1,9 @@
 {
   "settings": {
     "documentationRules": {
-      "companyName": "SmartAutoTrader",
-      "documentExposedElements": true,
-      "documentInternalElements": false
+      "companyName": "",
+      "documentInternalElements": false,
+      "documentPrivateElements": false
     }
   }
 }

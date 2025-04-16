@@ -44,10 +44,10 @@ namespace SmartAutoTrader.API.Models
         public int Id { get; set; }
 
         [Required]
-        public string? Make { get; set; }
+        public string Make { get; set; } = null!;
 
         [Required]
-        public string? Model { get; set; }
+        public string Model { get; set; } = null!;
 
         [Required]
         public int Year { get; set; }
@@ -70,7 +70,7 @@ namespace SmartAutoTrader.API.Models
         public string? Country { get; set; }
 
         [Required]
-        public string? Description { get; set; }
+        public string Description { get; set; } = null!;
 
         public DateTime DateListed { get; set; } = DateTime.Now;
 

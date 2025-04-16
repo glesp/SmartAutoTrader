@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 
@@ -8,13 +6,13 @@ namespace SmartAutoTrader.API.Services
 {
     public interface IConversationContextService
     {
-        Task<ConversationContext?> GetOrCreateContextAsync(int userId);
+        Task<ConversationContext> GetOrCreateContextAsync(int userId);
 
         Task UpdateContextAsync(int userId, ConversationContext context);
 
         Task<ConversationSession> StartNewSessionAsync(int userId);
 
-        Task<ConversationSession> GetCurrentSessionAsync(int userId);
+        Task<ConversationSession?> GetCurrentSessionAsync(int userId);
     }
 
     // This class represents the state we want to track throughout a conversation
@@ -31,25 +29,29 @@ namespace SmartAutoTrader.API.Services
         // Track user intent and context
         public string LastUserIntent { get; set; } = string.Empty;
 
-        public List<string> MentionedVehicleFeatures { get; set; } =[];
+        public List<string> MentionedVehicleFeatures { get; set; } = [];
 
-        public List<string> ExplicitlyRejectedOptions { get; set; } =[];
+        public List<string> ExplicitlyRejectedOptions { get; set; } = [];
 
         // Track active conversation topics
-        public Dictionary<string, object> TopicContext { get; set; } =[];
+        public Dictionary<string, object> TopicContext { get; set; } = [];
 
         // Track recommendations shown to the user
-        public List<int> ShownVehicleIds { get; set; } =[];
+        public List<int> ShownVehicleIds { get; set; } = [];
+
         public string? ModelUsed { get; set; }
     }
 
-    public class ConversationContextService(IUserRepository userRepo, IChatRepository chatRepo, ILogger<ConversationContextService> logger) : IConversationContextService
+    public class ConversationContextService(
+        IUserRepository userRepo,
+        IChatRepository chatRepo,
+        ILogger<ConversationContextService> logger) : IConversationContextService
     {
         // In-memory cache for active conversations (optional)
-        private readonly Dictionary<int, ConversationContext> _activeContexts =[];
-        private readonly IUserRepository _userRepo = userRepo;
+        private readonly Dictionary<int, ConversationContext> _activeContexts = [];
         private readonly IChatRepository _chatRepo = chatRepo;
         private readonly ILogger<ConversationContextService> _logger = logger;
+        private readonly IUserRepository _userRepo = userRepo;
 
         public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
         {
@@ -87,7 +89,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Create a new context if we couldn't retrieve one
-                ConversationContext newContext = new ConversationContext
+                ConversationContext newContext = new()
                 {
                     LastInteraction = DateTime.UtcNow,
                 };
@@ -97,10 +99,10 @@ namespace SmartAutoTrader.API.Services
                 {
                     _ = await StartNewSessionAsync(userId);
                 }
-                
+
                 // If we detect it's a brand-new session, pick a model
                 // e.g. rotate among fast/refine/clarify:
-                string[] modelPool = new[] { "fast", "refine", "clarify" };
+                string[] modelPool = ["fast", "refine", "clarify"];
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 
@@ -126,7 +128,7 @@ namespace SmartAutoTrader.API.Services
                 context.LastInteraction = DateTime.UtcNow;
 
                 // Get the current session
-                ConversationSession? session = await GetCurrentSessionAsync(userId) ?? await StartNewSessionAsync(userId);
+                ConversationSession session = await GetCurrentSessionAsync(userId) ?? await StartNewSessionAsync(userId);
 
                 // Serialize and save the context
                 session.SessionContext = JsonSerializer.Serialize(context);
@@ -143,7 +145,7 @@ namespace SmartAutoTrader.API.Services
 
         public async Task<ConversationSession> StartNewSessionAsync(int userId)
         {
-            ConversationSession newSession = new ConversationSession
+            ConversationSession newSession = new()
             {
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow,

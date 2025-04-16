@@ -13,7 +13,6 @@ import {
   Paper,
   Tabs,
   Tab,
-  Divider,
   Container,
   Chip,
 } from '@mui/material'
@@ -39,7 +38,7 @@ interface Vehicle {
   year: number
   price: number
   mileage: number
-  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | any
+  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | undefined
 }
 
 // Define Inquiry interface
@@ -56,7 +55,7 @@ interface Inquiry {
 }
 
 // Define what the arrays might look like with ASP.NET serialization
-type SerializedData<T> = T[] | ReferenceWrapper<T> | any
+type SerializedData<T> = T[] | ReferenceWrapper<T> | undefined | null
 
 // Helper function to extract arrays from ASP.NET reference format
 const extractArray = <T,>(data: SerializedData<T>): T[] => {
@@ -310,15 +309,17 @@ const ProfilePage = () => {
                               onClick={async () => {
                                 try {
                                   await inquiryService.closeInquiry(inquiry.id)
-                                  setInquiries((prev: any) => {
-                                    const prevArray =
-                                      extractArray<Inquiry>(prev)
-                                    return prevArray.map((i) =>
-                                      i.id === inquiry.id
-                                        ? { ...i, status: 'Closed' }
-                                        : i
-                                    )
-                                  })
+                                  setInquiries(
+                                    (prev: SerializedData<Inquiry>) => {
+                                      const prevArray =
+                                        extractArray<Inquiry>(prev)
+                                      return prevArray.map((i) =>
+                                        i.id === inquiry.id
+                                          ? { ...i, status: 'Closed' }
+                                          : i
+                                      )
+                                    }
+                                  )
                                 } catch (error) {
                                   console.error('Error closing inquiry:', error)
                                 }

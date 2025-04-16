@@ -1,8 +1,9 @@
-using System.Security.Claims;
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Controllers
@@ -16,8 +17,8 @@ namespace SmartAutoTrader.API.Controllers
         // GET: api/Vehicles
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vehicle>>> GetVehicles(
-            [FromQuery] string make = null,
-            [FromQuery] string model = null,
+            [FromQuery] string? make = null,
+            [FromQuery] string? model = null,
             [FromQuery] int? minYear = null,
             [FromQuery] int? maxYear = null,
             [FromQuery] decimal? minPrice = null,
@@ -94,7 +95,7 @@ namespace SmartAutoTrader.API.Controllers
             }
 
             // Apply sorting
-            query = sortBy.ToLower(System.Globalization.CultureInfo.CurrentCulture) switch
+            query = sortBy.ToLower(CultureInfo.CurrentCulture) switch
             {
                 "price" => ascending ? query.OrderBy(v => v.Price) : query.OrderByDescending(v => v.Price),
                 "year" => ascending ? query.OrderBy(v => v.Year) : query.OrderByDescending(v => v.Year),
@@ -129,22 +130,26 @@ namespace SmartAutoTrader.API.Controllers
                 .Include(v => v.Features)
                 .FirstOrDefaultAsync(v => v.Id == id);
 
-            if (vehicle == null)
+            if (vehicle is null)
             {
                 return NotFound();
             }
 
-            // Record viewing in browsing history if user is authenticated
-            if (User.Identity.IsAuthenticated)
+            // Optional history tracking for authenticated users
+            if (User.Identity?.IsAuthenticated == true)
             {
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-                BrowsingHistory history = new BrowsingHistory
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
                 {
-                    UserId = userId,
+                    return Unauthorized();
+                }
+
+                BrowsingHistory history = new()
+                {
+                    UserId = userId.Value,
                     VehicleId = id,
                     ViewDate = DateTime.Now,
-                    ViewDurationSeconds = 0, // Can be updated later
+                    ViewDurationSeconds = 0,
                 };
 
                 _ = _context.BrowsingHistory.Add(history);
@@ -152,17 +157,6 @@ namespace SmartAutoTrader.API.Controllers
             }
 
             return vehicle;
-        }
-
-        // POST: api/Vehicles
-        [HttpPost]
-        [Authorize] // Only authenticated users can add vehicles (in your case, admins)
-        public async Task<ActionResult<Vehicle>> PostVehicle(Vehicle vehicle)
-        {
-            _ = _context.Vehicles.Add(vehicle);
-            _ = await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
         }
 
         // PUT: api/Vehicles/5
@@ -219,11 +213,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("available-makes")]
         public IActionResult GetAvailableMakes()
         {
-            List<string> makes = _context.Vehicles
-                .Select(v => v.Make)
-                .Distinct()
-                .OrderBy(m => m)
-                .ToList();
+            List<string> makes =
+            [
+                .. _context.Vehicles
+                    .Select(v => v.Make)
+                    .Distinct()
+                    .OrderBy(m => m)
+            ];
 
             return Ok(makes);
         }
@@ -231,12 +227,14 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("available-models")]
         public IActionResult GetAvailableModels([FromQuery] string make)
         {
-            List<string> models = _context.Vehicles
-                .Where(v => v.Make == make)
-                .Select(v => v.Model)
-                .Distinct()
-                .OrderBy(m => m)
-                .ToList();
+            List<string> models =
+            [
+                .. _context.Vehicles
+                    .Where(v => v.Make == make)
+                    .Select(v => v.Model)
+                    .Distinct()
+                    .OrderBy(m => m)
+            ];
 
             return Ok(models);
         }

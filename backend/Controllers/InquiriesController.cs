@@ -1,8 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Enums;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Controllers
@@ -18,7 +19,11 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Inquiry>>> GetUserInquiries()
         {
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
 
             List<Inquiry> inquiries = await _context.Inquiries
                 .Where(i => i.UserId == userId)
@@ -33,7 +38,11 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Inquiry>> GetInquiry(int id)
         {
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
 
             Inquiry? inquiry = await _context.Inquiries
                 .Include(i => i.Vehicle)
@@ -46,7 +55,11 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Inquiry>> CreateInquiry(InquiryCreateDto inquiryDto)
         {
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
 
             // Check if vehicle exists
             Vehicle? vehicle = await _context.Vehicles.FindAsync(inquiryDto.VehicleId);
@@ -55,9 +68,9 @@ namespace SmartAutoTrader.API.Controllers
                 return NotFound(new { Message = "Vehicle not found" });
             }
 
-            Inquiry inquiry = new Inquiry
+            Inquiry inquiry = new()
             {
-                UserId = userId,
+                UserId = userId.Value,
                 VehicleId = inquiryDto.VehicleId,
                 Subject = inquiryDto.Subject,
                 Message = inquiryDto.Message,
@@ -142,7 +155,11 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPut("{id}/Close")]
         public async Task<IActionResult> CloseInquiry(int id)
         {
-            int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            if (userId is null)
+            {
+                return Unauthorized();
+            }
 
             Inquiry? inquiry = await _context.Inquiries
                 .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
@@ -176,19 +193,5 @@ namespace SmartAutoTrader.API.Controllers
         {
             return _context.Inquiries.Any(e => e.Id == id);
         }
-    }
-
-    public class InquiryCreateDto
-    {
-        public int VehicleId { get; set; }
-
-        public string? Subject { get; set; }
-
-        public string? Message { get; set; }
-    }
-
-    public class InquiryReplyDto
-    {
-        public string? Response { get; set; }
     }
 }

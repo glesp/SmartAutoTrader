@@ -1,8 +1,8 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartAutoTrader.API.Data;
+using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Services;
 
@@ -32,12 +32,10 @@ namespace SmartAutoTrader.API.Controllers
                     return BadRequest("Message content cannot be empty.");
                 }
 
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
                 {
-                    _logger.LogWarning("Failed to extract user ID from claims");
-                    return Unauthorized("Invalid authentication token.");
+                    return Unauthorized();
                 }
 
                 _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
@@ -46,12 +44,12 @@ namespace SmartAutoTrader.API.Controllers
                 if (!message.IsClarification && !message.IsFollowUp && string.IsNullOrEmpty(message.ConversationId))
                 {
                     // Start a new conversation session
-                    ConversationSession session = await _contextService.StartNewSessionAsync(userId);
+                    ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
                     message.ConversationId = session.Id.ToString();
                 }
 
                 // Process the message
-                ChatMessage chatMessage = new ChatMessage
+                ChatMessage chatMessage = new()
                 {
                     Content = message.Content,
                     Timestamp = DateTime.UtcNow,
@@ -61,23 +59,15 @@ namespace SmartAutoTrader.API.Controllers
                     ConversationId = message.ConversationId,
                 };
 
-                ChatResponse response = await _chatService.ProcessMessageAsync(userId, chatMessage);
-
-                // Check for null values to avoid NullReferenceException
-                if (response == null)
-                {
-                    return StatusCode(500, "An error occurred while processing your message.");
-                }
-
-                // Map the response to a DTO with null checks
-                ChatResponseDto responseDto = new ChatResponseDto
+                ChatResponse response = await _chatService.ProcessMessageAsync((int)userId, chatMessage);
+                ChatResponseDto responseDto = new()
                 {
                     Message = response.Message,
                     RecommendedVehicles = response.RecommendedVehicles,
                     ClarificationNeeded = response.ClarificationNeeded,
                     OriginalUserInput = response.OriginalUserInput,
                     ConversationId = response.ConversationId,
-                    Parameters = response.UpdatedParameters != null
+                    Parameters = response.UpdatedParameters is not null
                         ? new RecommendationParametersDto
                         {
                             MinPrice = response.UpdatedParameters.MinPrice,
@@ -85,12 +75,14 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes,
-                            PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes
-                                ?.Select(t => t.ToString())?.ToList(),
-                            PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?.Select(f => f.ToString())
-                                ?.ToList(),
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
+                            PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
+                                .Select(t => t.ToString())
+                                .ToList() ?? [],
+                            PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
+                                .Select(f => f.ToString())
+                                .ToList() ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
                         }
                         : null,
                 };
@@ -107,16 +99,14 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("history")]
         public async Task<IActionResult> GetChatHistory(
             [FromQuery] int limit = 10,
-            [FromQuery] string conversationId = null)
+            [FromQuery] string conversationId = "")
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
                 {
-                    _logger.LogWarning("Failed to extract user ID from claims");
-                    return Unauthorized("Invalid authentication token.");
+                    return Unauthorized();
                 }
 
                 // Get chat history from database
@@ -132,14 +122,15 @@ namespace SmartAutoTrader.API.Controllers
                 List<ChatHistoryDto> history = await query
                     .OrderByDescending(ch => ch.Timestamp)
                     .Take(limit)
-                    .Select(ch => new ChatHistoryDto
-                    {
-                        Id = ch.Id,
-                        UserMessage = ch.UserMessage,
-                        AIResponse = ch.AIResponse,
-                        Timestamp = ch.Timestamp.ToString("o"),
-                        ConversationId = ch.ConversationSessionId.ToString(),
-                    })
+                    .Select(
+                        ch => new ChatHistoryDto
+                        {
+                            Id = ch.Id,
+                            UserMessage = ch.UserMessage,
+                            AIResponse = ch.AIResponse,
+                            Timestamp = ch.Timestamp.ToString("o"),
+                            ConversationId = ch.ConversationSessionId.ToString(),
+                        })
                     .ToListAsync();
 
                 return Ok(history);
@@ -156,11 +147,10 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
                 {
-                    return Unauthorized("Invalid authentication token.");
+                    return Unauthorized();
                 }
 
                 // Get recent conversations
@@ -168,13 +158,14 @@ namespace SmartAutoTrader.API.Controllers
                     .Where(cs => cs.UserId == userId)
                     .OrderByDescending(cs => cs.LastInteractionAt)
                     .Take(limit)
-                    .Select(cs => new
-                    {
-                        cs.Id,
-                        cs.CreatedAt,
-                        cs.LastInteractionAt,
-                        MessageCount = _context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
-                    })
+                    .Select(
+                        cs => new
+                        {
+                            cs.Id,
+                            cs.CreatedAt,
+                            cs.LastInteractionAt,
+                            MessageCount = _context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
+                        })
                     .ToListAsync();
 
                 return Ok(conversations);
@@ -191,15 +182,14 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                // Get the user ID from the claims
-                Claim? userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                if (userId is null)
                 {
-                    return Unauthorized("Invalid authentication token.");
+                    return Unauthorized();
                 }
 
                 // Create a new conversation session
-                ConversationSession session = await _contextService.StartNewSessionAsync(userId);
+                ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
 
                 return Ok(new { conversationId = session.Id });
             }
@@ -227,7 +217,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } =[];
+            public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -250,13 +240,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } =[];
+            public List<string> PreferredMakes { get; set; } = [];
 
-            public List<string> PreferredVehicleTypes { get; set; } =[];
+            public List<string> PreferredVehicleTypes { get; set; } = [];
 
-            public List<string> PreferredFuelTypes { get; set; } =[];
+            public List<string> PreferredFuelTypes { get; set; } = [];
 
-            public List<string> DesiredFeatures { get; set; } =[];
+            public List<string> DesiredFeatures { get; set; } = [];
         }
 
         public class ChatHistoryDto

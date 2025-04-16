@@ -1,28 +1,21 @@
 using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
 
 namespace SmartAutoTrader.API.Validators
 {
     public static class RecommendationParameterValidator
     {
-        public static bool Validate(RecommendationParameters parameters, out string errorMessage)
+        public static bool Validate(RecommendationParameters parameters, out string? errorMessage)
         {
             errorMessage = null;
 
             // Check if FuelType values are valid
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
-                List<string> invalidFuelTypes =[];
-                List<FuelType> validatedFuelTypes =[];
+                List<string> invalidFuelTypes = [];
+                List<FuelType> validatedFuelTypes = [];
 
                 foreach (FuelType fuelType in parameters.PreferredFuelTypes)
                 {
-                    // Skip null values
-                    if (fuelType == null)
-                    {
-                        continue;
-                    }
-
                     // Check if the value is a valid enum
                     if (!Enum.IsDefined(typeof(FuelType), fuelType))
                     {
@@ -35,7 +28,7 @@ namespace SmartAutoTrader.API.Validators
                 }
 
                 // If there are invalid fuel types, report them
-                if (invalidFuelTypes.Any())
+                if (invalidFuelTypes.Count != 0)
                 {
                     errorMessage =
                         $"Invalid FuelType values: {string.Join(", ", invalidFuelTypes)}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(FuelType)))}";
@@ -49,17 +42,11 @@ namespace SmartAutoTrader.API.Validators
             // Check if VehicleType values are valid
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
-                List<string> invalidVehicleTypes =[];
-                List<VehicleType> validatedVehicleTypes =[];
+                List<string> invalidVehicleTypes = [];
+                List<VehicleType> validatedVehicleTypes = [];
 
                 foreach (VehicleType vehicleType in parameters.PreferredVehicleTypes)
                 {
-                    // Skip null values
-                    if (vehicleType == null)
-                    {
-                        continue;
-                    }
-
                     // Check if the value is a valid enum
                     if (!Enum.IsDefined(typeof(VehicleType), vehicleType))
                     {
@@ -72,7 +59,7 @@ namespace SmartAutoTrader.API.Validators
                 }
 
                 // If there are invalid vehicle types, report them
-                if (invalidVehicleTypes.Any())
+                if (invalidVehicleTypes.Count != 0)
                 {
                     errorMessage =
                         $"Invalid VehicleType values: {string.Join(", ", invalidVehicleTypes)}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(VehicleType)))}";

@@ -43,8 +43,7 @@ interface ApiVehicle {
   transmission: string
   vehicleType: string
   description: string
-  // Define more precisely to help TypeScript
-  images: VehicleImage[] | ReferenceWrapper | any
+  images: VehicleImage[] | ReferenceWrapper | null | undefined
 }
 
 const VehicleDetailPage = () => {

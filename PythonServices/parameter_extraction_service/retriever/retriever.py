@@ -14,6 +14,7 @@ _categories = []
 _vectors = None
 _model = None
 
+
 def initialize_retriever():
     global _categories, _vectors, _model
     if not _categories:
@@ -31,14 +32,16 @@ def initialize_retriever():
         _vectors = np.load(EMBEDDINGS_PATH)
         _model = load_embedding_model()
 
+
 def cosine_sim(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
 
 def find_best_match(user_query: str) -> (str, float):
     """
     Return the best category match and similarity score
     """
-    global _model, _vectors, _categories
+    _model, _vectors, _categories
 
     if not _model or _vectors is None or not _categories:
         initialize_retriever()
