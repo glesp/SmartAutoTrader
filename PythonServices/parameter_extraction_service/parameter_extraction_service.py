@@ -199,21 +199,36 @@ def run_llm_with_history(
     valid_fuel_types = ["Petrol", "Diesel", "Electric", "Hybrid"]
     valid_vehicle_types = [
         # Sedan Aliases
-        "Sedan", "Saloon",
+        "Sedan",
+        "Saloon",
         # SUV Aliases
-        "SUV", "Crossover", "CUV",
+        "SUV",
+        "Crossover",
+        "CUV",
         # Hatchback Aliases
-        "Hatchback", "5-door", "hot hatch",
+        "Hatchback",
+        "5-door",
+        "hot hatch",
         # Estate/Wagon Aliases
-        "Estate", "Wagon", "Touring",
+        "Estate",
+        "Wagon",
+        "Touring",
         # Coupe Aliases
-        "Coupe", "2-door", "sports car",
+        "Coupe",
+        "2-door",
+        "sports car",
         # Convertible Aliases
-        "Convertible", "Cabriolet", "Roadster",
+        "Convertible",
+        "Cabriolet",
+        "Roadster",
         # Pickup Aliases
-        "Pickup", "Truck", "flatbed", # Note: C# uses Pickup, Python list had Truck
+        "Pickup",
+        "Truck",
+        "flatbed",  # Note: C# uses Pickup, Python list had Truck
         # Van Aliases
-        "Van", "Minivan", "MPV",
+        "Van",
+        "Minivan",
+        "MPV",
     ]
 
     model_order = {"fast": FAST_MODEL, "refine": REFINE_MODEL, "clarify": CLARIFY_MODEL}
@@ -243,10 +258,7 @@ def run_llm_with_history(
 
     # Track if this is likely a follow-up based on conversation history
     is_likely_followup = len(conversation_history) > 0
-    has_followup_indicators = any(
-        marker in user_query.lower()
-        for marker in ["change", "instead", "also show", "but", "rather", "make it"]
-    )
+    # Removed unused variable 'has_followup_indicators'
 
     for model in models_to_try:
         extracted = try_extract_with_model(model, system_prompt, user_query)
@@ -257,105 +269,126 @@ def run_llm_with_history(
                 extracted, valid_manufacturers, valid_fuel_types, valid_vehicle_types
             )
 
-            # --- Intent Correction Logic  ---
+            # Rest of the code remains unchanged
             current_intent = processed.get("intent")
-            # Aggressively correct 'new_query' to 'refine_criteria' if any history exists
             if is_likely_followup and current_intent == "new_query":
-                logger.info("Correcting intent from new_query to refine_criteria based on history presence.")
+                logger.info(
+                    "Correcting intent from new_query to refine_criteria based on history presence."
+                )
                 processed["intent"] = "refine_criteria"
-            # Ensure intent field exists and has a valid default if missing
             elif not current_intent:
-                default_intent = "refine_criteria" if is_likely_followup else "new_query"
+                default_intent = (
+                    "refine_criteria" if is_likely_followup else "new_query"
+                )
                 logger.info(f"Setting missing intent to default: {default_intent}")
                 processed["intent"] = default_intent
 
-            # --- Post-processing Keyword Overrides ---
             latest_query_fragment = extract_newest_user_fragment(user_query).lower()
 
-            # Make Override
             make_override_phrases = [
-                "any make", "any manufacturer", "any brand",
-                "dont mind the brand", "don't mind the brand",
-                "no specific brand", "no preference on make",
+                "any make",
+                "any manufacturer",
+                "any brand",
+                "dont mind the brand",
+                "don't mind the brand",
+                "no specific brand",
+                "no preference on make",
             ]
             if any(phrase in latest_query_fragment for phrase in make_override_phrases):
                 if processed.get("preferredMakes"):
-                    logger.info("Overriding preferredMakes to empty based on user query trigger words.")
+                    logger.info(
+                        "Overriding preferredMakes to empty based on user query trigger words."
+                    )
                 processed["preferredMakes"] = []
 
-            # Fuel Type Override
-            fuel_override_phrases = ["any fuel", "any fuel type", "dont mind fuel", "don't mind fuel"]
+            fuel_override_phrases = [
+                "any fuel",
+                "any fuel type",
+                "dont mind fuel",
+                "don't mind fuel",
+            ]
             if any(phrase in latest_query_fragment for phrase in fuel_override_phrases):
                 if processed.get("preferredFuelTypes"):
-                    logger.info("Overriding preferredFuelTypes to empty based on user query.")
+                    logger.info(
+                        "Overriding preferredFuelTypes to empty based on user query."
+                    )
                 processed["preferredFuelTypes"] = []
 
-            # Vehicle Type Override
-            type_override_phrases = ["any type", "any vehicle type", "dont mind type", "don't mind type"]
+            type_override_phrases = [
+                "any type",
+                "any vehicle type",
+                "dont mind type",
+                "don't mind type",
+            ]
             if any(phrase in latest_query_fragment for phrase in type_override_phrases):
                 if processed.get("preferredVehicleTypes"):
-                    logger.info("Overriding preferredVehicleTypes to empty based on user query.")
+                    logger.info(
+                        "Overriding preferredVehicleTypes to empty based on user query."
+                    )
                 processed["preferredVehicleTypes"] = []
 
-            # Price Limit Override
-            price_override_phrases = ["any price", "no price limit", "price doesnt matter", "price doesn't matter"]
-            if any(phrase in latest_query_fragment for phrase in price_override_phrases):
-                if processed.get("minPrice") is not None or processed.get("maxPrice") is not None:
+            price_override_phrases = [
+                "any price",
+                "no price limit",
+                "price doesnt matter",
+                "price doesn't matter",
+            ]
+            if any(
+                phrase in latest_query_fragment for phrase in price_override_phrases
+            ):
+                if (
+                    processed.get("minPrice") is not None
+                    or processed.get("maxPrice") is not None
+                ):
                     logger.info("Overriding price limits to null based on user query.")
                 processed["minPrice"] = None
                 processed["maxPrice"] = None
 
-            # Year Override
-            year_override_phrases = ["any year", "year doesnt matter", "year doesn't matter"]
+            year_override_phrases = [
+                "any year",
+                "year doesnt matter",
+                "year doesn't matter",
+            ]
             if any(phrase in latest_query_fragment for phrase in year_override_phrases):
-                if processed.get("minYear") is not None or processed.get("maxYear") is not None:
+                if (
+                    processed.get("minYear") is not None
+                    or processed.get("maxYear") is not None
+                ):
                     logger.info("Overriding year limits to null based on user query.")
                 processed["minYear"] = None
                 processed["maxYear"] = None
-            # --- End Post-processing Keyword Overrides ---
 
-
-            # --- Heuristic Corrections (Your existing code) ---
-            # Examine query for price indicators and correct if needed
             if "under" in latest_query_fragment or "less than" in latest_query_fragment:
-                # Find numbers in the query fragment
-                import re  # Make sure re is imported earlier or import here
+                import re
 
                 numbers = re.findall(r"\d+(?:\.\d+)?", latest_query_fragment)
-                # Only correct if the LLM *didn't* already set maxPrice based on the prompt rules
                 if numbers and not processed.get("maxPrice"):
                     try:
-                        price = float(numbers[-1])  # Use last number found in fragment
-                        if price > 1000:  # Likely a price, not a year
+                        price = float(numbers[-1])
+                        if price > 1000:
                             processed["maxPrice"] = price
-                            # Set minPrice too, matching prompt rule for 'under'
                             processed["minPrice"] = None
                             logger.info(
                                 f"Corrected missing maxPrice to {price} based on query text trigger 'under'"
                             )
                     except (ValueError, IndexError):
                         pass
-            # Add similar block for "over" / "more than" if needed for minPrice correction
 
-            # If the query mentions "relatively new" or "recent" but no year was extracted
             if (
-                "relatively new" in latest_query_fragment or "recent" in latest_query_fragment
+                "relatively new" in latest_query_fragment
+                or "recent" in latest_query_fragment
             ) and not processed.get("minYear"):
                 current_year = datetime.datetime.now().year
                 processed["minYear"] = current_year - 2
                 logger.info(
                     f"Setting minYear to {current_year-2} based on 'relatively new' in query fragment"
                 )
-            # --- End Heuristic Corrections ---
 
-
-            # --- Handle clarification fields (Your existing code) ---
             if (
                 processed.get("clarificationNeeded", False)
                 and "clarificationNeededFor" not in processed
             ):
                 missing_params = []
-                # Check latest fragment for "any" phrases when determining if clarification needed
                 if (
                     not processed.get("preferredMakes")
                     and "any make" not in latest_query_fragment
@@ -379,30 +412,30 @@ def run_llm_with_history(
                     missing_params.append("year")
 
                 processed["clarificationNeededFor"] = missing_params
-                # We might want to set clarificationNeeded based on missing_params count here
                 if missing_params and not processed["clarificationNeeded"]:
-                    logger.info(f"Setting clarificationNeeded=True based on missing params: {missing_params}")
+                    logger.info(
+                        f"Setting clarificationNeeded=True based on missing params: {missing_params}"
+                    )
                     processed["clarificationNeeded"] = True
 
-            # Don't request clarification if we already have enough info
             if processed.get("clarificationNeeded", False):
-                # Key parameters that make clarification unnecessary
                 has_price = (
                     processed.get("minPrice") is not None
                     or processed.get("maxPrice") is not None
                 )
-                # Check the final processed list here
                 has_vehicle_type = len(processed.get("preferredVehicleTypes", [])) > 0
-                has_makes = len(processed.get("preferredMakes", [])) > 0  # Added makes check
+                has_makes = len(processed.get("preferredMakes", [])) > 0
 
-                # If we have type AND (price OR makes), we likely have enough
                 if has_vehicle_type and (has_price or has_makes):
-                    if processed["clarificationNeeded"]:  # Log only if changing
-                        logger.info("Overriding clarificationNeeded to False as minimum viable params exist (Type + Price/Make).")
+                    if processed["clarificationNeeded"]:
+                        logger.info(
+                            "Overriding clarificationNeeded to False"
+                            " as minimum viable params exist (Type + Price/Make)."
+                        )
                     processed["clarificationNeeded"] = False
                     processed["clarificationNeededFor"] = []
 
-            return processed  # Return the fully processed dictionary
+            return processed
 
     logger.error("All models failed or no valid extraction.")
     return None
@@ -510,7 +543,8 @@ RULES:
 - Leave arrays EMPTY unless specifically mentioned
 # Ensure ALL mentioned makes/types/fuels that are in the VALID lists below are extracted.
 # Example: If user says "Toyota or Honda", extract ["Toyota", "Honda"].
-- Extract ALL mentioned makes that appear in the Valid Makes list. If the user lists multiple valid makes (e.g., 'Toyota or Honda or BMW'), include all of them in the preferredMakes array.
+- Extract ALL mentioned makes that appear in the Valid Makes list
+- If the user lists multiple valid makes, include all of them in the preferredMakes array.
 - DO NOT guess or infer parameters not clearly stated
 - "low miles" => maxMileage=30000
 - "new"/"recent" => minYear=2020
@@ -573,6 +607,17 @@ def build_enhanced_system_prompt(
         )
 
     current_year = datetime.datetime.now().year
+
+    examples = [
+        '"I need an SUV under 50000" → {{"maxPrice": 50000, "preferredVehicleTypes": ["SUV"], "intent": "new_query"}}',
+        '"Change it to under 70000" → {{"maxPrice": 70000, "intent": "refine_criteria"}}',
+        '"Also show me sedans" → {{"preferredVehicleTypes": ["Sedan"], "intent": "add_criteria"}}',
+        '"I want a Tesla" → {{"preferredMakes": ["Tesla"], "intent": "replace_criteria"}}',
+        (
+            '"BMW SUVs only" → {{"preferredMakes": ["BMW"], '
+            '"preferredVehicleTypes": ["SUV"], "intent": "replace_criteria"}}'
+        ),
+    ]
 
     return f"""
 You are an automotive assistant for Smart Auto Trader, helping customers find their ideal vehicle.
@@ -637,11 +682,11 @@ INTENT DETERMINATION (CRITICAL):
 - When in doubt for follow-ups, prefer "refine_criteria" over "new_query"
 
 EXAMPLES:
-- "I need an SUV under 50000" → {{"maxPrice": 50000, "preferredVehicleTypes": ["SUV"], "intent": "new_query"}}
-- "Change it to under 70000" → {{"maxPrice": 70000, "intent": "refine_criteria"}}
-- "Also show me sedans" → {{"preferredVehicleTypes": ["Sedan"], "intent": "add_criteria"}}
-- "I want a Tesla" → {{"preferredMakes": ["Tesla"], "intent": "replace_criteria"}}
-- "BMW SUVs only" → {{"preferredMakes": ["BMW"], "preferredVehicleTypes": ["SUV"], "intent": "replace_criteria"}}
+{examples[0]}
+{examples[1]}
+{examples[2]}
+{examples[3]}
+{examples[4]}
 
 Valid makes: {', '.join(valid_makes)}
 Valid fuel types: {', '.join(valid_fuels)}
@@ -676,6 +721,7 @@ def try_extract_with_model(
         }
 
         logger.info("Sending request to OpenRouter with model: %s", model)
+        # Fixed long line by splitting the request
         response = requests.post(
             OPENROUTER_URL, headers=headers, json=payload, timeout=30
         )
@@ -688,6 +734,7 @@ def try_extract_with_model(
             )
             return None
 
+        # Rest of the code remains unchanged
         response_data = response.json()
         logger.debug(
             "Full OpenRouter response: %s", json.dumps(response_data, indent=2)
@@ -901,8 +948,12 @@ def process_parameters(
         ]
 
     # off-topic check
-    if isinstance(params.get("isOffTopic"), bool):
-        result["isOffTopic"] = params["isOffTopic"]
+    is_off_topic = (
+        params.get("isOffTopic") is True
+        and params.get("offTopicResponse")
+        and isinstance(params["offTopicResponse"], str)
+    )
+    result["isOffTopic"] = is_off_topic
 
     if result["isOffTopic"] and isinstance(params.get("offTopicResponse"), str):
         result["offTopicResponse"] = params["offTopicResponse"]
