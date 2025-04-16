@@ -26,6 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def word_count_clean(query: str) -> int:
     """Counts meaningful words in a cleaned-up user query."""
     cleaned = re.sub(r"[^a-zA-Z0-9 ]+", "", query).lower()
