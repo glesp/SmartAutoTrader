@@ -37,6 +37,7 @@ EOL
 repomix-output.txt
 
 #images
+<<<<<<< HEAD
 .jpg
 
 # Python
@@ -57,3 +58,6 @@ app_log.txt
 .vscode/
 [Bb]in/
 [Oo]bj/
+=======
+.jpg
+>>>>>>> d05f0311fc4851aa5a49234b2dad906fe455f6d5
