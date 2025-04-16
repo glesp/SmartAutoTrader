@@ -51,3 +51,6 @@ app_log.txt
 repomix-output.txt
 *.jpg
 *.jpeg
+
+# Protect API key
+*.env
