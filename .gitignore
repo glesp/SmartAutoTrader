@@ -40,3 +40,21 @@ repomix-output.txt
 
 #images
 .jpg
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Databases (if local dev db should not be tracked)
+*.db
+*.db-journal
+
+# Logs
+Logs/
+*.log
+app_log.txt
+
+# VS Code / .NET / etc.
+.vscode/
+[Bb]in/
+[Oo]bj/
