@@ -658,17 +658,118 @@ namespace SmartAutoTrader.API.Services
         {
             StringBuilder clarification = new StringBuilder();
 
-            // If this is a follow-up question, acknowledge the previous context
+            // Shorter, more direct introduction
             if (context.MessageCount > 1)
             {
-                _ = clarification.Append("Building on our previous conversation, ");
+                _ = clarification.Append("To refine your search, ");
+            }
+            else
+            {
+                _ = clarification.Append("To find your ideal vehicle, ");
             }
 
-            _ = clarification.Append(
-                "I'd like to help you find the perfect vehicle, but I need a bit more information. ");
+            // List to collect questions in priority order
+            List<string> questions = new List<string>();
 
-            // Use the specific clarification reasons if available
-            if (parameters.ClarificationNeededFor?.Any() == true)
+            // PRIORITIZED QUESTION LOGIC
+            bool hasVehicleType = parameters.PreferredVehicleTypes?.Any() == true;
+            bool hasPrice = parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue;
+            bool hasMakes = parameters.PreferredMakes?.Any() == true;
+
+            // Priority 1: VehicleType
+            if (!hasVehicleType)
+            {
+                string vehicleTypeQuestion;
+                if (context.TopicContext.ContainsKey("discussing_family_needs"))
+                {
+                    vehicleTypeQuestion = "What type of vehicle would work best (e.g., SUV, Minivan, Sedan)?";
+                }
+                else
+                {
+                    vehicleTypeQuestion = "What type of vehicle are you interested in (e.g., Sedan, SUV, Hatchback)?";
+                }
+                questions.Add(vehicleTypeQuestion);
+            }
+
+            // Priority 2: Price or Make (if VehicleType is present)
+            if (hasVehicleType)
+            {
+                if (!hasPrice)
+                {
+                    string priceQuestion;
+                    if (context.TopicContext.ContainsKey("discussing_budget"))
+                    {
+                        priceQuestion = "What specific price range are you comfortable with?";
+                    }
+                    else
+                    {
+                        priceQuestion = "What's your budget for this vehicle?";
+                    }
+                    questions.Add(priceQuestion);
+                }
+                else if (!hasMakes)
+                {
+                    string makeQuestion;
+                    if (context.ExplicitlyRejectedOptions.Any())
+                    {
+                        makeQuestion = $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?";
+                    }
+                    else
+                    {
+                        makeQuestion = "Any preferred makes (e.g., Toyota, Ford, BMW)?";
+                    }
+                    questions.Add(makeQuestion);
+                }
+            }
+
+            // Priority 3: If multiple key elements are missing or we've reached here without questions
+            if ((!hasVehicleType && !hasPrice) || (!hasVehicleType && !hasMakes) || questions.Count == 0)
+            {
+                // Year
+                if (parameters.MinYear == null && parameters.MaxYear == null)
+                {
+                    questions.Add("How new should the vehicle be (e.g., 2018+, newer than 5 years)?");
+                }
+
+                // Fuel Type
+                if (parameters.PreferredFuelTypes.Count == 0)
+                {
+                    questions.Add("Which fuel type do you prefer (e.g., Petrol, Diesel, Electric, Hybrid)?");
+                }
+
+                // Make (if not already added)
+                if (!hasMakes && !questions.Any(q => q.Contains("preferred makes")))
+                {
+                    string makeQuestion;
+                    if (context.ExplicitlyRejectedOptions.Any())
+                    {
+                        makeQuestion = $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?";
+                    }
+                    else
+                    {
+                        makeQuestion = "Any preferred makes (e.g., Toyota, Ford, BMW)?";
+                    }
+                    questions.Add(makeQuestion);
+                }
+
+                // Price (if not already added)
+                if (!hasPrice && !questions.Any(q => q.Contains("price") || q.Contains("budget")))
+                {
+                    string priceQuestion;
+                    if (context.TopicContext.ContainsKey("discussing_budget"))
+                    {
+                        priceQuestion = "What specific price range are you comfortable with?";
+                    }
+                    else
+                    {
+                        priceQuestion = "What's your budget for this vehicle?";
+                    }
+                    questions.Add(priceQuestion);
+                }
+            }
+
+            // Use clarificationNeededFor if provided and we haven't built our own questions
+            if (questions.Count == 0 && parameters.ClarificationNeededFor?.Any() == true)
             {
                 foreach (string reason in parameters.ClarificationNeededFor)
                 {
@@ -676,125 +777,64 @@ namespace SmartAutoTrader.API.Services
                     {
                         case "price":
                         case "budget":
-                            if (context.TopicContext.ContainsKey("discussing_budget"))
-                            {
-                                _ = clarification.Append("Could you provide a specific price range you're comfortable with? ");
-                            }
-                            else
-                            {
-                                _ = clarification.Append("What's your budget range for this vehicle? ");
-                            }
+                            questions.Add("What's your budget for this vehicle?");
                             break;
-
                         case "vehicle_type":
                         case "type":
-                            if (context.TopicContext.ContainsKey("discussing_family_needs"))
-                            {
-                                _ = clarification.Append(
-                                    "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ");
-                            }
-                            else
-                            {
-                                _ = clarification.Append(
-                                    "What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
-                            }
+                            questions.Add("What type of vehicle are you interested in (e.g., Sedan, SUV, Hatchback)?");
                             break;
-
                         case "make":
                         case "manufacturer":
                         case "brand":
-                            // Check if user has rejected any makes
-                            if (context.ExplicitlyRejectedOptions.Any())
-                            {
-                                _ = clarification.Append(
-                                    $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ");
-                            }
-                            else
-                            {
-                                _ = clarification.Append("Do you have any preferred manufacturers or brands? ");
-                            }
+                            questions.Add("Any preferred makes (e.g., Toyota, Ford, BMW)?");
                             break;
-
                         case "year":
-                            _ = clarification.Append("How new would you like the vehicle to be? ");
+                            questions.Add("How new should the vehicle be (e.g., 2018+, newer than 5 years)?");
                             break;
-
                         case "fuel_type":
                         case "fuel":
-                            _ = clarification.Append("Do you have a preference for fuel type (petrol, diesel, electric, hybrid)? ");
+                            questions.Add("Which fuel type do you prefer (e.g., Petrol, Diesel, Electric, Hybrid)?");
                             break;
-
                         case "category":
-                            // This is for the retriever suggestion case
                             if (!string.IsNullOrEmpty(parameters.RetrieverSuggestion))
                             {
                                 return parameters.RetrieverSuggestion;
                             }
-                            else
-                            {
-                                _ = clarification.Append("Could you specify what type of vehicle you're looking for? ");
-                            }
+                            questions.Add("Could you specify what type of vehicle you're looking for?");
                             break;
-
                         case "ambiguous":
-                            _ = clarification.Append("Your request was a bit ambiguous. Could you provide more specific details about what you're looking for? ");
+                            questions.Add("Could you provide more specific details about what you're looking for?");
                             break;
                     }
                 }
+            }
+
+            // Final fallback if no questions were generated
+            if (questions.Count == 0)
+            {
+                questions.Add("Could you provide more details about what you're looking for?");
+            }
+
+            // Add main text requesting information
+            _ = clarification.Append("I need to know: ");
+
+            // Format questions appropriately
+            if (questions.Count == 1)
+            {
+                // Single question - just append it directly
+                _ = clarification.Append(questions[0]);
             }
             else
             {
-                // Fall back to the original logic when specific reasons aren't provided
-                if (parameters.MinPrice == null && parameters.MaxPrice == null)
+                // Multiple questions - format as a numbered list
+                _ = clarification.AppendLine();
+                for (int i = 0; i < questions.Count; i++)
                 {
-                    if (context.TopicContext.ContainsKey("discussing_budget"))
-                    {
-                        _ = clarification.Append("Could you provide a specific price range you're comfortable with? ");
-                    }
-                    else
-                    {
-                        _ = clarification.Append("What's your budget range for this vehicle? ");
-                    }
-                }
-
-                if (parameters.PreferredVehicleTypes == null || !parameters.PreferredVehicleTypes.Any())
-                {
-                    if (context.TopicContext.ContainsKey("discussing_family_needs"))
-                    {
-                        _ = clarification.Append(
-                            "Since you mentioned family needs, what type of vehicle would work best for you - perhaps an SUV, minivan, or sedan? ");
-                    }
-                    else
-                    {
-                        _ = clarification.Append(
-                            "What type of vehicle are you interested in (sedan, SUV, hatchback, etc.)? ");
-                    }
-                }
-
-                if (parameters.PreferredMakes == null || !parameters.PreferredMakes.Any())
-                {
-                    // Check if user has rejected any makes
-                    if (context.ExplicitlyRejectedOptions.Any())
-                    {
-                        _ = clarification.Append(
-                            $"You mentioned you don't want {string.Join(", ", context.ExplicitlyRejectedOptions)}. Are there any specific makes you're interested in instead? ");
-                    }
-                    else
-                    {
-                        _ = clarification.Append("Do you have any preferred manufacturers or brands? ");
-                    }
-                }
-
-                if (parameters.MinYear == null && parameters.MaxYear == null)
-                {
-                    _ = clarification.Append("How new would you like the vehicle to be? ");
+                    _ = clarification.AppendLine($"{i + 1}. {questions[i]}");
                 }
             }
 
-            _ = clarification.Append(
-                "The more details you can provide, the better I can match you with the right vehicle.");
-
-            return clarification.ToString();
+            return clarification.ToString().Trim();
         }
 
         // Generate a personalized response message based on context
@@ -957,7 +997,7 @@ namespace SmartAutoTrader.API.Services
                     return new RecommendationParameters
                     {
                         TextPrompt = message,
-                        MaxResults = 5,
+                        MaxResults = 10,  // CHANGED FROM 5 TO 10
                         Intent = "new_query"
                     };
                 }
@@ -970,7 +1010,7 @@ namespace SmartAutoTrader.API.Services
                 RecommendationParameters parameters = new RecommendationParameters
                 {
                     TextPrompt = message,
-                    MaxResults = 5,
+                    MaxResults = 10,  // CHANGED FROM 5 TO 10
 
                     // Parse numerical values safely
                     MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out JsonElement minPriceElement) &&
@@ -1089,7 +1129,7 @@ namespace SmartAutoTrader.API.Services
                 return new RecommendationParameters
                 {
                     TextPrompt = message,
-                    MaxResults = 5,
+                    MaxResults = 10,  // CHANGED FROM 5 TO 10
                     Intent = "new_query"
                 };
             }

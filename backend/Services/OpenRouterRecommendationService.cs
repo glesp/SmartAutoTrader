@@ -180,8 +180,8 @@ namespace SmartAutoTrader.API.Services
                     var makeCondition = BuildMakeMatchExpression(currentMake);
 
                     // Either initialize makesExpression or combine with OR
-                    makesExpression = makesExpression == null 
-                        ? makeCondition 
+                    makesExpression = makesExpression == null
+                        ? makeCondition
                         : CombineExpressionsWithOr(makesExpression, makeCondition);
                 }
 
@@ -204,8 +204,8 @@ namespace SmartAutoTrader.API.Services
         {
             // Simply check for exact match, as database collation should handle case-insensitivity
             // Or we could use EF.Functions.Collate if we need to enforce case-insensitivity
-            return v => v.Make == make || 
-                        v.Make.Equals(make) || 
+            return v => v.Make == make ||
+                        v.Make.Equals(make) ||
                         v.Make.Contains(make) ||  // Matching parts of make names
                         make.Contains(v.Make);    // Substrings like "BMW" in "BMW X5"
         }
