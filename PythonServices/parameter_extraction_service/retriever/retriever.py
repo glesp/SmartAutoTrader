@@ -5,7 +5,7 @@ import json
 import numpy as np
 import os
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 from .embed_model_loader import load_embedding_model
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,6 @@ def get_query_embedding(text: str) -> Optional[np.ndarray]:
     Ensures the retriever (and thus the model) is initialized.
     Returns None if encoding fails.
     """
-    global _model
     try:
         if _model is None:
             logger.warning("Embedding model not loaded. Initializing retriever...")
@@ -97,7 +96,6 @@ def find_best_match(user_query: str) -> (Optional[str], float):
     Return the best category match and similarity score.
     Returns (None, 0.0) if matching fails.
     """
-    global _model, _vectors, _categories
     try:
         if _model is None or _vectors is None or not _categories:
             logger.warning(

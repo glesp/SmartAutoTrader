@@ -41,6 +41,13 @@ dotnet_diagnostic.CA1822.severity = none   # Can be made static
 dotnet_diagnostic.CA1316.severity = none   # Tuple element name casing
 
 ############ Formatting Preferences ############
+end_of_line = lf
+csharp_space_after_comma = true
+csharp_space_after_keywords_in_control_flow_statements = true
+csharp_space_around_binary_operators = before_and_after
+csharp_space_before_open_square_brackets = false
+csharp_space_after_colon_in_inheritance_clause = true
+csharp_space_before_colon_in_inheritance_clause = true
 csharp_space_between_method_call_name_and_opening_parenthesis = false
 csharp_space_between_method_declaration_name_and_open_parenthesis = false
 csharp_space_between_brackets = false

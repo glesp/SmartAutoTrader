@@ -27,7 +27,9 @@ try:
     )
 except ImportError as ie:
     logging.error(
-        f"Could not import from retriever package: {ie}. Make sure retriever directory is structured correctly and contains __init__.py if needed."
+        f"Could not import from retriever package: {ie}. "
+        f"Make sure retriever directory is structured correctly and "
+        f"contains __init__.py if needed."
     )
 
     # Define dummy functions to prevent NameErrors if import fails, allowing app to potentially start
@@ -69,8 +71,14 @@ CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
 
 # Define intent labels for Zero-Shot Classification
 INTENT_LABELS = {
-    "SPECIFIC_SEARCH": "Search query containing specific vehicle parameters like make (e.g., Toyota), model (e.g., Camry), exact year (e.g., 2021), price range (e.g., under 20k), fuel type (e.g., petrol), mileage, or explicit technical features (e.g., sunroof).",
-    "VAGUE_INQUIRY": "General question seeking recommendations (e.g., 'what car is good for families', 'recommend something reliable'), advice, or stating general qualities (e.g. 'reliable', 'cheap', 'safe', 'economical') without providing specific vehicle parameters like make, model, year, or price.",
+    "SPECIFIC_SEARCH": "Search query containing specific vehicle parameters like make "
+    "(e.g., Toyota), model (e.g., Camry), exact year (e.g., 2021), price range "
+    "(e.g., under 20k), fuel type (e.g., petrol), mileage, or explicit technical features "
+    "(e.g., sunroof).",
+    "VAGUE_INQUIRY": "General question seeking recommendations "
+    "(e.g., 'what car is good for families', 'recommend something reliable'), advice, "
+    "or stating general qualities (e.g. 'reliable', 'cheap', 'safe', 'economical') "
+    "without providing specific vehicle parameters like make, model, year, or price.",
 }
 # Dictionary to hold precomputed embeddings for labels
 PRECOMPUTED_LABEL_EMBEDDINGS = {}
@@ -218,9 +226,10 @@ def classify_intent_zero_shot(
         best_label = max(similarities, key=similarities.get)
         best_score = float(similarities[best_label])  # Cast to float explicitly
 
+        formatted_scores = {k: f"{v:.2f}" for k, v in similarities.items()}
         logger.info(
-            f"Intent classification scores: {{k: f'{v:.2f}' for k, v in similarities.items()} }"
-        )  # Log formatted scores
+            f"Intent classification scores: {formatted_scores}"
+        )  # Fixed log statement
 
         if best_score >= threshold:
             logger.info(f"Classified intent: {best_label} (Score: {best_score:.2f})")
@@ -228,8 +237,7 @@ def classify_intent_zero_shot(
         else:
             # --- NEW FALLBACK LOGIC ---
             logger.info(
-                f"Intent classification score ({
-    best_score:.2f}) below threshold ({threshold}). Applying fallback logic."
+                f"Intent classification score ({best_score:.2f}) below threshold ({threshold}).Applying fallback logic"
             )
             # Check if VAGUE_INQUIRY had the highest (but below threshold) score, OR if both scores are extremely low
             specific_score = similarities.get("SPECIFIC_SEARCH", 0.0)
@@ -451,7 +459,8 @@ def try_extract_with_model(
                     return None
             except json.JSONDecodeError as je:
                 logger.error(
-                    f"JSON decoding failed for model {model}: {je}. JSON string was: '{json_str}'"
+                    f"JSON decoding failed for model {model}: {je}. "
+                    f"JSON string was: '{json_str}'"
                 )
                 return None
         else:
@@ -524,7 +533,8 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
         return True
     else:
         logger.warning(
-            f"Extracted parameters deemed invalid (no criteria set and no clarification needed): {params}"
+            f"Extracted parameters deemed invalid (no criteria set and no clarification needed): "
+            f"{params}"
         )
         return False
 
@@ -616,8 +626,6 @@ def build_system_prompt(
     valid_vehicles: List[str],
 ) -> str:
     """Builds the basic system prompt for simple extraction."""
-    # This prompt needs to be kept updated if the JSON format changes
-    # Using the keys from create_default_parameters for consistency
     default_json_keys = create_default_parameters().keys()
     json_format_example = json.dumps(create_default_parameters(), indent=2)
 
@@ -631,15 +639,21 @@ Use this exact format, filling values where mentioned, otherwise use null or emp
 RULES:
 - ONLY include values the user explicitly states. DO NOT INFER.
 - Numeric values MUST be numbers (int or float), not strings. Use null if not mentioned.
-- Array values (preferredMakes, preferredFuelTypes, preferredVehicleTypes, desiredFeatures, clarificationNeededFor) MUST be lists of strings. Use [] if not mentioned.
+- Array values (preferredMakes, preferredFuelTypes, preferredVehicleTypes,
+  desiredFeatures, clarificationNeededFor) MUST be lists of strings.
+  Use [] if not mentioned.
 - Booleans (isOffTopic, clarificationNeeded) must be true or false.
 - Strings (offTopicResponse, retrieverSuggestion, matchedCategory, intent) must be strings or null.
-- Extract makes ONLY if they appear in the Valid Makes list. If multiple valid makes are mentioned, include all.
-- Extract fuel types ONLY if they appear in the Valid Fuel Types list. Include all mentioned valid types.
-- Extract vehicle types ONLY if they appear in the Valid Vehicle Types list. Include all mentioned valid types.
+- Extract makes ONLY if they appear in the Valid Makes list.
+  If multiple valid makes are mentioned, include all.
+- Extract fuel types ONLY if they appear in the Valid Fuel Types list.
+  Include all mentioned valid types.
+- Extract vehicle types ONLY if they appear in the Valid Vehicle Types list.
+  Include all mentioned valid types.
 - desiredFeatures: Extract any mentioned features (e.g., "sunroof", "leather seats", "parking sensors").
 - intent: Set to "new_query".
-- isOffTopic: Set to true ONLY if the query is clearly NOT about buying/searching for vehicles. If true, set offTopicResponse to a brief explanation.
+- isOffTopic: Set to true ONLY if the query is clearly NOT about buying/searching for vehicles.
+  If true, set offTopicResponse to a brief explanation.
 - clarificationNeeded: Set to false for this basic prompt.
 - clarificationNeededFor: Set to [] for this basic prompt.
 
@@ -649,11 +663,13 @@ VALID VALUES:
 - Valid Vehicle Types (includes aliases): {json.dumps(valid_vehicles)}
 
 EXAMPLES:
-- User: "Show me electric SUVs under 40k" -> {{..., "maxPrice": 40000.0, "preferredFuelTypes": ["Electric"], "preferredVehicleTypes": ["SUV", "Crossover", "CUV"], ...}}
+- User: "Show me electric SUVs under 40k" -> {{..., "maxPrice": 40000.0,
+  "preferredFuelTypes": ["Electric"], "preferredVehicleTypes": ["SUV", "Crossover", "CUV"], ...}}
 - User: "Toyota or Honda" -> {{..., "preferredMakes": ["Toyota", "Honda"], ...}}
 - User: "Used car with low miles" -> {{..., "maxMileage": 30000, ...}} (Assuming "low miles" implies a max)
 - User: "Something blue" -> {{..., "desiredFeatures": ["blue"], ...}}
-- User: "Tell me about space" -> {{..., "isOffTopic": true, "offTopicResponse": "I can only help with vehicle searches.", ...}}
+- User: "Tell me about space" -> {{..., "isOffTopic": true,
+  "offTopicResponse": "I can only help with vehicle searches.", ...}}
 
 Respond ONLY with the JSON object.
 """
@@ -683,7 +699,10 @@ def build_enhanced_system_prompt(
 
     category_context = ""
     if matched_category:
-        category_context = f"Context Suggestion: The user might be interested in '{matched_category}' based on earlier analysis.\n"
+        category_context = (
+            "Context Suggestion: The user might be interested in "
+            f"'{matched_category}' based on earlier analysis.\n"
+        )
 
     current_year = datetime.datetime.now().year
     default_json_keys = create_default_parameters().keys()
@@ -693,8 +712,10 @@ def build_enhanced_system_prompt(
     return f"""
 You are an advanced automotive parameter extraction assistant for Smart Auto Trader.
 Analyze the latest user query in the context of the conversation history.
-Extract search parameters EXPLICITLY mentioned in the LATEST user query, but use history to understand context and determine INTENT.
-YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT containing the following keys: {list(default_json_keys)}.
+Extract search parameters EXPLICITLY mentioned
+in the LATEST user query, but use history to understand context and determine INTENT.
+YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT
+containing the following keys: {list(default_json_keys)}.
 Use this exact format, filling values based on the LATEST query and context:
 {json_format_example}
 
@@ -710,27 +731,38 @@ RULES:
 - Extract makes/fuels/types ONLY if explicitly mentioned in the LATEST query AND they appear in the Valid lists.
 - desiredFeatures: Extract features mentioned in the LATEST query.
 - isOffTopic: Set to true ONLY if the LATEST query is clearly NOT about vehicles. If true, set offTopicResponse.
-- clarificationNeeded: Set to true if the LATEST query is vague and requires more information (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor (e.g., ["budget", "type"]).
+- clarificationNeeded: Set to true if the LATEST query is vague and requires more information
+  (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor (e.g., ["budget", "type"]).
 
 # --- ADD/ENSURE THIS RULE EXISTS ---
 - **CONTEXTUAL INTERPRETATION:** Pay close attention to the IMMEDIATELY PRECEDING Assistant message in the history.
-    - If the Assistant asked a question (e.g., "What's your budget?", "Which year?", "Max mileage?"), interpret the LATEST user query as the answer to that question.
-    - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000' or '€50k' in the user's reply as `{{"maxPrice": 50000.0}}` (or minPrice/etc. based on phrasing like 'over'/'under'). If the assistant asked for mileage, interpret it as `{{"maxMileage": 50000}}`. Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
+    - If the Assistant asked a question (e.g., "What's your budget?", "Which year?", "Max mileage?"),
+      interpret the LATEST user query as the answer to that question.
+    - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000'
+      or '€50k' in the user's reply as `{{"maxPrice": 50000.0}}` (or minPrice/etc. based on phrasing
+      like 'over'/'under'). If the assistant asked for mileage, interpret it as `{{"maxMileage": 50000}}`.
+      Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
 # --- END RULE ---
 
 # Explain change: Added priority note for intent determination.
-- **INTENT PRIORITY:** Determining the correct 'intent' is critical. Pay close attention to the 'clarify' intent rule below.
+- **INTENT PRIORITY:** Determining the correct 'intent' is critical.
+  Pay close attention to the 'clarify' intent rule below.
 
 - intent: Determine the intent based on the relationship between the LATEST query and the history:
     * "new_query": Latest query starts a completely new search, unrelated to history.
-    * "replace_criteria": Latest query completely changes the core subject (e.g., was asking about SUVs, now asks only about Sedans).
+    * "replace_criteria": Latest query completely changes the core subject
+      (e.g., was asking about SUVs, now asks only about Sedans).
     * "add_criteria": Latest query adds constraints (e.g., "also make it petrol", "show me BMWs too").
-    * "refine_criteria": Latest query modifies existing constraints (e.g., "change price to under 30k", "actually, make it newer").
-# Explain change: Made 'clarify' intent definition more precise and emphasized.
-    * "clarify": **CRITICAL RULE:** Use this intent ONLY when the Latest query DIRECTLY and SIMPLY ANSWERS a question asked by the Assistant in the IMMEDIATELY PRECEDING turn (e.g., Assistant asked for budget, User provides ONLY a number like '25000' or a price phrase like 'under 20k'). DO NOT use 'new_query' in this case.
+    * "refine_criteria": Latest query modifies existing constraints
+      (e.g., "change price to under 30k", "actually, make it newer").
+    * "clarify": **CRITICAL RULE:** Use this intent ONLY when the Latest query DIRECTLY and SIMPLY
+      ANSWERS a question asked by the Assistant in the IMMEDIATELY PRECEDING turn
+      (e.g., Assistant asked for budget, User provides ONLY a number like '25000'
+      or a price phrase like 'under 20k'). DO NOT use 'new_query' in this case.
 
 PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR contextually interpreted):
-- "under X" / "less than X" -> maxPrice/maxYear/maxMileage = X, min = null
+- "under X" / "less than X" ->
+  maxPrice/maxYear/maxMileage = X, min = null
 - "over X" / "more than X" -> minPrice/minYear = X, max = null
 - "between X and Y" -> min = X, max = Y
 - "around X" (for price) -> minPrice = 0.8*X, maxPrice = 1.2*X
@@ -740,9 +772,12 @@ PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR co
 - "older" / "used" (vague) -> maxYear = {current_year - 4}
 
 VALID VALUES:
-- Valid Makes: {json.dumps(valid_makes)}
-- Valid Fuel Types: {json.dumps(valid_fuels)}
-- Valid Vehicle Types (includes aliases): {json.dumps(valid_vehicles)}
+- Valid Makes:
+  {json.dumps(valid_makes)}
+- Valid Fuel Types:
+  {json.dumps(valid_fuels)}
+- Valid Vehicle Types (includes aliases):
+  {json.dumps(valid_vehicles)}
 
 EXAMPLE (Focus on LATEST query + history for intent):
 # Explain change: Added more examples demonstrating the 'clarify' intent for different types of answers.
@@ -758,11 +793,9 @@ Output: {{..., "minYear": 2021, "intent": "clarify", ...}}
 History: Assistant: What's the maximum mileage you'd consider?
 Latest User Query: "50000"
 Output: {{..., "maxMileage": 50000, "intent": "clarify", ...}}
-
 History: Assistant: What fuel type do you prefer?
 Latest User Query: "Petrol"
 Output: {{..., "preferredFuelTypes": ["Petrol"], "intent": "clarify", ...}}
-
 History: Assistant: Any preferred makes?
 Latest User Query: "Toyota please"
 Output: {{..., "preferredMakes": ["Toyota"], "intent": "clarify", ...}}
@@ -836,8 +869,6 @@ def run_llm_with_history(
             processed = process_parameters(extracted)
 
             # --- Post-processing logic (like overrides) can be added here if needed ---
-            # Example: based on conversation_history or latest_query_fragment
-            latest_query_fragment = extract_newest_user_fragment(user_query).lower()
             # (Keep the override logic if desired - apply it to 'processed' dict)
             # ... override logic here modifying 'processed' ...
 
@@ -1008,7 +1039,8 @@ def extract_parameters():
 
                             if is_short_answer and looks_like_answer:
                                 logger.info(
-                                    "Detected likely clarification answer to previous question. Re-routing to LLM (SPECIFIC_SEARCH path)."
+                                    "Detected likely clarification answer to previous question. "
+                                    "Re-routing to LLM (SPECIFIC_SEARCH path)."
                                 )
                                 is_clarification_answer = True
                                 classified_intent = (
@@ -1042,11 +1074,15 @@ def extract_parameters():
                             intent="clarify",
                             clarification_needed=True,
                             clarification_needed_for=["details"],
-                            retriever_suggestion="Could you provide more specific details about the type of vehicle you need?",  # Simple suggestion
+                            retriever_suggestion=(
+                                "Could you provide more specific details about the "
+                                "type of vehicle you need?"
+                            ),
                         )
                     else:  # Medium/High RAG score >= 0.6
                         logger.info(
-                            "RAG score sufficient. Requesting specific clarification based on matched category."
+                            "RAG score sufficient. Requesting specific clarification "
+                            "based on matched category."
                         )
                         final_response = create_default_parameters(
                             intent="clarify",
@@ -1057,8 +1093,10 @@ def extract_parameters():
                                 "make",
                             ],  # Suggest common next questions
                             matched_category=match_cat,
-                            # Simple suggestion
-                            retriever_suggestion=f"Okay, thinking about {match_cat}s. What's your budget or preferred year range?",
+                            retriever_suggestion=(
+                                f"Okay, thinking about {match_cat}s. What's your "
+                                f"budget or preferred year range?"
+                            ),
                         )
                 except Exception as e:
                     logger.error(f"Error during RAG processing: {e}", exc_info=True)
@@ -1071,11 +1109,11 @@ def extract_parameters():
                         None  # Reset response, will proceed to LLM block below
                     )
 
-        # Proceed to LLM if intent is specific OR if VAGUE path decided not to
-        # return early (e.g., RAG error or clarification answer detected)
+        # Proceed to LLM if intent is specific OR if VAGUE path decided not to return early
         if classified_intent == "SPECIFIC_SEARCH" and final_response is None:
             logger.info(
-                "Intent is SPECIFIC_SEARCH (or fallback/clarification answer), proceeding to LLM."
+                "Intent is SPECIFIC_SEARCH (or fallback/clarification answer), "
+                "proceeding to LLM."
             )
             # Note: matched_category is None here as we didn't use RAG or it failed/was bypassed
             extracted_params = run_llm_with_history(
@@ -1107,7 +1145,8 @@ def extract_parameters():
         # Handle cases where final_response wasn't set (should be rare)
         if final_response is None:
             logger.error(
-                f"Reached end of processing without a valid final_response. Intent was '{classified_intent}'. Defaulting to error."
+                f"Reached end of processing without a valid final_response. "
+                f"Intent was '{classified_intent}'. Defaulting to error."
             )
             final_response = create_default_parameters(intent="error")
 
