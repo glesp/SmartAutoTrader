@@ -1,30 +1,34 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Helpers;
-using SmartAutoTrader.API.Models;
+// <copyright file="FavoritesController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Controllers
 {
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Helpers;
+    using SmartAutoTrader.API.Models;
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
     public class FavoritesController(ApplicationDbContext context) : ControllerBase
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext context = context;
 
         // GET: api/Favorites
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
         {
-            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
             if (userId is null)
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            List<Vehicle> favorites = await _context.UserFavorites
+            List<Vehicle> favorites = await this.context.UserFavorites
                 .Where(uf => uf.UserId == userId)
                 .Include(uf => uf.Vehicle)
                 .ThenInclude(v => v!.Images)
@@ -38,26 +42,26 @@ namespace SmartAutoTrader.API.Controllers
         [HttpPost("{vehicleId}")]
         public async Task<IActionResult> AddFavorite(int vehicleId)
         {
-            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
             if (userId is null)
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
             // Check if vehicle exists
-            Vehicle? vehicle = await _context.Vehicles.FindAsync(vehicleId);
+            Vehicle? vehicle = await this.context.Vehicles.FindAsync(vehicleId);
             if (vehicle == null)
             {
-                return NotFound(new { Message = "Vehicle not found" });
+                return this.NotFound(new { Message = "Vehicle not found" });
             }
 
             // Check if already favorited
-            UserFavorite? existingFavorite = await _context.UserFavorites
+            UserFavorite? existingFavorite = await this.context.UserFavorites
                 .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
             if (existingFavorite != null)
             {
-                return BadRequest(new { Message = "Vehicle already in favorites" });
+                return this.BadRequest(new { Message = "Vehicle already in favorites" });
             }
 
             // Add to favorites
@@ -68,47 +72,47 @@ namespace SmartAutoTrader.API.Controllers
                 DateAdded = DateTime.Now,
             };
 
-            _ = _context.UserFavorites.Add(favorite);
-            _ = await _context.SaveChangesAsync();
+            _ = this.context.UserFavorites.Add(favorite);
+            _ = await this.context.SaveChangesAsync();
 
-            return Ok(new { Message = "Vehicle added to favorites" });
+            return this.Ok(new { Message = "Vehicle added to favorites" });
         }
 
         // DELETE: api/Favorites/5
         [HttpDelete("{vehicleId}")]
         public async Task<IActionResult> RemoveFavorite(int vehicleId)
         {
-            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
             if (userId is null)
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            UserFavorite? favorite = await _context.UserFavorites
+            UserFavorite? favorite = await this.context.UserFavorites
                 .FirstOrDefaultAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
             if (favorite == null)
             {
-                return NotFound(new { Message = "Vehicle not in favorites" });
+                return this.NotFound(new { Message = "Vehicle not in favorites" });
             }
 
-            _ = _context.UserFavorites.Remove(favorite);
-            _ = await _context.SaveChangesAsync();
+            _ = this.context.UserFavorites.Remove(favorite);
+            _ = await this.context.SaveChangesAsync();
 
-            return Ok(new { Message = "Vehicle removed from favorites" });
+            return this.Ok(new { Message = "Vehicle removed from favorites" });
         }
 
         // GET: api/Favorites/Check/5
         [HttpGet("Check/{vehicleId}")]
         public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
         {
-            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
             if (userId is null)
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            bool isFavorite = await _context.UserFavorites
+            bool isFavorite = await this.context.UserFavorites
                 .AnyAsync(uf => uf.UserId == userId && uf.VehicleId == vehicleId);
 
             return isFavorite;
@@ -118,13 +122,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("Count")]
         public async Task<ActionResult<int>> GetFavoritesCount()
         {
-            int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+            int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
             if (userId is null)
             {
-                return Unauthorized();
+                return this.Unauthorized();
             }
 
-            int count = await _context.UserFavorites
+            int count = await this.context.UserFavorites
                 .CountAsync(uf => uf.UserId == userId);
 
             return count;

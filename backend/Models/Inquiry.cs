@@ -1,8 +1,12 @@
-using System.ComponentModel.DataAnnotations;
-using SmartAutoTrader.API.Enums;
+// <copyright file="Inquiry.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Models
 {
+    using System.ComponentModel.DataAnnotations;
+    using SmartAutoTrader.API.Enums;
+
     public class Inquiry
     {
         [Key]

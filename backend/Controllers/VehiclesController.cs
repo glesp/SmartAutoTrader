@@ -1,18 +1,22 @@
-using System.Globalization;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Helpers;
-using SmartAutoTrader.API.Models;
+// <copyright file="VehiclesController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Controllers
 {
+    using System.Globalization;
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Helpers;
+    using SmartAutoTrader.API.Models;
+
     [Route("api/[controller]")]
     [ApiController]
     public class VehiclesController(ApplicationDbContext context) : ControllerBase
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext context = context;
 
         // GET: api/Vehicles
         [HttpGet]
@@ -33,7 +37,7 @@ namespace SmartAutoTrader.API.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
-            IQueryable<Vehicle> query = _context.Vehicles
+            IQueryable<Vehicle> query = this.context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .Where(v => v.Status == VehicleStatus.Available);
@@ -115,8 +119,8 @@ namespace SmartAutoTrader.API.Controllers
                 .ToListAsync();
 
             // Add pagination headers
-            Response.Headers.Append("X-Total-Count", totalItems.ToString());
-            Response.Headers.Append("X-Total-Pages", totalPages.ToString());
+            this.Response.Headers.Append("X-Total-Count", totalItems.ToString());
+            this.Response.Headers.Append("X-Total-Pages", totalPages.ToString());
 
             return vehicles;
         }
@@ -125,23 +129,23 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
-            Vehicle? vehicle = await _context.Vehicles
+            Vehicle? vehicle = await this.context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .FirstOrDefaultAsync(v => v.Id == id);
 
             if (vehicle is null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
             // Optional history tracking for authenticated users
-            if (User.Identity?.IsAuthenticated == true)
+            if (this.User.Identity?.IsAuthenticated == true)
             {
-                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
                 if (userId is null)
                 {
-                    return Unauthorized();
+                    return this.Unauthorized();
                 }
 
                 BrowsingHistory history = new()
@@ -152,8 +156,8 @@ namespace SmartAutoTrader.API.Controllers
                     ViewDurationSeconds = 0,
                 };
 
-                _ = _context.BrowsingHistory.Add(history);
-                _ = await _context.SaveChangesAsync();
+                _ = this.context.BrowsingHistory.Add(history);
+                _ = await this.context.SaveChangesAsync();
             }
 
             return vehicle;
@@ -166,26 +170,26 @@ namespace SmartAutoTrader.API.Controllers
         {
             if (id != vehicle.Id)
             {
-                return BadRequest();
+                return this.BadRequest();
             }
 
-            _context.Entry(vehicle).State = EntityState.Modified;
+            this.context.Entry(vehicle).State = EntityState.Modified;
 
             try
             {
-                _ = await _context.SaveChangesAsync();
+                _ = await this.context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!VehicleExists(id))
+                if (!this.VehicleExists(id))
                 {
-                    return NotFound();
+                    return this.NotFound();
                 }
 
                 throw;
             }
 
-            return NoContent();
+            return this.NoContent();
         }
 
         // DELETE: api/Vehicles/5
@@ -193,21 +197,21 @@ namespace SmartAutoTrader.API.Controllers
         [Authorize]
         public async Task<IActionResult> DeleteVehicle(int id)
         {
-            Vehicle? vehicle = await _context.Vehicles.FindAsync(id);
+            Vehicle? vehicle = await this.context.Vehicles.FindAsync(id);
             if (vehicle == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
-            _ = _context.Vehicles.Remove(vehicle);
-            _ = await _context.SaveChangesAsync();
+            _ = this.context.Vehicles.Remove(vehicle);
+            _ = await this.context.SaveChangesAsync();
 
-            return NoContent();
+            return this.NoContent();
         }
 
         private bool VehicleExists(int id)
         {
-            return _context.Vehicles.Any(e => e.Id == id);
+            return this.context.Vehicles.Any(e => e.Id == id);
         }
 
         [HttpGet("available-makes")]
@@ -215,13 +219,13 @@ namespace SmartAutoTrader.API.Controllers
         {
             List<string> makes =
             [
-                .. _context.Vehicles
+                .. this.context.Vehicles
                     .Select(v => v.Make)
                     .Distinct()
                     .OrderBy(m => m)
             ];
 
-            return Ok(makes);
+            return this.Ok(makes);
         }
 
         [HttpGet("available-models")]
@@ -229,23 +233,23 @@ namespace SmartAutoTrader.API.Controllers
         {
             List<string> models =
             [
-                .. _context.Vehicles
+                .. this.context.Vehicles
                     .Where(v => v.Make == make)
                     .Select(v => v.Model)
                     .Distinct()
                     .OrderBy(m => m)
             ];
 
-            return Ok(models);
+            return this.Ok(models);
         }
 
         [HttpGet("year-range")]
         public IActionResult GetYearRange()
         {
-            int minYear = _context.Vehicles.Min(v => v.Year);
-            int maxYear = _context.Vehicles.Max(v => v.Year);
+            int minYear = this.context.Vehicles.Min(v => v.Year);
+            int maxYear = this.context.Vehicles.Max(v => v.Year);
 
-            return Ok(new { min = minYear, max = maxYear });
+            return this.Ok(new { min = minYear, max = maxYear });
         }
     }
 }

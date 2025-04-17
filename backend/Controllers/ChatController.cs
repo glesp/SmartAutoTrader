@@ -1,13 +1,17 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Helpers;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
+// <copyright file="ChatController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Controllers
 {
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Helpers;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Services;
+
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
@@ -17,10 +21,10 @@ namespace SmartAutoTrader.API.Controllers
         ApplicationDbContext context,
         ILogger<ChatController> logger) : ControllerBase
     {
-        private readonly IChatRecommendationService _chatService = chatService;
-        private readonly ApplicationDbContext _context = context;
-        private readonly IConversationContextService _contextService = contextService;
-        private readonly ILogger<ChatController> _logger = logger;
+        private readonly IChatRecommendationService chatService = chatService;
+        private readonly ApplicationDbContext context = context;
+        private readonly IConversationContextService contextService = contextService;
+        private readonly ILogger<ChatController> logger = logger;
 
         [HttpPost("message")]
         public async Task<IActionResult> SendMessage([FromBody] ChatMessageDto message)
@@ -28,28 +32,28 @@ namespace SmartAutoTrader.API.Controllers
             try
             {
                 // Explain: Log the ConversationId received directly from the frontend request DTO.
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "ChatController Received DTO: ConversationId='{ConversationId}', IsClarification={IsClarification}, IsFollowUp={IsFollowUp}",
                     message.ConversationId ?? "NULL", message.IsClarification, message.IsFollowUp);
 
                 if (string.IsNullOrWhiteSpace(message.Content))
                 {
-                    return BadRequest("Message content cannot be empty.");
+                    return this.BadRequest("Message content cannot be empty.");
                 }
 
-                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
                 if (userId is null)
                 {
-                    return Unauthorized();
+                    return this.Unauthorized();
                 }
 
-                _logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
+                this.logger.LogInformation("Processing chat message from user ID: {UserId}", userId);
 
                 // Check if we need to start a new conversation
                 if (!message.IsClarification && !message.IsFollowUp && string.IsNullOrEmpty(message.ConversationId))
                 {
                     // Start a new conversation session
-                    ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
+                    ConversationSession session = await this.contextService.StartNewSessionAsync((int)userId);
                     message.ConversationId = session.Id.ToString();
                 }
 
@@ -64,7 +68,7 @@ namespace SmartAutoTrader.API.Controllers
                     ConversationId = message.ConversationId,
                 };
 
-                ChatResponse response = await _chatService.ProcessMessageAsync((int)userId, chatMessage);
+                ChatResponse response = await this.chatService.ProcessMessageAsync((int)userId, chatMessage);
                 ChatResponseDto responseDto = new()
                 {
                     Message = response.Message,
@@ -80,33 +84,33 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ??[],
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ??[],
+                                .ToList() ?? [],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ??[],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ??[],
+                                .ToList() ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
                         }
                         : null,
                 };
 
                 // Log retrieved history count
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Retrieved {HistoryCount} history items for conversation {ConversationId}",
                     responseDto.RecommendedVehicles.Count, message.ConversationId);
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Processing response with {VehicleCount} vehicles for conversation {ConversationId}",
                     responseDto.RecommendedVehicles.Count, message.ConversationId);
 
-                return Ok(responseDto);
+                return this.Ok(responseDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing chat message");
-                return StatusCode(500, "An error occurred while processing your message.");
+                this.logger.LogError(ex, "Error processing chat message");
+                return this.StatusCode(500, "An error occurred while processing your message.");
             }
         }
 
@@ -117,14 +121,14 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
                 if (userId is null)
                 {
-                    return Unauthorized();
+                    return this.Unauthorized();
                 }
 
                 // Get chat history from database
-                IQueryable<ChatHistory> query = _context.ChatHistory
+                IQueryable<ChatHistory> query = this.context.ChatHistory
                     .Where(ch => ch.UserId == userId);
 
                 // Filter by conversationId if provided
@@ -148,12 +152,12 @@ namespace SmartAutoTrader.API.Controllers
                         })
                     .ToListAsync();
 
-                return Ok(history);
+                return this.Ok(history);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving chat history");
-                return StatusCode(500, "An error occurred while retrieving chat history.");
+                this.logger.LogError(ex, "Error retrieving chat history");
+                return this.StatusCode(500, "An error occurred while retrieving chat history.");
             }
         }
 
@@ -162,14 +166,14 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
                 if (userId is null)
                 {
-                    return Unauthorized();
+                    return this.Unauthorized();
                 }
 
                 // Get recent conversations
-                var conversations = await _context.ConversationSessions
+                var conversations = await this.context.ConversationSessions
                     .Where(cs => cs.UserId == userId)
                     .OrderByDescending(cs => cs.LastInteractionAt)
                     .Take(limit)
@@ -179,16 +183,16 @@ namespace SmartAutoTrader.API.Controllers
                             cs.Id,
                             cs.CreatedAt,
                             cs.LastInteractionAt,
-                            MessageCount = _context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
+                            MessageCount = this.context.ChatHistory.Count(ch => ch.ConversationSessionId == cs.Id),
                         })
                     .ToListAsync();
 
-                return Ok(conversations);
+                return this.Ok(conversations);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving conversations");
-                return StatusCode(500, "An error occurred while retrieving conversations.");
+                this.logger.LogError(ex, "Error retrieving conversations");
+                return this.StatusCode(500, "An error occurred while retrieving conversations.");
             }
         }
 
@@ -197,21 +201,21 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                int? userId = ClaimsHelper.GetUserIdFromClaims(User);
+                int? userId = ClaimsHelper.GetUserIdFromClaims(this.User);
                 if (userId is null)
                 {
-                    return Unauthorized();
+                    return this.Unauthorized();
                 }
 
                 // Create a new conversation session
-                ConversationSession session = await _contextService.StartNewSessionAsync((int)userId);
+                ConversationSession session = await this.contextService.StartNewSessionAsync((int)userId);
 
-                return Ok(new { conversationId = session.Id });
+                return this.Ok(new { conversationId = session.Id });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error starting new conversation");
-                return StatusCode(500, "An error occurred while starting a new conversation.");
+                this.logger.LogError(ex, "Error starting new conversation");
+                return this.StatusCode(500, "An error occurred while starting a new conversation.");
             }
         }
 
@@ -232,7 +236,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } =[];
+            public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -255,13 +259,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } =[];
+            public List<string> PreferredMakes { get; set; } = [];
 
-            public List<string> PreferredVehicleTypes { get; set; } =[];
+            public List<string> PreferredVehicleTypes { get; set; } = [];
 
-            public List<string> PreferredFuelTypes { get; set; } =[];
+            public List<string> PreferredFuelTypes { get; set; } = [];
 
-            public List<string> DesiredFeatures { get; set; } =[];
+            public List<string> DesiredFeatures { get; set; } = [];
         }
 
         public class ChatHistoryDto

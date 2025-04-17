@@ -11,32 +11,22 @@
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
-    <PropertyGroup>
-        <StyleCopAnalyzersSettingsFile>$(MSBuildThisFileDirectory)nonexistent.stylecop.json</StyleCopAnalyzersSettingsFile>
-        <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="BCrypt.Net-Next" Version="4.0.3"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0"/>
-        <PackageReference Include="StyleCop.Analyzers.Unstable" Version="1.2.0.435" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3"/>
+        <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.3">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1"/>
-        <PackageReference Include="ZLogger" Version="2.5.10"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
+        <PackageReference Include="ZLogger" Version="2.5.10" />
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Logs\"/>
+        <Folder Include="Logs\" />
     </ItemGroup>
 
 </Project>

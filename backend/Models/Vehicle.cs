@@ -1,8 +1,12 @@
-using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+// <copyright file="Vehicle.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Models
 {
+    using System.ComponentModel.DataAnnotations;
+    using System.Text.Json.Serialization;
+
     public enum FuelType
     {
         Petrol,

@@ -1,10 +1,14 @@
+// <copyright file="ChatResponse.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace SmartAutoTrader.API.Models
 {
     public class ChatResponse
     {
         public string? Message { get; set; }
 
-        public List<Vehicle> RecommendedVehicles { get; set; } =[];
+        public List<Vehicle> RecommendedVehicles { get; set; } = [];
 
         public RecommendationParameters? UpdatedParameters { get; set; }
 

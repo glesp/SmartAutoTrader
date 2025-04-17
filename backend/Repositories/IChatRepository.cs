@@ -1,9 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Models;
+// <copyright file="IChatRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Repositories
 {
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Models;
+
     public interface IChatRepository
     {
         Task AddChatHistoryAsync(ChatHistory chatHistory);
@@ -21,32 +25,36 @@ namespace SmartAutoTrader.API.Repositories
 
     public class ChatRepository(ApplicationDbContext context) : IChatRepository
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext context = context;
 
+        /// <inheritdoc/>
         public Task AddChatHistoryAsync(ChatHistory chatHistory)
         {
-            _ = _context.ChatHistory.Add(chatHistory);
+            _ = this.context.ChatHistory.Add(chatHistory);
             return Task.CompletedTask;
         }
 
+        /// <inheritdoc/>
         public Task UpdateSessionAsync(ConversationSession session)
         {
-            _context.Entry(session).State = EntityState.Modified;
-            return _context.SaveChangesAsync();
+            this.context.Entry(session).State = EntityState.Modified;
+            return this.context.SaveChangesAsync();
         }
 
+        /// <inheritdoc/>
         public Task AddSessionAsync(ConversationSession session)
         {
-            _ = _context.ConversationSessions.Add(session);
+            _ = this.context.ConversationSessions.Add(session);
             return Task.CompletedTask;
         }
 
+        /// <inheritdoc/>
         public async Task<List<ConversationTurn>> GetRecentHistoryAsync(
         int userId,
         int conversationSessionId,
         int maxItems = 3)
         {
-            return await context.ChatHistory
+            return await this.context.ChatHistory
                 .Where(h => h.UserId == userId && h.ConversationSessionId == conversationSessionId)
                 .OrderByDescending(h => h.Timestamp)
                 .Take(maxItems)
@@ -59,19 +67,21 @@ namespace SmartAutoTrader.API.Repositories
                 .ToListAsync();
         }
 
+        /// <inheritdoc/>
         public Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge)
         {
             DateTime since = DateTime.UtcNow.Subtract(maxAge);
 
-            return _context.ConversationSessions
+            return this.context.ConversationSessions
                 .Where(s => s.UserId == userId && s.LastInteractionAt > since)
                 .OrderByDescending(s => s.LastInteractionAt)
                 .FirstOrDefaultAsync();
         }
 
+        /// <inheritdoc/>
         public Task SaveChangesAsync()
         {
-            return _context.SaveChangesAsync();
+            return this.context.SaveChangesAsync();
         }
     }
 }

@@ -1,9 +1,11 @@
-// Models/RegisterModel.cs
-
-using System.ComponentModel.DataAnnotations;
+// <copyright file="RegisterModel.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Models
 {
+    using System.ComponentModel.DataAnnotations;
+
     public class RegisterModel
     {
         [Required]

@@ -1,21 +1,25 @@
-using Microsoft.AspNetCore.Mvc;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Services;
+// <copyright file="AuthController.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Controllers
 {
+    using Microsoft.AspNetCore.Mvc;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Services;
+
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController(IAuthService authService) : ControllerBase
     {
-        private readonly IAuthService _authService = authService;
+        private readonly IAuthService authService = authService;
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
             try
             {
-                User user = await _authService.RegisterAsync(
+                User user = await this.authService.RegisterAsync(
                     model.Username,
                     model.Email,
                     model.Password,
@@ -23,7 +27,7 @@ namespace SmartAutoTrader.API.Controllers
                     model.LastName,
                     model.PhoneNumber);
 
-                return Ok(
+                return this.Ok(
                     new
                     {
                         user.Id,
@@ -37,7 +41,7 @@ namespace SmartAutoTrader.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { ex.Message });
+                return this.BadRequest(new { ex.Message });
             }
         }
 
@@ -46,9 +50,9 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
-                (string token, User user) = await _authService.LoginAsync(model.Email, model.Password);
+                (string token, User user) = await this.authService.LoginAsync(model.Email, model.Password);
 
-                return Ok(
+                return this.Ok(
                     new
                     {
                         Token = token,
@@ -65,7 +69,7 @@ namespace SmartAutoTrader.API.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(new { ex.Message });
+                return this.BadRequest(new { ex.Message });
             }
         }
     }

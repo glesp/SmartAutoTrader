@@ -1,13 +1,17 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
-using BC = BCrypt.Net.BCrypt;
+// <copyright file="AuthService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Services
 {
+    using System.IdentityModel.Tokens.Jwt;
+    using System.Security.Claims;
+    using System.Text;
+    using Microsoft.IdentityModel.Tokens;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+    using BC = BCrypt.Net.BCrypt;
+
     public interface IAuthService
     {
         Task<User> RegisterAsync(
@@ -25,9 +29,10 @@ namespace SmartAutoTrader.API.Services
 
     public class AuthService(IUserRepository userRepo, IConfiguration configuration) : IAuthService
     {
-        private readonly IConfiguration _configuration = configuration;
-        private readonly IUserRepository _userRepo = userRepo;
+        private readonly IConfiguration configuration = configuration;
+        private readonly IUserRepository userRepo = userRepo;
 
+        /// <inheritdoc/>
         public async Task<User> RegisterAsync(
             string username,
             string email,
@@ -37,7 +42,7 @@ namespace SmartAutoTrader.API.Services
             string phoneNumber)
         {
             // Check if user already exists
-            if (await _userRepo.ExistsAsync(email, username))
+            if (await this.userRepo.ExistsAsync(email, username))
             {
                 throw new Exception("User with this email or username already exists.");
             }
@@ -54,16 +59,17 @@ namespace SmartAutoTrader.API.Services
                 DateRegistered = DateTime.Now,
             };
 
-            await _userRepo.AddAsync(user);
-            await _userRepo.SaveChangesAsync();
+            await this.userRepo.AddAsync(user);
+            await this.userRepo.SaveChangesAsync();
 
             return user;
         }
 
+        /// <inheritdoc/>
         public async Task<(string token, User user)> LoginAsync(string email, string password)
         {
             // Find user by email
-            User? user = await _userRepo.GetByEmailAsync(email);
+            User? user = await this.userRepo.GetByEmailAsync(email);
 
             // Check if user exists and password is correct
             if (user == null || !BC.Verify(password, user.PasswordHash))
@@ -72,14 +78,15 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Generate JWT token
-            string token = GenerateJwtToken(user);
+            string token = this.GenerateJwtToken(user);
 
             return (token, user);
         }
 
+        /// <inheritdoc/>
         public string GenerateJwtToken(User user)
         {
-            string? jwtKey = _configuration["Jwt:Key"];
+            string? jwtKey = this.configuration["Jwt:Key"];
             if (string.IsNullOrEmpty(jwtKey))
             {
                 throw new InvalidOperationException("JWT key is missing from configuration.");
@@ -98,8 +105,8 @@ namespace SmartAutoTrader.API.Services
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials =
                     new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Audience"],
+                Issuer = this.configuration["Jwt:Issuer"],
+                Audience = this.configuration["Jwt:Audience"],
             };
 
             JwtSecurityTokenHandler tokenHandler = new();

@@ -1,9 +1,13 @@
-using System.Text.Json;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
+// <copyright file="ConversationContextService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Services
 {
+    using System.Text.Json;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+
     public interface IConversationContextService
     {
         Task<ConversationContext> GetOrCreateContextAsync(int userId);
@@ -29,15 +33,15 @@ namespace SmartAutoTrader.API.Services
         // Track user intent and context
         public string LastUserIntent { get; set; } = string.Empty;
 
-        public List<string> MentionedVehicleFeatures { get; set; } =[];
+        public List<string> MentionedVehicleFeatures { get; set; } = [];
 
-        public List<string> ExplicitlyRejectedOptions { get; set; } =[];
+        public List<string> ExplicitlyRejectedOptions { get; set; } = [];
 
         // Track active conversation topics
-        public Dictionary<string, object> TopicContext { get; set; } =[];
+        public Dictionary<string, object> TopicContext { get; set; } = [];
 
         // Track recommendations shown to the user
-        public List<int> ShownVehicleIds { get; set; } =[];
+        public List<int> ShownVehicleIds { get; set; } = [];
 
         public string? ModelUsed { get; set; }
     }
@@ -48,22 +52,23 @@ namespace SmartAutoTrader.API.Services
         ILogger<ConversationContextService> logger) : IConversationContextService
     {
         // In-memory cache for active conversations (optional)
-        private readonly Dictionary<int, ConversationContext> _activeContexts =[];
-        private readonly IChatRepository _chatRepo = chatRepo;
-        private readonly ILogger<ConversationContextService> _logger = logger;
-        private readonly IUserRepository _userRepo = userRepo;
+        private readonly Dictionary<int, ConversationContext> activeContexts = [];
+        private readonly IChatRepository chatRepo = chatRepo;
+        private readonly ILogger<ConversationContextService> logger = logger;
+        private readonly IUserRepository userRepo = userRepo;
 
+        /// <inheritdoc/>
         public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
         {
             try
             {
                 // Check if we have an active session for the user
-                ConversationSession? session = await GetCurrentSessionAsync(userId);
+                ConversationSession? session = await this.GetCurrentSessionAsync(userId);
 
                 if (session != null)
                 {
                     // Check in-memory cache first for performance
-                    if (_activeContexts.TryGetValue(userId, out ConversationContext? cachedContext))
+                    if (this.activeContexts.TryGetValue(userId, out ConversationContext? cachedContext))
                     {
                         return cachedContext;
                     }
@@ -73,17 +78,19 @@ namespace SmartAutoTrader.API.Services
                     {
                         try
                         {
-                            ConversationContext? context = JsonSerializer.Deserialize<ConversationContext>(session.SessionContext);
+                            ConversationContext? context =
+                                JsonSerializer.Deserialize<ConversationContext>(session.SessionContext);
                             if (context != null)
                             {
                                 // Cache for subsequent requests
-                                _activeContexts[userId] = context;
+                                this.activeContexts[userId] = context;
                                 return context;
                             }
                         }
                         catch (JsonException ex)
                         {
-                            _logger.LogError(ex, "Error deserializing conversation context for user {UserId}", userId);
+                            this.logger.LogError(ex, "Error deserializing conversation context for user {UserId}",
+                                userId);
                         }
                     }
                 }
@@ -97,52 +104,55 @@ namespace SmartAutoTrader.API.Services
                 // Start a new session if needed
                 if (session == null)
                 {
-                    _ = await StartNewSessionAsync(userId);
+                    _ = await this.StartNewSessionAsync(userId);
                 }
 
                 // If we detect it's a brand-new session, pick a model
                 // e.g. rotate among fast/refine/clarify:
-                string[] modelPool =["fast", "refine", "clarify"];
+                string[] modelPool = ["fast", "refine", "clarify"];
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 
                 // Cache and return the new context
-                _activeContexts[userId] = newContext;
+                this.activeContexts[userId] = newContext;
                 return newContext;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving conversation context for user {UserId}", userId);
+                this.logger.LogError(ex, "Error retrieving conversation context for user {UserId}", userId);
                 return new ConversationContext();
             }
         }
 
+        /// <inheritdoc/>
         public async Task UpdateContextAsync(int userId, ConversationContext context)
         {
             try
             {
                 // Update in-memory cache
-                _activeContexts[userId] = context;
+                this.activeContexts[userId] = context;
 
                 // Update the timestamp
                 context.LastInteraction = DateTime.UtcNow;
 
                 // Get the current session
-                ConversationSession session = await GetCurrentSessionAsync(userId) ?? await StartNewSessionAsync(userId);
+                ConversationSession session = await this.GetCurrentSessionAsync(userId) ??
+                                              await this.StartNewSessionAsync(userId);
 
                 // Serialize and save the context
                 session.SessionContext = JsonSerializer.Serialize(context);
                 session.LastInteractionAt = DateTime.UtcNow;
 
-                await _chatRepo.UpdateSessionAsync(session);
-                await _chatRepo.SaveChangesAsync();
+                await this.chatRepo.UpdateSessionAsync(session);
+                await this.chatRepo.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating conversation context for user {UserId}", userId);
+                this.logger.LogError(ex, "Error updating conversation context for user {UserId}", userId);
             }
         }
 
+        /// <inheritdoc/>
         public async Task<ConversationSession> StartNewSessionAsync(int userId)
         {
             ConversationSession newSession = new()
@@ -153,18 +163,19 @@ namespace SmartAutoTrader.API.Services
                 SessionContext = JsonSerializer.Serialize(new ConversationContext()),
             };
 
-            await _chatRepo.AddSessionAsync(newSession);
-            await _chatRepo.SaveChangesAsync();
+            await this.chatRepo.AddSessionAsync(newSession);
+            await this.chatRepo.SaveChangesAsync();
 
             // Clear any cached context
-            _ = _activeContexts.Remove(userId);
+            _ = this.activeContexts.Remove(userId);
 
             return newSession;
         }
 
+        /// <inheritdoc/>
         public async Task<ConversationSession?> GetCurrentSessionAsync(int userId)
         {
-            return await _chatRepo.GetRecentSessionAsync(userId, TimeSpan.FromMinutes(30));
+            return await this.chatRepo.GetRecentSessionAsync(userId, TimeSpan.FromMinutes(30));
         }
     }
 }

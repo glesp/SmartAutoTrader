@@ -1,9 +1,13 @@
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Data;
-using SmartAutoTrader.API.Models;
+// <copyright file="IUserRepository.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Repositories
 {
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Models;
+
     public interface IUserRepository
     {
         Task<User?> GetByEmailAsync(string email);
@@ -25,41 +29,47 @@ namespace SmartAutoTrader.API.Repositories
 
     public class UserRepository(ApplicationDbContext context) : IUserRepository
     {
-        private readonly ApplicationDbContext _context = context;
+        private readonly ApplicationDbContext context = context;
 
+        /// <inheritdoc/>
         public Task<User?> GetByEmailAsync(string email)
         {
-            return _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return this.context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        /// <inheritdoc/>
         public Task<User?> GetByUsernameAsync(string username)
         {
-            return _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return this.context.Users.FirstOrDefaultAsync(u => u.Username == username);
         }
 
+        /// <inheritdoc/>
         public Task<User?> GetByIdAsync(int id)
         {
-            return _context.Users
+            return this.context.Users
                 .Include(u => u.Preferences)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        /// <inheritdoc/>
         public Task<bool> ExistsAsync(string email, string username)
         {
-            return _context.Users.AnyAsync(u => u.Email == email || u.Username == username);
+            return this.context.Users.AnyAsync(u => u.Email == email || u.Username == username);
         }
 
+        /// <inheritdoc/>
         public Task<List<UserFavorite>> GetFavoritesWithVehiclesAsync(int userId)
         {
-            return _context.UserFavorites
+            return this.context.UserFavorites
                 .Where(f => f.UserId == userId)
                 .Include(f => f.Vehicle)
                 .ToListAsync();
         }
 
+        /// <inheritdoc/>
         public Task<List<BrowsingHistory>> GetRecentBrowsingHistoryWithVehiclesAsync(int userId, int limit = 5)
         {
-            return _context.BrowsingHistory
+            return this.context.BrowsingHistory
                 .Where(h => h.UserId == userId)
                 .OrderByDescending(h => h.ViewDate)
                 .Take(limit)
@@ -67,15 +77,17 @@ namespace SmartAutoTrader.API.Repositories
                 .ToListAsync();
         }
 
+        /// <inheritdoc/>
         public Task AddAsync(User user)
         {
-            _ = _context.Users.Add(user);
+            _ = this.context.Users.Add(user);
             return Task.CompletedTask;
         }
 
+        /// <inheritdoc/>
         public Task SaveChangesAsync()
         {
-            return _context.SaveChangesAsync();
+            return this.context.SaveChangesAsync();
         }
     }
 }

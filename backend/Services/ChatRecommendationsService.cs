@@ -1,13 +1,17 @@
-using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-using System.Text.Json;
-using SmartAutoTrader.API.Helpers;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
+// <copyright file="ChatRecommendationsService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Services
 {
+    using System.Diagnostics;
+    using System.Globalization;
+    using System.Text;
+    using System.Text.Json;
+    using SmartAutoTrader.API.Helpers;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+
     public interface IChatRecommendationService
     {
         Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
@@ -22,25 +26,26 @@ namespace SmartAutoTrader.API.Services
         IAIRecommendationService recommendationService,
         IConversationContextService contextService) : IChatRecommendationService
     {
-        private readonly IChatRepository _chatRepo = chatRepo;
-        private readonly IConfiguration _configuration = configuration;
-        private readonly IConversationContextService _contextService = contextService;
-        private readonly HttpClient _httpClient = httpClient;
-        private readonly ILogger<ChatRecommendationService> _logger = logger;
-        private readonly IAIRecommendationService _recommendationService = recommendationService;
-        private readonly IUserRepository _userRepo = userRepo;
+        private readonly IChatRepository chatRepo = chatRepo;
+        private readonly IConfiguration configuration = configuration;
+        private readonly IConversationContextService contextService = contextService;
+        private readonly HttpClient httpClient = httpClient;
+        private readonly ILogger<ChatRecommendationService> logger = logger;
+        private readonly IAIRecommendationService recommendationService = recommendationService;
+        private readonly IUserRepository userRepo = userRepo;
 
         // Define the model strategies
-        private readonly string[] _modelStrategies =["fast", "refine", "clarify"];
+        private readonly string[] modelStrategies = ["fast", "refine", "clarify"];
 
+        /// <inheritdoc/>
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
         {
             try
             {
-                _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
+                this.logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
 
                 // Explain: Log the ConversationId received by the Service from the Controller.
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "ChatService received message with ConversationId: {ConversationId}",
                     message.ConversationId ?? "NULL");
 
@@ -50,16 +55,19 @@ namespace SmartAutoTrader.API.Services
                     int.TryParse(message.ConversationId, out int sessionId))
                 {
                     conversationSessionId = sessionId;
-                    _logger.LogInformation("Parsed conversationSessionId as integer: {SessionId}", conversationSessionId);
+                    this.logger.LogInformation(
+                        "Parsed conversationSessionId as integer: {SessionId}",
+                        conversationSessionId);
                 }
                 else
                 {
                     // Explain: Log warning if parsing failed or ID was null/empty.
-                    _logger.LogWarning("Could not parse or find ConversationId from message. conversationSessionId will be null.");
+                    this.logger.LogWarning(
+                        "Could not parse or find ConversationId from message. conversationSessionId will be null.");
                 }
 
                 // Get conversation context
-                ConversationContext conversationContext = await _contextService.GetOrCreateContextAsync(userId);
+                ConversationContext conversationContext = await this.contextService.GetOrCreateContextAsync(userId);
 
                 // Determine the model strategy to use
                 string modelUsedForSession;
@@ -67,20 +75,22 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Randomly select a model strategy if none is set
                     Random random = new();
-                    modelUsedForSession = _modelStrategies[random.Next(_modelStrategies.Length)];
+                    modelUsedForSession = this.modelStrategies[random.Next(this.modelStrategies.Length)];
 
                     // Set the selected strategy in the context
                     conversationContext.ModelUsed = modelUsedForSession;
 
                     // Save the updated context with the selected model
-                    await _contextService.UpdateContextAsync(userId, conversationContext);
-                    _logger.LogInformation("Randomly selected model strategy: {ModelStrategy}", modelUsedForSession);
+                    await this.contextService.UpdateContextAsync(userId, conversationContext);
+                    this.logger.LogInformation(
+                        "Randomly selected model strategy: {ModelStrategy}",
+                        modelUsedForSession);
                 }
                 else
                 {
                     // Use the existing model strategy
                     modelUsedForSession = conversationContext.ModelUsed;
-                    _logger.LogInformation("Using existing model strategy: {ModelStrategy}", modelUsedForSession);
+                    this.logger.LogInformation("Using existing model strategy: {ModelStrategy}", modelUsedForSession);
                 }
 
                 // Update conversation context with basic tracking info
@@ -88,38 +98,40 @@ namespace SmartAutoTrader.API.Services
                 conversationContext.LastInteraction = DateTime.UtcNow;
 
                 // Get recent conversation history
-                List<ConversationTurn> recentHistory =[];
+                List<ConversationTurn> recentHistory = [];
                 if (conversationSessionId.HasValue)
                 {
                     // Explain: Log just before attempting to fetch history from the database.
-                    _logger.LogInformation("Attempting to fetch history for Session ID: {SessionId}", conversationSessionId.Value);
+                    this.logger.LogInformation(
+                        "Attempting to fetch history for Session ID: {SessionId}",
+                        conversationSessionId.Value);
 
-                    recentHistory = await _chatRepo.GetRecentHistoryAsync(
+                    recentHistory = await this.chatRepo.GetRecentHistoryAsync(
                         userId,
                         conversationSessionId.Value,
-                        3);  // Get last 3 exchanges
+                        3); // Get last 3 exchanges
 
                     // Explain: Log how many history items were actually returned by the repository for this session ID.
-                    _logger.LogInformation(
+                    this.logger.LogInformation(
                         "Fetched {HistoryCount} items from history for Session ID: {SessionId}",
                         recentHistory.Count, conversationSessionId.Value);
                 }
                 else
                 {
                     // Explain: Log warning because history fetching was skipped due to missing ID.
-                    _logger.LogWarning("No valid conversationSessionId available, history fetching skipped.");
+                    this.logger.LogWarning("No valid conversationSessionId available, history fetching skipped.");
                 }
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Retrieved {HistoryCount} conversation history items for user {UserId}",
                     recentHistory.Count, userId);
 
                 // Get user context for personalization
-                User? user = await _userRepo.GetByIdAsync(userId);
+                User? user = await this.userRepo.GetByIdAsync(userId);
 
                 if (user == null)
                 {
-                    _logger.LogWarning("User with ID {UserId} not found", userId);
+                    this.logger.LogWarning("User with ID {UserId} not found", userId);
                     return new ChatResponse
                     {
                         Message = "Sorry, I couldn't process your request. Please try again later.",
@@ -130,55 +142,60 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Load related entities separately
-                user.Favorites = await _userRepo.GetFavoritesWithVehiclesAsync(userId);
+                user.Favorites = await this.userRepo.GetFavoritesWithVehiclesAsync(userId);
 
-                user.BrowsingHistory = await _userRepo
+                user.BrowsingHistory = await this.userRepo
                     .GetRecentBrowsingHistoryWithVehiclesAsync(userId);
 
                 // Determine if this is a clarification or a follow-up query
                 string messageToProcess = message.Content;
 
                 // Check for conversation continuity
-                bool isFollowUpQuery = IsFollowUpQuery(message.Content, conversationContext);
+                bool isFollowUpQuery = this.IsFollowUpQuery(message.Content, conversationContext);
 
                 if (message.IsClarification && !string.IsNullOrEmpty(message.OriginalUserInput))
                 {
                     // Combine original query with clarification
                     messageToProcess = $"{message.OriginalUserInput} - Additional info: {message.Content}";
-                    _logger.LogInformation("Processing clarification. Combined message: {Message}", messageToProcess);
+                    this.logger.LogInformation(
+                        "Processing clarification. Combined message: {Message}",
+                        messageToProcess);
                 }
                 else if (isFollowUpQuery || message.IsFollowUp)
                 {
                     // This is a follow-up to the previous query, use the context
                     messageToProcess = $"{conversationContext.LastUserIntent} - Follow-up: {message.Content}";
-                    _logger.LogInformation("Processing follow-up query. Combined message: {Message}", messageToProcess);
+                    this.logger.LogInformation(
+                        "Processing follow-up query. Combined message: {Message}",
+                        messageToProcess);
 
                     // Analyze message for features or preferences
-                    UpdateContextBasedOnMessage(message.Content, conversationContext);
+                    this.UpdateContextBasedOnMessage(message.Content, conversationContext);
                 }
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "About to call parameter extraction for message: {MessageContent}",
                     messageToProcess);
 
                 Stopwatch sw = Stopwatch.StartNew();
 
                 // Pass the recent history and model strategy to the extraction method
-                RecommendationParameters extractedParameters = await ExtractParametersAsync(
+                RecommendationParameters extractedParameters = await this.ExtractParametersAsync(
                     messageToProcess,
-                    modelUsedForSession,  // Pass the model strategy
+                    modelUsedForSession, // Pass the model strategy
                     recentHistory);
                 sw.Stop();
 
                 // ⚠️ NEW: Check if this is a vague query from RAG fallback
                 if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
                 {
-                    _logger.LogInformation(
+                    this.logger.LogInformation(
                         "Vague RAG match triggered. Suggesting clarification: {Suggestion}",
                         extractedParameters.RetrieverSuggestion);
 
                     // Explain: Add history saving before returning the RAG clarification suggestion.
-                    await SaveChatHistoryAsync(userId, message, extractedParameters.RetrieverSuggestion, conversationSessionId);
+                    await this.SaveChatHistoryAsync(userId, message, extractedParameters.RetrieverSuggestion,
+                        conversationSessionId);
 
                     return new ChatResponse
                     {
@@ -190,13 +207,13 @@ namespace SmartAutoTrader.API.Services
                     };
                 }
 
-                _logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
+                this.logger.LogInformation("⏱️ LLM extraction took {ElapsedMs}ms", sw.ElapsedMilliseconds);
 
                 if (extractedParameters == null)
                 {
-                    _logger.LogError(
+                    this.logger.LogError(
                         "🛑 ExtractParametersAsync returned NULL — possible timeout, LLM failure, or parsing issue.");
-                    _logger.LogError("[LLM_NULL_PARAMETERS] User message: {Message}", messageToProcess);
+                    this.logger.LogError("[LLM_NULL_PARAMETERS] User message: {Message}", messageToProcess);
 
                     return new ChatResponse
                     {
@@ -212,7 +229,7 @@ namespace SmartAutoTrader.API.Services
                 if (extractedParameters.IsOffTopic && !string.IsNullOrEmpty(extractedParameters.OffTopicResponse))
                 {
                     // Return the off-topic response directly without further processing
-                    await SaveChatHistoryAsync(
+                    await this.SaveChatHistoryAsync(
                         userId,
                         message,
                         extractedParameters.OffTopicResponse,
@@ -221,14 +238,14 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles =[],
+                        RecommendedVehicles = [],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
                     };
                 }
 
-                _logger.LogInformation("Parameter extraction completed successfully");
+                this.logger.LogInformation("Parameter extraction completed successfully");
 
                 // Merge with existing parameters if this is a follow-up or clarification
                 RecommendationParameters parameters;
@@ -240,7 +257,7 @@ namespace SmartAutoTrader.API.Services
                         conversationContext.CurrentParameters,
                         extractedParameters,
                         extractedParameters.Intent);
-                    _logger.LogInformation(
+                    this.logger.LogInformation(
                         "Merged parameters from context and new extraction with intent: {Intent}",
                         extractedParameters.Intent);
                 }
@@ -256,21 +273,21 @@ namespace SmartAutoTrader.API.Services
                 conversationContext.CurrentParameters = parameters;
 
                 // Save context
-                await _contextService.UpdateContextAsync(userId, conversationContext);
+                await this.contextService.UpdateContextAsync(userId, conversationContext);
 
                 // Determine if we need further clarification based on parameters
                 bool needsClarification = NeedsClarification(parameters, messageToProcess);
 
                 if (needsClarification && !message.IsClarification)
                 {
-                    _logger.LogInformation("Clarification needed for user query");
+                    this.logger.LogInformation("Clarification needed for user query");
 
                     // Create clarification message based on context
                     string clarificationMessage =
                         GenerateClarificationMessage(parameters, messageToProcess, conversationContext);
 
                     // Save the chat history
-                    await SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
+                    await this.SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
 
                     return new ChatResponse
                     {
@@ -285,10 +302,10 @@ namespace SmartAutoTrader.API.Services
                 // This is either a complete initial query or a follow-up clarification
                 parameters.TextPrompt = messageToProcess;
 
-                _logger.LogInformation("Using parameters: {@Parameters}", parameters);
+                this.logger.LogInformation("Using parameters: {@Parameters}", parameters);
 
                 // Save the chat history with a placeholder response
-                await SaveChatHistoryAsync(
+                await this.SaveChatHistoryAsync(
                     userId,
                     message,
                     $"I'm looking for vehicles that match: {messageToProcess}",
@@ -296,7 +313,7 @@ namespace SmartAutoTrader.API.Services
 
                 // Get recommendations based on the parameters
                 IEnumerable<Vehicle> recommendations =
-                    await _recommendationService.GetRecommendationsAsync(userId, parameters);
+                    await this.recommendationService.GetRecommendationsAsync(userId, parameters);
 
                 // Track which vehicles were shown to the user
                 List<int> vehicleIds = recommendations.Select(v => v.Id).ToList();
@@ -309,7 +326,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Save the updated context with shown vehicles
-                await _contextService.UpdateContextAsync(userId, conversationContext);
+                await this.contextService.UpdateContextAsync(userId, conversationContext);
 
                 // Generate a response based on the parameters, recommendations, and context
                 string responseMessage = GenerateResponseMessage(
@@ -328,11 +345,11 @@ namespace SmartAutoTrader.API.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+                this.logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles =[],
+                    RecommendedVehicles = [],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -381,7 +398,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns =["it", "that", "these", "those", "them"];
+            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -417,16 +434,16 @@ namespace SmartAutoTrader.API.Services
                 };
 
                 // Explain: Log the Session ID *being assigned* to the history record before saving.
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Attempting SaveChatHistoryAsync for User: {UserId}, Session ID being saved: {SessionId}",
                     userId, conversationSessionId ?? -1); // Log -1 if null for clarity
 
-                await _chatRepo.AddChatHistoryAsync(chatHistory);
-                await _chatRepo.SaveChangesAsync();
+                await this.chatRepo.AddChatHistoryAsync(chatHistory);
+                await this.chatRepo.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving chat history for user ID {UserId}", userId);
+                this.logger.LogError(ex, "Error saving chat history for user ID {UserId}", userId);
 
                 // Continue even if saving history fails
             }
@@ -506,27 +523,28 @@ namespace SmartAutoTrader.API.Services
             string? userIntent = null)
         {
             // Start with a copy of the existing parameters for refinement scenarios
-            RecommendationParameters mergedParams = userIntent?.Equals("refine_criteria", StringComparison.OrdinalIgnoreCase) == true
-                ? new RecommendationParameters
-                {
-                    // Copy the existing parameters first
-                    MinPrice = existingParams.MinPrice,
-                    MaxPrice = existingParams.MaxPrice,
-                    MinYear = existingParams.MinYear,
-                    MaxYear = existingParams.MaxYear,
-                    MaxMileage = existingParams.MaxMileage,
-                    PreferredMakes = existingParams.PreferredMakes?.ToList(),
-                    PreferredFuelTypes = existingParams.PreferredFuelTypes?.ToList(),
-                    PreferredVehicleTypes = existingParams.PreferredVehicleTypes?.ToList(),
-                    DesiredFeatures = existingParams.DesiredFeatures?.ToList(),
-                    TextPrompt = newParams.TextPrompt, // Use the new text prompt
-                    MaxResults = existingParams.MaxResults,
-                    RetrieverSuggestion = newParams.RetrieverSuggestion,
-                    ModelUsed = newParams.ModelUsed,
-                    Intent = newParams.Intent,
-                    ClarificationNeededFor = newParams.ClarificationNeededFor,
-                }
-                : newParams; // For other intents, start with new params
+            RecommendationParameters mergedParams =
+                userIntent?.Equals("refine_criteria", StringComparison.OrdinalIgnoreCase) == true
+                    ? new RecommendationParameters
+                    {
+                        // Copy the existing parameters first
+                        MinPrice = existingParams.MinPrice,
+                        MaxPrice = existingParams.MaxPrice,
+                        MinYear = existingParams.MinYear,
+                        MaxYear = existingParams.MaxYear,
+                        MaxMileage = existingParams.MaxMileage,
+                        PreferredMakes = existingParams.PreferredMakes?.ToList(),
+                        PreferredFuelTypes = existingParams.PreferredFuelTypes?.ToList(),
+                        PreferredVehicleTypes = existingParams.PreferredVehicleTypes?.ToList(),
+                        DesiredFeatures = existingParams.DesiredFeatures?.ToList(),
+                        TextPrompt = newParams.TextPrompt, // Use the new text prompt
+                        MaxResults = existingParams.MaxResults,
+                        RetrieverSuggestion = newParams.RetrieverSuggestion,
+                        ModelUsed = newParams.ModelUsed,
+                        Intent = newParams.Intent,
+                        ClarificationNeededFor = newParams.ClarificationNeededFor,
+                    }
+                    : newParams; // For other intents, start with new params
 
             // For refine or new queries, selectively overwrite only the fields that are present in newParams
             if (userIntent?.Equals("refine_criteria", StringComparison.OrdinalIgnoreCase) == true ||
@@ -605,7 +623,8 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // For vehicle types
-                if (newParams.PreferredVehicleTypes?.Any() == true && existingParams.PreferredVehicleTypes?.Any() == true)
+                if (newParams.PreferredVehicleTypes?.Any() == true &&
+                    existingParams.PreferredVehicleTypes?.Any() == true)
                 {
                     mergedParams.PreferredVehicleTypes = newParams.PreferredVehicleTypes
                         .Union(existingParams.PreferredVehicleTypes)
@@ -622,7 +641,6 @@ namespace SmartAutoTrader.API.Services
             }
 
             // For replace_criteria (default), we've already started with newParams so no special handling
-
             return mergedParams;
         }
 
@@ -911,13 +929,16 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 _ = response.Append("to ");
-                _ = parameters.MaxYear.HasValue ? response.Append($"{parameters.MaxYear}. ") : response.Append("present. ");
+                _ = parameters.MaxYear.HasValue
+                    ? response.Append($"{parameters.MaxYear}. ")
+                    : response.Append("present. ");
             }
 
             // Add personalized guidance based on context
             if (context.TopicContext.ContainsKey("discussing_family_needs"))
             {
-                _ = response.Append("These options should provide good space and safety features for your family needs. ");
+                _ = response.Append(
+                    "These options should provide good space and safety features for your family needs. ");
             }
 
             if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
@@ -944,16 +965,20 @@ namespace SmartAutoTrader.API.Services
             try
             {
                 // Get the parameter extraction endpoint from configuration
-                string endpoint = _configuration["Services:ParameterExtraction:Endpoint"] ??
-                                 "http://localhost:5006/extract_parameters";
+                string endpoint = this.configuration["Services:ParameterExtraction:Endpoint"] ??
+                                  "http://localhost:5006/extract_parameters";
                 int timeoutSeconds = int.TryParse(
-                    _configuration["Services:ParameterExtraction:Timeout"],
-                    out int timeout) ? timeout : 30;
+                    this.configuration["Services:ParameterExtraction:Timeout"],
+                    out int timeout)
+                    ? timeout
+                    : 30;
 
-                _logger.LogInformation("Calling parameter extraction service at {Endpoint} with model strategy: {ModelStrategy}", endpoint, modelStrategy);
+                this.logger.LogInformation(
+                    "Calling parameter extraction service at {Endpoint} with model strategy: {ModelStrategy}", endpoint,
+                    modelStrategy);
 
                 // Format the conversation history
-                List<object> formattedHistory =[];
+                List<object> formattedHistory = [];
                 if (recentHistory != null)
                 {
                     foreach (ConversationTurn turn in recentHistory)
@@ -974,7 +999,7 @@ namespace SmartAutoTrader.API.Services
                     conversationHistory = formattedHistory,
                 };
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Sending request to parameter extraction with {HistoryCount} history items",
                     formattedHistory.Count);
 
@@ -986,15 +1011,15 @@ namespace SmartAutoTrader.API.Services
                 // Configure timeout
                 CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(timeoutSeconds));
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "SENDING REQUEST to {Endpoint} with payload: {Payload}",
                     endpoint, JsonSerializer.Serialize(requestPayload));
-                HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
+                HttpResponseMessage response = await this.httpClient.PostAsync(endpoint, content, timeoutCts.Token);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError(
+                    this.logger.LogError(
                         "Parameter extraction service error: {StatusCode}, {ErrorContent}",
                         response.StatusCode,
                         errorContent);
@@ -1002,44 +1027,44 @@ namespace SmartAutoTrader.API.Services
                     return new RecommendationParameters
                     {
                         TextPrompt = message,
-                        MaxResults = 10,  // CHANGED FROM 5 TO 10
+                        MaxResults = 10, // CHANGED FROM 5 TO 10
                         Intent = "new_query",
                     };
                 }
 
                 // Parse the response
                 string responseContent = await response.Content.ReadAsStringAsync();
-                _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
+                this.logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
 
                 using JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
                 RecommendationParameters parameters = new()
                 {
                     TextPrompt = message,
-                    MaxResults = 10,  // CHANGED FROM 5 TO 10
+                    MaxResults = 10, // CHANGED FROM 5 TO 10
 
                     // Parse numerical values safely
                     MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out JsonElement minPriceElement) &&
-                              minPriceElement.ValueKind == JsonValueKind.Number
+                               minPriceElement.ValueKind == JsonValueKind.Number
                         ? minPriceElement.GetDecimal()
                         : null,
 
                     MaxPrice = jsonDoc.RootElement.TryGetProperty("maxPrice", out JsonElement maxPriceElement) &&
-                              maxPriceElement.ValueKind == JsonValueKind.Number
+                               maxPriceElement.ValueKind == JsonValueKind.Number
                         ? maxPriceElement.GetDecimal()
                         : null,
 
                     MinYear = jsonDoc.RootElement.TryGetProperty("minYear", out JsonElement minYearElement) &&
-                             minYearElement.ValueKind == JsonValueKind.Number
+                              minYearElement.ValueKind == JsonValueKind.Number
                         ? minYearElement.GetInt32()
                         : null,
 
                     MaxYear = jsonDoc.RootElement.TryGetProperty("maxYear", out JsonElement maxYearElement) &&
-                             maxYearElement.ValueKind == JsonValueKind.Number
+                              maxYearElement.ValueKind == JsonValueKind.Number
                         ? maxYearElement.GetInt32()
                         : null,
 
                     MaxMileage = jsonDoc.RootElement.TryGetProperty("maxMileage", out JsonElement mileageElement) &&
-                                mileageElement.ValueKind == JsonValueKind.Number
+                                 mileageElement.ValueKind == JsonValueKind.Number
                         ? mileageElement.GetInt32()
                         : null,
 
@@ -1059,47 +1084,63 @@ namespace SmartAutoTrader.API.Services
                             : new List<string>(),
 
                     // Parse enums correctly
-                    PreferredFuelTypes = jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
-                                         fuelTypesElement.ValueKind == JsonValueKind.Array
-                        ? fuelTypesElement.EnumerateArray()
-                            .Where(e => e.ValueKind == JsonValueKind.String)
+                    PreferredFuelTypes =
+                        jsonDoc.RootElement.TryGetProperty("preferredFuelTypes", out JsonElement fuelTypesElement) &&
+                        fuelTypesElement.ValueKind == JsonValueKind.Array
+                            ? fuelTypesElement.EnumerateArray()
+                                .Where(e => e.ValueKind == JsonValueKind.String)
 
-                            // Replace standard TryParse with your helper:
-                            .Select(e => EnumHelpers.TryParseFuelType(e.GetString() ?? "", out FuelType fuel) // <-- Use your helper
-                                ? fuel
-                                : (FuelType?)null)
-                            .Where(f => f.HasValue) // Keep this to filter out any strings your helper still couldn't parse
-                            .Select(f => f.Value)
-                            .ToList()
-                        : new List<FuelType>(),
+                                // Replace standard TryParse with your helper:
+                                .Select(e =>
+                                    EnumHelpers.TryParseFuelType(
+                                        e.GetString() ?? string.Empty,
+                                        out FuelType fuel) // <-- Use your helper
+                                        ? fuel
+                                        : (FuelType?)null)
+                                .Where(f => f
+                                    .HasValue) // Keep this to filter out any strings your helper still couldn't parse
+                                .Select(f => f.Value)
+                                .ToList()
+                            : new List<FuelType>(),
 
-                    PreferredVehicleTypes = jsonDoc.RootElement.TryGetProperty("preferredVehicleTypes", out JsonElement vehicleTypesElement) &&
-                                            vehicleTypesElement.ValueKind == JsonValueKind.Array
-                        ? vehicleTypesElement.EnumerateArray()
-                            .Where(e => e.ValueKind == JsonValueKind.String)
+                    PreferredVehicleTypes =
+                        jsonDoc.RootElement.TryGetProperty(
+                            "preferredVehicleTypes",
+                            out JsonElement vehicleTypesElement) &&
+                        vehicleTypesElement.ValueKind == JsonValueKind.Array
+                            ? vehicleTypesElement.EnumerateArray()
+                                .Where(e => e.ValueKind == JsonValueKind.String)
 
-                            // Replace standard TryParse with your helper:
-                            .Select(e => EnumHelpers.TryParseVehicleType(e.GetString() ?? "", out VehicleType vehicle) // Use your helper
-                                ? vehicle
-                                : (VehicleType?)null)
-                            .Where(v => v.HasValue) // Keep this to filter out any strings your helper still couldn't parse
-                            .Select(v => v.Value)
-                            .ToList()
-                        : new List<VehicleType>(),
+                                // Replace standard TryParse with your helper:
+                                .Select(e =>
+                                    EnumHelpers.TryParseVehicleType(
+                                        e.GetString() ?? string.Empty,
+                                        out VehicleType vehicle) // Use your helper
+                                        ? vehicle
+                                        : (VehicleType?)null)
+                                .Where(v => v
+                                    .HasValue) // Keep this to filter out any strings your helper still couldn't parse
+                                .Select(v => v.Value)
+                                .ToList()
+                            : new List<VehicleType>(),
 
                     // Parse the off-topic flags
                     IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
-                                        && isOffTopicElement.ValueKind == JsonValueKind.True,
+                                 && isOffTopicElement.ValueKind == JsonValueKind.True,
                 };
 
-                if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out JsonElement responseElement)
-                    && responseElement.ValueKind == JsonValueKind.String)
+                if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty(
+                    "offTopicResponse",
+                    out JsonElement responseElement)
+                                          && responseElement.ValueKind == JsonValueKind.String)
                 {
                     parameters.OffTopicResponse = responseElement.GetString();
                 }
 
                 // Parse retriever suggestion
-                if (jsonDoc.RootElement.TryGetProperty("retrieverSuggestion", out JsonElement retrieverSuggestionElement) &&
+                if (jsonDoc.RootElement.TryGetProperty(
+                    "retrieverSuggestion",
+                    out JsonElement retrieverSuggestionElement) &&
                     retrieverSuggestionElement.ValueKind == JsonValueKind.String)
                 {
                     parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
@@ -1117,7 +1158,9 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // NEW: Parse clarificationNeededFor
-                if (jsonDoc.RootElement.TryGetProperty("clarificationNeededFor", out JsonElement clarificationNeededForElement) &&
+                if (jsonDoc.RootElement.TryGetProperty(
+                    "clarificationNeededFor",
+                    out JsonElement clarificationNeededForElement) &&
                     clarificationNeededForElement.ValueKind == JsonValueKind.Array)
                 {
                     parameters.ClarificationNeededFor = clarificationNeededForElement.EnumerateArray()
@@ -1126,17 +1169,19 @@ namespace SmartAutoTrader.API.Services
                         .ToList();
                 }
 
-                _logger.LogInformation("Final extracted parameters: {Params}", JsonSerializer.Serialize(parameters));
+                this.logger.LogInformation(
+                    "Final extracted parameters: {Params}",
+                    JsonSerializer.Serialize(parameters));
                 return parameters;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error extracting parameters from message");
+                this.logger.LogError(ex, "Error extracting parameters from message");
 
                 return new RecommendationParameters
                 {
                     TextPrompt = message,
-                    MaxResults = 10,  // CHANGED FROM 5 TO 10
+                    MaxResults = 10, // CHANGED FROM 5 TO 10
                     Intent = "new_query",
                 };
             }

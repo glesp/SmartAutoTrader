@@ -1,10 +1,14 @@
-using System.Linq.Expressions;
-using System.Text.Json;
-using SmartAutoTrader.API.Models;
-using SmartAutoTrader.API.Repositories;
+// <copyright file="OpenRouterRecommendationService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Services
 {
+    using System.Linq.Expressions;
+    using System.Text.Json;
+    using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
+
     // Interface for any AI recommendation service (allows easy swapping)
     public interface IAIRecommendationService
     {
@@ -17,22 +21,23 @@ namespace SmartAutoTrader.API.Services
         ILogger<OpenRouterRecommendationService> logger,
         HttpClient httpClient) : IAIRecommendationService
     {
-        private readonly IConfiguration _configuration = configuration;
-        private readonly HttpClient _httpClient = httpClient;
-        private readonly ILogger<OpenRouterRecommendationService> _logger = logger;
-        private readonly IVehicleRepository _vehicleRepo = vehicleRepo;
+        private readonly IConfiguration configuration = configuration;
+        private readonly HttpClient httpClient = httpClient;
+        private readonly ILogger<OpenRouterRecommendationService> logger = logger;
+        private readonly IVehicleRepository vehicleRepo = vehicleRepo;
 
+        /// <inheritdoc/>
         public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
         {
             try
             {
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Fetching recommendations for user ID: {UserId} with parameters: {Parameters}",
                     userId,
                     JsonSerializer.Serialize(parameters));
 
                 // Log the important parameter values we'll be filtering on
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Key filter values: Makes={Makes}, FuelTypes={FuelTypes}, VehicleTypes={VehicleTypes}",
                     parameters.PreferredMakes != null ? string.Join(", ", parameters.PreferredMakes) : "null",
                     parameters.PreferredFuelTypes != null ? string.Join(", ", parameters.PreferredFuelTypes) : "null",
@@ -40,11 +45,11 @@ namespace SmartAutoTrader.API.Services
                         ? string.Join(", ", parameters.PreferredVehicleTypes)
                         : "null");
 
-                List<Vehicle> filteredVehicles = await GetFilteredVehiclesAsync(parameters);
+                List<Vehicle> filteredVehicles = await this.GetFilteredVehiclesAsync(parameters);
 
                 if (filteredVehicles.Count == 0)
                 {
-                    _logger.LogWarning("No available vehicles found for filtering criteria.");
+                    this.logger.LogWarning("No available vehicles found for filtering criteria.");
                     return new List<Vehicle>();
                 }
 
@@ -56,12 +61,12 @@ namespace SmartAutoTrader.API.Services
                         .ToList();
                 }
 
-                _logger.LogInformation("Returning {Count} vehicles based on parameter filtering", filteredVehicles.Count);
+                this.logger.LogInformation("Returning {Count} vehicles based on parameter filtering", filteredVehicles.Count);
 
                 // Log the actual results for debugging
                 foreach (Vehicle? vehicle in filteredVehicles.Take(5))
                 {
-                    _logger.LogInformation(
+                    this.logger.LogInformation(
                         "Recommended vehicle: {Year} {Make} {Model}, Type={Type}, Fuel={Fuel}",
                         vehicle.Year,
                         vehicle.Make,
@@ -74,7 +79,7 @@ namespace SmartAutoTrader.API.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving recommendations for user ID {UserId}", userId);
+                this.logger.LogError(ex, "Error retrieving recommendations for user ID {UserId}", userId);
                 return new List<Vehicle>();
             }
         }
@@ -82,18 +87,18 @@ namespace SmartAutoTrader.API.Services
         private async Task<List<Vehicle>> GetFilteredVehiclesAsync(RecommendationParameters parameters)
         {
             // Build a combined expression for filtering
-            Expression<Func<Vehicle, bool>> filterExpression = BuildFilterExpression(parameters);
+            Expression<Func<Vehicle, bool>> filterExpression = this.BuildFilterExpression(parameters);
 
             // Log the filter criteria
-            _logger.LogInformation("Applying filter expression for vehicle search");
+            this.logger.LogInformation("Applying filter expression for vehicle search");
 
             // Execute the query through the repository
-            List<Vehicle> vehicles = await _vehicleRepo.SearchAsync(filterExpression);
+            List<Vehicle> vehicles = await this.vehicleRepo.SearchAsync(filterExpression);
 
             // Optional in-memory feature ranking
             if (parameters.DesiredFeatures?.Any() == true)
             {
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Ranking by optional features: {Features}",
                     string.Join(", ", parameters.DesiredFeatures));
 
@@ -191,7 +196,7 @@ namespace SmartAutoTrader.API.Services
                     expression = CombineExpressions(expression, makesExpression);
                 }
 
-                _logger.LogInformation(
+                this.logger.LogInformation(
                     "Filtering by manufacturers: {Manufacturers}",
                     string.Join(", ", parameters.PreferredMakes));
             }
@@ -245,12 +250,12 @@ namespace SmartAutoTrader.API.Services
         private sealed class ReplaceParameterVisitor(ParameterExpression oldParameter, ParameterExpression newParameter)
             : ExpressionVisitor
         {
-            private readonly ParameterExpression _newParameter = newParameter;
-            private readonly ParameterExpression _oldParameter = oldParameter;
+            private readonly ParameterExpression newParameter = newParameter;
+            private readonly ParameterExpression oldParameter = oldParameter;
 
             protected override Expression VisitParameter(ParameterExpression node)
             {
-                return node == _oldParameter ? _newParameter : base.VisitParameter(node);
+                return node == this.oldParameter ? this.newParameter : base.VisitParameter(node);
             }
         }
     }

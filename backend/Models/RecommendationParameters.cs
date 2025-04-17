@@ -1,3 +1,7 @@
+// <copyright file="RecommendationParameters.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 namespace SmartAutoTrader.API.Models
 {
     // Parameter class to pass user preferences and context to the recommendation service
@@ -13,13 +17,13 @@ namespace SmartAutoTrader.API.Models
 
         public int? MaxMileage { get; set; }
 
-        public List<FuelType> PreferredFuelTypes { get; set; } =[];
+        public List<FuelType> PreferredFuelTypes { get; set; } = [];
 
-        public List<VehicleType> PreferredVehicleTypes { get; set; } =[];
+        public List<VehicleType> PreferredVehicleTypes { get; set; } = [];
 
-        public List<string> PreferredMakes { get; set; } =[];
+        public List<string> PreferredMakes { get; set; } = [];
 
-        public List<string> DesiredFeatures { get; set; } =[];
+        public List<string> DesiredFeatures { get; set; } = [];
 
         public string? TextPrompt { get; set; }
 
@@ -35,6 +39,6 @@ namespace SmartAutoTrader.API.Models
 
         public string? Intent { get; set; }
 
-        public List<string> ClarificationNeededFor { get; set; } =[];
+        public List<string> ClarificationNeededFor { get; set; } = [];
     }
 }

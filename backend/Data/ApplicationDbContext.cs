@@ -1,8 +1,12 @@
-using Microsoft.EntityFrameworkCore;
-using SmartAutoTrader.API.Models;
+// <copyright file="ApplicationDbContext.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
 
 namespace SmartAutoTrader.API.Data
 {
+    using Microsoft.EntityFrameworkCore;
+    using SmartAutoTrader.API.Models;
+
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
         public DbSet<Vehicle> Vehicles { get; set; }
@@ -25,6 +29,7 @@ namespace SmartAutoTrader.API.Data
 
         public DbSet<ConversationSession> ConversationSessions { get; set; }
 
+        /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
