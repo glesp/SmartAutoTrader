@@ -219,7 +219,7 @@ def classify_intent_zero_shot(
         best_score = float(similarities[best_label])  # Cast to float explicitly
 
         logger.info(
-            f"Intent classification scores: { {k: f'{v:.2f}' for k, v in similarities.items()} }"
+            f"Intent classification scores: {{k: f'{v:.2f}' for k, v in similarities.items()} }"
         )  # Log formatted scores
 
         if best_score >= threshold:
@@ -228,7 +228,8 @@ def classify_intent_zero_shot(
         else:
             # --- NEW FALLBACK LOGIC ---
             logger.info(
-                f"Intent classification score ({best_score:.2f}) below threshold ({threshold}). Applying fallback logic."
+                f"Intent classification score ({
+    best_score:.2f}) below threshold ({threshold}). Applying fallback logic."
             )
             # Check if VAGUE_INQUIRY had the highest (but below threshold) score, OR if both scores are extremely low
             specific_score = similarities.get("SPECIFIC_SEARCH", 0.0)
@@ -717,14 +718,16 @@ RULES:
     - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000' or '€50k' in the user's reply as `{{"maxPrice": 50000.0}}` (or minPrice/etc. based on phrasing like 'over'/'under'). If the assistant asked for mileage, interpret it as `{{"maxMileage": 50000}}`. Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
 # --- END RULE ---
 
+# Explain change: Added priority note for intent determination.
+- **INTENT PRIORITY:** Determining the correct 'intent' is critical. Pay close attention to the 'clarify' intent rule below.
+
 - intent: Determine the intent based on the relationship between the LATEST query and the history:
     * "new_query": Latest query starts a completely new search, unrelated to history.
     * "replace_criteria": Latest query completely changes the core subject (e.g., was asking about SUVs, now asks only about Sedans).
     * "add_criteria": Latest query adds constraints (e.g., "also make it petrol", "show me BMWs too").
     * "refine_criteria": Latest query modifies existing constraints (e.g., "change price to under 30k", "actually, make it newer").
-# --- ENSURE 'clarify' DEFINITION IS LIKE THIS ---
-    * "clarify": Latest query DIRECTLY ANSWERS a question asked by the Assistant in the IMMEDIATELY PRECEDING turn (e.g., Assistant asked for budget, User provides ONLY a number or price phrase like 'under 20k').
-# --- END DEFINITION ---
+# Explain change: Made 'clarify' intent definition more precise and emphasized.
+    * "clarify": **CRITICAL RULE:** Use this intent ONLY when the Latest query DIRECTLY and SIMPLY ANSWERS a question asked by the Assistant in the IMMEDIATELY PRECEDING turn (e.g., Assistant asked for budget, User provides ONLY a number like '25000' or a price phrase like 'under 20k'). DO NOT use 'new_query' in this case.
 
 PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR contextually interpreted):
 - "under X" / "less than X" -> maxPrice/maxYear/maxMileage = X, min = null
@@ -742,7 +745,8 @@ VALID VALUES:
 - Valid Vehicle Types (includes aliases): {json.dumps(valid_vehicles)}
 
 EXAMPLE (Focus on LATEST query + history for intent):
-# --- ENSURE THESE EXAMPLES EXIST ---
+# Explain change: Added more examples demonstrating the 'clarify' intent for different types of answers.
+# --- ENSURE/ADD THESE EXAMPLES ---
 History: Assistant: What's your budget?
 Latest User Query: "Under €20000"
 Output: {{..., "maxPrice": 20000.0, "intent": "clarify", ...}}
@@ -754,6 +758,14 @@ Output: {{..., "minYear": 2021, "intent": "clarify", ...}}
 History: Assistant: What's the maximum mileage you'd consider?
 Latest User Query: "50000"
 Output: {{..., "maxMileage": 50000, "intent": "clarify", ...}}
+
+History: Assistant: What fuel type do you prefer?
+Latest User Query: "Petrol"
+Output: {{..., "preferredFuelTypes": ["Petrol"], "intent": "clarify", ...}}
+
+History: Assistant: Any preferred makes?
+Latest User Query: "Toyota please"
+Output: {{..., "preferredMakes": ["Toyota"], "intent": "clarify", ...}}
 # --- END EXAMPLES ---
 
 History: User: looking for suv / Assistant: Found 5 SUVs...
@@ -1045,7 +1057,8 @@ def extract_parameters():
                                 "make",
                             ],  # Suggest common next questions
                             matched_category=match_cat,
-                            retrieverSuggestion=f"Okay, thinking about {match_cat}s. What's your budget or preferred year range?",  # Simple suggestion
+                            # Simple suggestion
+                            retriever_suggestion=f"Okay, thinking about {match_cat}s. What's your budget or preferred year range?",
                         )
                 except Exception as e:
                     logger.error(f"Error during RAG processing: {e}", exc_info=True)
@@ -1058,7 +1071,8 @@ def extract_parameters():
                         None  # Reset response, will proceed to LLM block below
                     )
 
-        # Proceed to LLM if intent is specific OR if VAGUE path decided not to return early (e.g., RAG error or clarification answer detected)
+        # Proceed to LLM if intent is specific OR if VAGUE path decided not to
+        # return early (e.g., RAG error or clarification answer detected)
         if classified_intent == "SPECIFIC_SEARCH" and final_response is None:
             logger.info(
                 "Intent is SPECIFIC_SEARCH (or fallback/clarification answer), proceeding to LLM."

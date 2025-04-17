@@ -5,7 +5,6 @@ using System.Text.Json;
 using SmartAutoTrader.API.Helpers;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
-using SmartAutoTrader.API.Validators;
 
 namespace SmartAutoTrader.API.Services
 {
@@ -32,7 +31,7 @@ namespace SmartAutoTrader.API.Services
         private readonly IUserRepository _userRepo = userRepo;
 
         // Define the model strategies
-        private readonly string[] _modelStrategies = ["fast", "refine", "clarify"];
+        private readonly string[] _modelStrategies =["fast", "refine", "clarify"];
 
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
         {
@@ -40,13 +39,23 @@ namespace SmartAutoTrader.API.Services
             {
                 _logger.LogInformation("Processing chat message for user ID: {UserId}", userId);
 
+                // Explain: Log the ConversationId received by the Service from the Controller.
+                _logger.LogInformation(
+                    "ChatService received message with ConversationId: {ConversationId}",
+                    message.ConversationId ?? "NULL");
+
                 // Get or create conversation session ID
                 int? conversationSessionId = null;
                 if (!string.IsNullOrEmpty(message.ConversationId) &&
                     int.TryParse(message.ConversationId, out int sessionId))
                 {
                     conversationSessionId = sessionId;
-                    _logger.LogInformation("Using existing conversation session: {SessionId}", sessionId);
+                    _logger.LogInformation("Parsed conversationSessionId as integer: {SessionId}", conversationSessionId);
+                }
+                else
+                {
+                    // Explain: Log warning if parsing failed or ID was null/empty.
+                    _logger.LogWarning("Could not parse or find ConversationId from message. conversationSessionId will be null.");
                 }
 
                 // Get conversation context
@@ -57,7 +66,7 @@ namespace SmartAutoTrader.API.Services
                 if (string.IsNullOrEmpty(conversationContext.ModelUsed))
                 {
                     // Randomly select a model strategy if none is set
-                    Random random = new Random();
+                    Random random = new();
                     modelUsedForSession = _modelStrategies[random.Next(_modelStrategies.Length)];
 
                     // Set the selected strategy in the context
@@ -65,7 +74,6 @@ namespace SmartAutoTrader.API.Services
 
                     // Save the updated context with the selected model
                     await _contextService.UpdateContextAsync(userId, conversationContext);
-
                     _logger.LogInformation("Randomly selected model strategy: {ModelStrategy}", modelUsedForSession);
                 }
                 else
@@ -79,16 +87,32 @@ namespace SmartAutoTrader.API.Services
                 conversationContext.MessageCount++;
                 conversationContext.LastInteraction = DateTime.UtcNow;
 
-                // NEW: Get recent conversation history
-                List<ConversationTurn> recentHistory = [];
+                // Get recent conversation history
+                List<ConversationTurn> recentHistory =[];
                 if (conversationSessionId.HasValue)
                 {
+                    // Explain: Log just before attempting to fetch history from the database.
+                    _logger.LogInformation("Attempting to fetch history for Session ID: {SessionId}", conversationSessionId.Value);
+
                     recentHistory = await _chatRepo.GetRecentHistoryAsync(
                         userId,
                         conversationSessionId.Value,
-                        3  // Get last 3 exchanges
-                    );
+                        3);  // Get last 3 exchanges
+
+                    // Explain: Log how many history items were actually returned by the repository for this session ID.
+                    _logger.LogInformation(
+                        "Fetched {HistoryCount} items from history for Session ID: {SessionId}",
+                        recentHistory.Count, conversationSessionId.Value);
                 }
+                else
+                {
+                    // Explain: Log warning because history fetching was skipped due to missing ID.
+                    _logger.LogWarning("No valid conversationSessionId available, history fetching skipped.");
+                }
+
+                _logger.LogInformation(
+                    "Retrieved {HistoryCount} conversation history items for user {UserId}",
+                    recentHistory.Count, userId);
 
                 // Get user context for personalization
                 User? user = await _userRepo.GetByIdAsync(userId);
@@ -138,12 +162,12 @@ namespace SmartAutoTrader.API.Services
                     messageToProcess);
 
                 Stopwatch sw = Stopwatch.StartNew();
+
                 // Pass the recent history and model strategy to the extraction method
                 RecommendationParameters extractedParameters = await ExtractParametersAsync(
                     messageToProcess,
                     modelUsedForSession,  // Pass the model strategy
-                    recentHistory
-                );
+                    recentHistory);
                 sw.Stop();
 
                 // ⚠️ NEW: Check if this is a vague query from RAG fallback
@@ -152,6 +176,9 @@ namespace SmartAutoTrader.API.Services
                     _logger.LogInformation(
                         "Vague RAG match triggered. Suggesting clarification: {Suggestion}",
                         extractedParameters.RetrieverSuggestion);
+
+                    // Explain: Add history saving before returning the RAG clarification suggestion.
+                    await SaveChatHistoryAsync(userId, message, extractedParameters.RetrieverSuggestion, conversationSessionId);
 
                     return new ChatResponse
                     {
@@ -194,7 +221,7 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse
                     {
                         Message = extractedParameters.OffTopicResponse,
-                        RecommendedVehicles = [],
+                        RecommendedVehicles =[],
                         UpdatedParameters = new RecommendationParameters(),
                         ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
@@ -212,9 +239,9 @@ namespace SmartAutoTrader.API.Services
                     parameters = MergeParameters(
                         conversationContext.CurrentParameters,
                         extractedParameters,
-                        extractedParameters.Intent
-                    );
-                    _logger.LogInformation("Merged parameters from context and new extraction with intent: {Intent}",
+                        extractedParameters.Intent);
+                    _logger.LogInformation(
+                        "Merged parameters from context and new extraction with intent: {Intent}",
                         extractedParameters.Intent);
                 }
                 else
@@ -305,7 +332,7 @@ namespace SmartAutoTrader.API.Services
                 return new ChatResponse
                 {
                     Message = "I'm sorry, I encountered an error while processing your request. Please try again.",
-                    RecommendedVehicles = [],
+                    RecommendedVehicles =[],
                     UpdatedParameters = new RecommendationParameters(),
                     ConversationId = message.ConversationId,
                 };
@@ -354,7 +381,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Check for pronouns that might refer to previous context
-            string[] contextualPronouns = ["it", "that", "these", "those", "them"];
+            string[] contextualPronouns =["it", "that", "these", "those", "them"];
             if (contextualPronouns.Any(pronoun => lowerMessage.Contains($" {pronoun} ")))
             {
                 return true;
@@ -388,6 +415,11 @@ namespace SmartAutoTrader.API.Services
                     Timestamp = DateTime.UtcNow,
                     ConversationSessionId = conversationSessionId,
                 };
+
+                // Explain: Log the Session ID *being assigned* to the history record before saving.
+                _logger.LogInformation(
+                    "Attempting SaveChatHistoryAsync for User: {UserId}, Session ID being saved: {SessionId}",
+                    userId, conversationSessionId ?? -1); // Log -1 if null for clarity
 
                 await _chatRepo.AddChatHistoryAsync(chatHistory);
                 await _chatRepo.SaveChangesAsync();
@@ -492,7 +524,7 @@ namespace SmartAutoTrader.API.Services
                     RetrieverSuggestion = newParams.RetrieverSuggestion,
                     ModelUsed = newParams.ModelUsed,
                     Intent = newParams.Intent,
-                    ClarificationNeededFor = newParams.ClarificationNeededFor
+                    ClarificationNeededFor = newParams.ClarificationNeededFor,
                 }
                 : newParams; // For other intents, start with new params
 
@@ -555,7 +587,6 @@ namespace SmartAutoTrader.API.Services
             else if (userIntent?.Equals("add_criteria", StringComparison.OrdinalIgnoreCase) == true)
             {
                 // Handle additive intent - specifically union lists rather than replace
-                bool isAdditive = true;
 
                 // For makes
                 if (newParams.PreferredMakes?.Any() == true && existingParams.PreferredMakes?.Any() == true)
@@ -589,6 +620,7 @@ namespace SmartAutoTrader.API.Services
                         .ToList();
                 }
             }
+
             // For replace_criteria (default), we've already started with newParams so no special handling
 
             return mergedParams;
@@ -656,20 +688,15 @@ namespace SmartAutoTrader.API.Services
             string message,
             ConversationContext context)
         {
-            StringBuilder clarification = new StringBuilder();
+            StringBuilder clarification = new();
 
             // Shorter, more direct introduction
-            if (context.MessageCount > 1)
-            {
-                _ = clarification.Append("To refine your search, ");
-            }
-            else
-            {
-                _ = clarification.Append("To find your ideal vehicle, ");
-            }
+            _ = context.MessageCount > 1
+                ? clarification.Append("To refine your search, ")
+                : clarification.Append("To find your ideal vehicle, ");
 
             // List to collect questions in priority order
-            List<string> questions = new List<string>();
+            List<string> questions = new();
 
             // PRIORITIZED QUESTION LOGIC
             bool hasVehicleType = parameters.PreferredVehicleTypes?.Any() == true;
@@ -679,15 +706,9 @@ namespace SmartAutoTrader.API.Services
             // Priority 1: VehicleType
             if (!hasVehicleType)
             {
-                string vehicleTypeQuestion;
-                if (context.TopicContext.ContainsKey("discussing_family_needs"))
-                {
-                    vehicleTypeQuestion = "What type of vehicle would work best (e.g., SUV, Minivan, Sedan)?";
-                }
-                else
-                {
-                    vehicleTypeQuestion = "What type of vehicle are you interested in (e.g., Sedan, SUV, Hatchback)?";
-                }
+                string vehicleTypeQuestion = context.TopicContext.ContainsKey("discussing_family_needs")
+                    ? "What type of vehicle would work best (e.g., SUV, Minivan, Sedan)?"
+                    : "What type of vehicle are you interested in (e.g., Sedan, SUV, Hatchback)?";
                 questions.Add(vehicleTypeQuestion);
             }
 
@@ -696,28 +717,16 @@ namespace SmartAutoTrader.API.Services
             {
                 if (!hasPrice)
                 {
-                    string priceQuestion;
-                    if (context.TopicContext.ContainsKey("discussing_budget"))
-                    {
-                        priceQuestion = "What specific price range are you comfortable with?";
-                    }
-                    else
-                    {
-                        priceQuestion = "What's your budget for this vehicle?";
-                    }
+                    string priceQuestion = context.TopicContext.ContainsKey("discussing_budget")
+                        ? "What specific price range are you comfortable with?"
+                        : "What's your budget for this vehicle?";
                     questions.Add(priceQuestion);
                 }
                 else if (!hasMakes)
                 {
-                    string makeQuestion;
-                    if (context.ExplicitlyRejectedOptions.Any())
-                    {
-                        makeQuestion = $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?";
-                    }
-                    else
-                    {
-                        makeQuestion = "Any preferred makes (e.g., Toyota, Ford, BMW)?";
-                    }
+                    string makeQuestion = context.ExplicitlyRejectedOptions.Any()
+                        ? $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?"
+                        : "Any preferred makes (e.g., Toyota, Ford, BMW)?";
                     questions.Add(makeQuestion);
                 }
             }
@@ -740,30 +749,18 @@ namespace SmartAutoTrader.API.Services
                 // Make (if not already added)
                 if (!hasMakes && !questions.Any(q => q.Contains("preferred makes")))
                 {
-                    string makeQuestion;
-                    if (context.ExplicitlyRejectedOptions.Any())
-                    {
-                        makeQuestion = $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?";
-                    }
-                    else
-                    {
-                        makeQuestion = "Any preferred makes (e.g., Toyota, Ford, BMW)?";
-                    }
+                    string makeQuestion = context.ExplicitlyRejectedOptions.Any()
+                        ? $"Besides {string.Join(", ", context.ExplicitlyRejectedOptions)} that you don't want, any preferred makes (e.g., Toyota, Ford, BMW)?"
+                        : "Any preferred makes (e.g., Toyota, Ford, BMW)?";
                     questions.Add(makeQuestion);
                 }
 
                 // Price (if not already added)
                 if (!hasPrice && !questions.Any(q => q.Contains("price") || q.Contains("budget")))
                 {
-                    string priceQuestion;
-                    if (context.TopicContext.ContainsKey("discussing_budget"))
-                    {
-                        priceQuestion = "What specific price range are you comfortable with?";
-                    }
-                    else
-                    {
-                        priceQuestion = "What's your budget for this vehicle?";
-                    }
+                    string priceQuestion = context.TopicContext.ContainsKey("discussing_budget")
+                        ? "What specific price range are you comfortable with?"
+                        : "What's your budget for this vehicle?";
                     questions.Add(priceQuestion);
                 }
             }
@@ -800,10 +797,13 @@ namespace SmartAutoTrader.API.Services
                             {
                                 return parameters.RetrieverSuggestion;
                             }
+
                             questions.Add("Could you specify what type of vehicle you're looking for?");
                             break;
                         case "ambiguous":
                             questions.Add("Could you provide more specific details about what you're looking for?");
+                            break;
+                        default:
                             break;
                     }
                 }
@@ -953,15 +953,15 @@ namespace SmartAutoTrader.API.Services
                 _logger.LogInformation("Calling parameter extraction service at {Endpoint} with model strategy: {ModelStrategy}", endpoint, modelStrategy);
 
                 // Format the conversation history
-                List<object> formattedHistory = [];
+                List<object> formattedHistory =[];
                 if (recentHistory != null)
                 {
-                    foreach (var turn in recentHistory)
+                    foreach (ConversationTurn turn in recentHistory)
                     {
                         formattedHistory.Add(new
                         {
                             user = turn.UserMessage,
-                            ai = turn.AIResponse
+                            ai = turn.AIResponse,
                         });
                     }
                 }
@@ -970,19 +970,24 @@ namespace SmartAutoTrader.API.Services
                 var requestPayload = new
                 {
                     query = message,
-                    forceModel = modelStrategy,  // Pass the model strategy to the Python service
-                    conversationHistory = formattedHistory
+                    forceModel = modelStrategy,
+                    conversationHistory = formattedHistory,
                 };
 
-                StringContent content = new StringContent(
+                _logger.LogInformation(
+                    "Sending request to parameter extraction with {HistoryCount} history items",
+                    formattedHistory.Count);
+
+                StringContent content = new(
                     JsonSerializer.Serialize(requestPayload),
                     Encoding.UTF8,
                     "application/json");
 
                 // Configure timeout
-                CancellationTokenSource timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+                CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(timeoutSeconds));
 
-                _logger.LogInformation("SENDING REQUEST to {Endpoint} with payload: {Payload}",
+                _logger.LogInformation(
+                    "SENDING REQUEST to {Endpoint} with payload: {Payload}",
                     endpoint, JsonSerializer.Serialize(requestPayload));
                 HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content, timeoutCts.Token);
 
@@ -998,7 +1003,7 @@ namespace SmartAutoTrader.API.Services
                     {
                         TextPrompt = message,
                         MaxResults = 10,  // CHANGED FROM 5 TO 10
-                        Intent = "new_query"
+                        Intent = "new_query",
                     };
                 }
 
@@ -1007,7 +1012,7 @@ namespace SmartAutoTrader.API.Services
                 _logger.LogDebug("Parameter extraction service response: {Response}", responseContent);
 
                 using JsonDocument jsonDoc = JsonDocument.Parse(responseContent);
-                RecommendationParameters parameters = new RecommendationParameters
+                RecommendationParameters parameters = new()
                 {
                     TextPrompt = message,
                     MaxResults = 10,  // CHANGED FROM 5 TO 10
@@ -1058,6 +1063,7 @@ namespace SmartAutoTrader.API.Services
                                          fuelTypesElement.ValueKind == JsonValueKind.Array
                         ? fuelTypesElement.EnumerateArray()
                             .Where(e => e.ValueKind == JsonValueKind.String)
+
                             // Replace standard TryParse with your helper:
                             .Select(e => EnumHelpers.TryParseFuelType(e.GetString() ?? "", out FuelType fuel) // <-- Use your helper
                                 ? fuel
@@ -1071,6 +1077,7 @@ namespace SmartAutoTrader.API.Services
                                             vehicleTypesElement.ValueKind == JsonValueKind.Array
                         ? vehicleTypesElement.EnumerateArray()
                             .Where(e => e.ValueKind == JsonValueKind.String)
+
                             // Replace standard TryParse with your helper:
                             .Select(e => EnumHelpers.TryParseVehicleType(e.GetString() ?? "", out VehicleType vehicle) // Use your helper
                                 ? vehicle
@@ -1079,11 +1086,11 @@ namespace SmartAutoTrader.API.Services
                             .Select(v => v.Value)
                             .ToList()
                         : new List<VehicleType>(),
-                };
 
-                // Parse the off-topic flags
-                parameters.IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
-                                        && isOffTopicElement.ValueKind == JsonValueKind.True;
+                    // Parse the off-topic flags
+                    IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
+                                        && isOffTopicElement.ValueKind == JsonValueKind.True,
+                };
 
                 if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty("offTopicResponse", out JsonElement responseElement)
                     && responseElement.ValueKind == JsonValueKind.String)
@@ -1130,7 +1137,7 @@ namespace SmartAutoTrader.API.Services
                 {
                     TextPrompt = message,
                     MaxResults = 10,  // CHANGED FROM 5 TO 10
-                    Intent = "new_query"
+                    Intent = "new_query",
                 };
             }
         }

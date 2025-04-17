@@ -1,5 +1,4 @@
 using System.Globalization;
-using SmartAutoTrader.API.Models;
 
 namespace SmartAutoTrader.API.Services
 {

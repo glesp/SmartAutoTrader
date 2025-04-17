@@ -297,8 +297,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     const messageText = promptText || input
     if (!messageText.trim()) return
 
+    // Track the conversation ID that will be used for this specific message
+    // This ensures we use the most up-to-date ID even with rapid message sending
+    let messageConversationId = currentConversationId
+
     // If no conversation is selected, start a new one first
-    if (!currentConversationId) {
+    if (!messageConversationId) {
       try {
         const response = await axios.post(
           '/api/chat/conversation/new',
@@ -312,7 +316,13 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         )
 
         if (response.data?.conversationId) {
-          setCurrentConversationId(response.data.conversationId.toString())
+          // Store the ID both in component state and in our local variable
+          const newConversationId = response.data.conversationId.toString()
+          setCurrentConversationId(newConversationId)
+          messageConversationId = newConversationId
+        } else {
+          console.error('Failed to get new conversation ID')
+          return
         }
       } catch (error) {
         console.error('Failed to start new conversation:', error)
@@ -325,7 +335,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
       content: messageText,
       sender: 'user',
       timestamp: new Date(),
-      conversationId: currentConversationId,
+      conversationId: messageConversationId, // Use our local tracking variable
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -341,8 +351,15 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           : undefined,
         isClarification: clarificationState.awaiting,
         isFollowUp: messages.length > 0,
-        conversationId: currentConversationId,
+        conversationId: messageConversationId, // Use our local tracking variable
       }
+
+      // Debug conversationId tracking in POST request
+      console.log(
+        'Sending payload with conversationId:',
+        messageConversationId,
+        payload
+      )
 
       const response = await axios.post('/api/chat/message', payload, {
         headers: {
@@ -363,7 +380,8 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           vehicles: responseData.recommendedVehicles,
           parameters: responseData.parameters,
           clarificationNeeded: responseData.clarificationNeeded,
-          conversationId: responseData.conversationId || currentConversationId,
+          // Use the conversation ID from the response for the AI message
+          conversationId: responseData.conversationId || messageConversationId,
         }
 
         setMessages((prev) => [...prev, aiMessage])
@@ -371,7 +389,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         // If we got a new conversation ID, update it
         if (
           responseData.conversationId &&
-          responseData.conversationId !== currentConversationId
+          responseData.conversationId !== messageConversationId
         ) {
           setCurrentConversationId(responseData.conversationId)
           loadConversations() // Refresh the list
@@ -419,7 +437,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           'Sorry, I encountered an error processing your request. Please try again.',
         sender: 'ai',
         timestamp: new Date(),
-        conversationId: currentConversationId,
+        conversationId: messageConversationId,
       }
 
       setMessages((prev) => [...prev, errorMessage])

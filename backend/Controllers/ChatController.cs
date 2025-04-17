@@ -27,6 +27,11 @@ namespace SmartAutoTrader.API.Controllers
         {
             try
             {
+                // Explain: Log the ConversationId received directly from the frontend request DTO.
+                _logger.LogInformation(
+                    "ChatController Received DTO: ConversationId='{ConversationId}', IsClarification={IsClarification}, IsFollowUp={IsFollowUp}",
+                    message.ConversationId ?? "NULL", message.IsClarification, message.IsFollowUp);
+
                 if (string.IsNullOrWhiteSpace(message.Content))
                 {
                     return BadRequest("Message content cannot be empty.");
@@ -75,17 +80,26 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes ??[],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ?? [],
+                                .ToList() ??[],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ?? [],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
+                                .ToList() ??[],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ??[],
                         }
                         : null,
                 };
+
+                // Log retrieved history count
+                _logger.LogInformation(
+                    "Retrieved {HistoryCount} history items for conversation {ConversationId}",
+                    responseDto.RecommendedVehicles.Count, message.ConversationId);
+
+                _logger.LogInformation(
+                    "Processing response with {VehicleCount} vehicles for conversation {ConversationId}",
+                    responseDto.RecommendedVehicles.Count, message.ConversationId);
 
                 return Ok(responseDto);
             }
@@ -119,8 +133,9 @@ namespace SmartAutoTrader.API.Controllers
                     query = query.Where(ch => ch.ConversationSessionId == convoId);
                 }
 
+                // Make sure history is in chronological order when passed to ProcessMessageAsync
                 List<ChatHistoryDto> history = await query
-                    .OrderByDescending(ch => ch.Timestamp)
+                    .OrderBy(ch => ch.Timestamp) // Change to OrderBy instead of OrderByDescending
                     .Take(limit)
                     .Select(
                         ch => new ChatHistoryDto
@@ -217,7 +232,7 @@ namespace SmartAutoTrader.API.Controllers
         {
             public string? Message { get; set; }
 
-            public List<Vehicle> RecommendedVehicles { get; set; } = [];
+            public List<Vehicle> RecommendedVehicles { get; set; } =[];
 
             public RecommendationParametersDto? Parameters { get; set; }
 
@@ -240,13 +255,13 @@ namespace SmartAutoTrader.API.Controllers
 
             public int? MaxMileage { get; set; }
 
-            public List<string> PreferredMakes { get; set; } = [];
+            public List<string> PreferredMakes { get; set; } =[];
 
-            public List<string> PreferredVehicleTypes { get; set; } = [];
+            public List<string> PreferredVehicleTypes { get; set; } =[];
 
-            public List<string> PreferredFuelTypes { get; set; } = [];
+            public List<string> PreferredFuelTypes { get; set; } =[];
 
-            public List<string> DesiredFeatures { get; set; } = [];
+            public List<string> DesiredFeatures { get; set; } =[];
         }
 
         public class ChatHistoryDto

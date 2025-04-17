@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Linq.Expressions;
 using System.Text.Json;
 using SmartAutoTrader.API.Models;
@@ -11,6 +10,7 @@ namespace SmartAutoTrader.API.Services
     {
         Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
     }
+
     public class OpenRouterRecommendationService(
         IVehicleRepository vehicleRepo,
         IConfiguration configuration,
@@ -174,10 +174,10 @@ namespace SmartAutoTrader.API.Services
                 // Create an OR condition for each make
                 Expression<Func<Vehicle, bool>> makesExpression = null;
 
-                foreach (var make in parameters.PreferredMakes)
+                foreach (string make in parameters.PreferredMakes)
                 {
-                    var currentMake = make.Trim();
-                    var makeCondition = BuildMakeMatchExpression(currentMake);
+                    string currentMake = make.Trim();
+                    Expression<Func<Vehicle, bool>> makeCondition = BuildMakeMatchExpression(currentMake);
 
                     // Either initialize makesExpression or combine with OR
                     makesExpression = makesExpression == null
@@ -205,8 +205,8 @@ namespace SmartAutoTrader.API.Services
             // Simply check for exact match, as database collation should handle case-insensitivity
             // Or we could use EF.Functions.Collate if we need to enforce case-insensitivity
             return v => v.Make == make ||
-                        v.Make.Equals(make) ||
-                        v.Make.Contains(make) ||  // Matching parts of make names
+                        v.Make.Equals(make, StringComparison.Ordinal) ||
+                        v.Make.Contains(make) || // Matching parts of make names
                         make.Contains(v.Make);    // Substrings like "BMW" in "BMW X5"
         }
 
