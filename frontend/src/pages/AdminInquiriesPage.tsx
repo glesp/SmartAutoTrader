@@ -18,20 +18,49 @@ import {
 } from '@mui/material';
 import { inquiryService } from '../services/api';
 
+// Define type for Inquiry
+interface Inquiry {
+  id: number;
+  userId: number;
+  vehicleId: number;
+  subject: string;
+  message: string;
+  response?: string;
+  dateSent: string;
+  dateReplied?: string;
+  status: 'New' | 'Read' | 'Replied' | 'Closed';
+  user?: {
+    id: number;
+    name?: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+  vehicle?: {
+    id: number;
+    make: string;
+    model: string;
+    year: number;
+  };
+}
+
+interface ReplyData {
+  response: string;
+}
+
 const AdminInquiriesPage = () => {
-  const [loading, setLoading] = useState(true);
-  const [inquiries, setInquiries] = useState([]);
-  const [status, setStatus] = useState('New'); // Default to showing New inquiries
-  const [replyOpen, setReplyOpen] = useState(false);
-  const [currentInquiry, setCurrentInquiry] = useState(null);
-  const [replyText, setReplyText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [status, setStatus] = useState<string>('New'); // Default to showing New inquiries
+  const [replyOpen, setReplyOpen] = useState<boolean>(false);
+  const [currentInquiry, setCurrentInquiry] = useState<Inquiry | null>(null);
+  const [replyText, setReplyText] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchInquiries = async () => {
       try {
         setLoading(true);
-        // Note: You'll need to add this endpoint to your InquiriesController
         const data = await inquiryService.getAllInquiries(status);
         setInquiries(data);
       } catch (error) {
@@ -44,22 +73,25 @@ const AdminInquiriesPage = () => {
     fetchInquiries();
   }, [status]);
 
-  const handleStatusChange = (event, newValue) => {
+  const handleStatusChange = (
+    _event: React.SyntheticEvent,
+    newValue: string
+  ) => {
     setStatus(newValue);
   };
 
-  const handleReply = (inquiry) => {
+  const handleReply = (inquiry: Inquiry) => {
     setCurrentInquiry(inquiry);
     setReplyOpen(true);
   };
 
-  const handleMarkAsRead = async (id) => {
+  const handleMarkAsRead = async (id: number) => {
     try {
       await inquiryService.markInquiryAsRead(id);
       // Update the local state
       setInquiries(
         inquiries.map((inq) =>
-          inq.id === id ? { ...inq, status: 'Read' } : inq
+          inq.id === id ? { ...inq, status: 'Read' as const } : inq
         )
       );
     } catch (error) {
@@ -68,13 +100,14 @@ const AdminInquiriesPage = () => {
   };
 
   const submitReply = async () => {
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || !currentInquiry) return;
 
     try {
       setSubmitting(true);
-      await inquiryService.replyToInquiry(currentInquiry.id, {
+      const replyData: ReplyData = {
         response: replyText,
-      });
+      };
+      await inquiryService.replyToInquiry(currentInquiry.id, replyData);
 
       // Update local state
       setInquiries(
@@ -82,7 +115,7 @@ const AdminInquiriesPage = () => {
           inq.id === currentInquiry.id
             ? {
                 ...inq,
-                status: 'Replied',
+                status: 'Replied' as const,
                 response: replyText,
                 dateReplied: new Date().toISOString(),
               }
@@ -99,6 +132,15 @@ const AdminInquiriesPage = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Helper function to format user name
+  const formatUserName = (user?: Inquiry['user']): string => {
+    if (!user) return 'Unknown';
+    if (user.name) return user.name;
+    if (user.firstName && user.lastName)
+      return `${user.firstName} ${user.lastName}`;
+    return user.username || 'Unknown';
   };
 
   return (
@@ -173,7 +215,7 @@ const AdminInquiriesPage = () => {
                   display="block"
                   mb={2}
                 >
-                  From: {inquiry.user?.name || 'Unknown'} • Vehicle:{' '}
+                  From: {formatUserName(inquiry.user)} • Vehicle:{' '}
                   {inquiry.vehicle?.year} {inquiry.vehicle?.make}{' '}
                   {inquiry.vehicle?.model} • Sent:{' '}
                   {new Date(inquiry.dateSent).toLocaleString()}
@@ -190,7 +232,9 @@ const AdminInquiriesPage = () => {
                   >
                     <Typography variant="subtitle2" color="primary.main">
                       Your Reply (
-                      {new Date(inquiry.dateReplied).toLocaleString()}):
+                      {inquiry.dateReplied &&
+                        new Date(inquiry.dateReplied).toLocaleString()}
+                      ):
                     </Typography>
                     <Typography variant="body2">{inquiry.response}</Typography>
                   </Paper>
@@ -243,7 +287,7 @@ const AdminInquiriesPage = () => {
                   Subject: {currentInquiry.subject}
                 </Typography>
                 <Typography variant="body2" paragraph>
-                  From: {currentInquiry.user?.name || 'Unknown'} about{' '}
+                  From: {formatUserName(currentInquiry.user)} about{' '}
                   {currentInquiry.vehicle?.year} {currentInquiry.vehicle?.make}{' '}
                   {currentInquiry.vehicle?.model}
                 </Typography>
