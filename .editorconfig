@@ -61,40 +61,24 @@ indent_style = space
 indent_size = 4
 tab_width = 4
 
-# Added/Modified Rules based on our discussion:
-# --------------------------------------------
-
 # --- Configuration for C# Compiler Warnings ---
 
 # CS1591: Suppress Missing XML Comment warnings for public members
-# Rationale: Avoids excessive documentation effort for assignment scope, focus on pipeline.
-# Requirement: Must justify this suppression in the assignment report.
+# Rationale: Avoids excessive documentation burden for non-core assignment task.
 dotnet_diagnostic.CS1591.severity = none
 
-# CSxxxx Nullability Rules:
-# Rationale: Fixing code is best. Suppress ONLY if needed to focus on pipeline for assignment.
-# Requirement: Must justify any suppressions in the assignment report.
-# Uncomment lines below only if suppressing:
-# dotnet_diagnostic.CS8600.severity = none
-# dotnet_diagnostic.CS8601.severity = none
-# dotnet_diagnostic.CS8619.severity = none
-# dotnet_diagnostic.CS8629.severity = none
 
 # --- Configuration for StyleCop Analyzers (SAxxxx Rules) ---
 
 # Documentation Rules (Relaxed for assignment scope)
 # Rationale: Similar to CS1591, reduces documentation burden for non-core assignment task.
-# Requires SA0001 fix in .csproj first to be effective.
 dotnet_diagnostic.SA1600.severity = suggestion  # Elements documented
 dotnet_diagnostic.SA1601.severity = suggestion  # Partial elements documented
 dotnet_diagnostic.SA1602.severity = suggestion  # Enum items documented
 dotnet_diagnostic.SA1633.severity = none        # File header (Often disabled if not standard practice)
-# Add any other SA16xx rule here if they appear and need relaxing
 
 # File Naming / Structure Rules
-# SA1402: Severity not changed (kept as default warning). Rationale: User committed to fixing this code for good structure.
 dotnet_diagnostic.SA1649.severity = suggestion  # File name should match type
-# Rationale: Relaxed as fixing might be tedious and less critical than SA1402 for demo.
 
 # Ordering Rules (Relaxed)
 # Rationale: Specific ordering is often stylistic, relaxing allows focus on more critical rules for assignment.
@@ -108,6 +92,4 @@ dotnet_diagnostic.SA1118.severity = suggestion  # Parameter layout (multi-line)
 
 # Naming Rules
 dotnet_diagnostic.SA1309.severity = none        # Allow underscore prefix for private fields
-# Rationale: Based on user preference/common convention, demonstrates configurability.
 dotnet_diagnostic.SA1316.severity = suggestion  # Tuple element casing
-# Rationale: Minor naming convention, relaxed slightly. Fixing is easy.
