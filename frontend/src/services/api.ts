@@ -163,6 +163,18 @@ export const inquiryService = {
   closeInquiry: async (id: number) => {
     await api.put(`/inquiries/${id}/close`);
   },
+  getAllInquiries: async (status = '') => {
+    const response = await api.get(
+      `/inquiries/admin${status ? `?status=${status}` : ''}`
+    );
+    return response.data;
+  },
+  markInquiryAsRead: async (id) => {
+    await api.put(`/inquiries/${id}/MarkAsRead`);
+  },
+  replyToInquiry: async (id, replyData) => {
+    await api.put(`/inquiries/${id}/Reply`, replyData);
+  },
 };
 
 export default api;

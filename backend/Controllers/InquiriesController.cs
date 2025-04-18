@@ -56,6 +56,23 @@ namespace SmartAutoTrader.API.Controllers
             return inquiry == null ? (ActionResult<Inquiry>)this.NotFound() : (ActionResult<Inquiry>)inquiry;
         }
 
+        // GET: api/Inquiries/admin
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<Inquiry>>> GetAllInquiries([FromQuery] string status = "")
+        {
+            IQueryable<Inquiry> query = this.context.Inquiries
+                .Include(i => i.Vehicle)
+                .Include(i => i.User)
+                .OrderByDescending(i => i.DateSent);
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<InquiryStatus>(status, out var inquiryStatus))
+            {
+                query = query.Where(i => i.Status == inquiryStatus);
+            }
+            List<Inquiry> inquiries = await query.ToListAsync();
+            return inquiries;
+        }
+
         // POST: api/Inquiries
         [HttpPost]
         public async Task<ActionResult<Inquiry>> CreateInquiry(InquiryCreateDto inquiryDto)

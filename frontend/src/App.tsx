@@ -11,6 +11,9 @@ import Footer from './components/layout/Footer';
 import { AuthProvider } from './contexts';
 import RecommendationsPage from './pages/RecommendationsPage';
 import theme from './theme'; // Import the custom theme
+import NewInquiryPage from './pages/NewInquiryPage'; // Import the new page
+import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute
+import AdminInquiriesPage from './pages/AdminInquiriesPage'; // Import AdminInquiriesPage
 
 function App() {
   return (
@@ -33,7 +36,6 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                {/* Add the recommendations routes */}
                 <Route
                   path="/recommendations"
                   element={<RecommendationsPage />}
@@ -41,6 +43,15 @@ function App() {
                 <Route
                   path="/recommendations/:userId"
                   element={<RecommendationsPage />}
+                />
+                <Route path="/inquiries/new" element={<NewInquiryPage />} />
+                <Route
+                  path="/admin/inquiries"
+                  element={
+                    <ProtectedRoute roles={['Admin']}>
+                      <AdminInquiriesPage />
+                    </ProtectedRoute>
+                  }
                 />
               </Routes>
             </Container>
