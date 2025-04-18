@@ -1,10 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import {
-  Container,
-  CssBaseline,
-  ThemeProvider,
-  createTheme,
-} from '@mui/material';
+import { Container, CssBaseline, ThemeProvider } from '@mui/material';
 import HomePage from './pages/HomePage';
 import VehicleListingPage from './pages/VehicleListingPage';
 import VehicleDetailPage from './pages/VehicleDetailPage';
@@ -15,18 +10,7 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import { AuthProvider } from './contexts';
 import RecommendationsPage from './pages/RecommendationsPage';
-
-// Create a theme instance
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2', // Blue color
-    },
-    secondary: {
-      main: '#dc004e', // Pink color
-    },
-  },
-});
+import theme from './theme'; // Import the custom theme
 
 function App() {
   return (
@@ -53,13 +37,11 @@ function App() {
                 <Route
                   path="/recommendations"
                   element={<RecommendationsPage />}
-                />{' '}
-                {/* Temporarily using VehicleListingPage */}
+                />
                 <Route
                   path="/recommendations/:userId"
                   element={<RecommendationsPage />}
-                />{' '}
-                {/* Temporarily using VehicleListingPage */}
+                />
               </Routes>
             </Container>
             <Footer />

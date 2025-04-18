@@ -603,13 +603,28 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               py: 2,
             }}
           >
-            <Typography variant="subtitle2" sx={{ fontWeight: 500, mb: 1 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 500,
+                mb: 1,
+                color: 'primary.main',
+                fontSize: '0.95rem',
+              }}
+            >
               {currentConversationId
                 ? 'This conversation is empty. Start chatting!'
                 : 'Welcome to Smart Auto Assistant!'}
             </Typography>
 
-            <Typography variant="caption" sx={{ mb: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                mb: 2,
+                color: 'text.primary', // Slightly darker than text.secondary for better contrast
+                fontSize: '0.8rem', // Slightly larger caption text
+              }}
+            >
               Ask me questions or try these:
             </Typography>
 
@@ -689,15 +704,22 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                   </Tooltip>
                 </Box>
               )}
-              {/* show vehicles in the chat interface */}
-              {/* {message.vehicles && message.vehicles.length > 0 && (
-                <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  {message.vehicles.slice(0, 3).map((vehicle) => {
-                    const vehicleImages = extractArray(vehicle.images)
-                    const primaryImage = vehicleImages.find(
-                      (img) => img.isPrimary
-                    )
 
+              {/* Commented out section for displaying vehicles in chat
+              {message.vehicles && message.vehicles.length > 0 && (
+                <Box sx={{ 
+                  mt: 2, 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 1,
+                  maxWidth: '100%',
+                  overflowX: 'auto'
+                }}>
+                  {message.vehicles.slice(0, 5).map((vehicle) => {
+                    const primaryImage = Array.isArray(vehicle.images)
+                      ? vehicle.images.find((img) => img.isPrimary)
+                      : vehicle.images?.$values?.find((img) => img.isPrimary);
+                    
                     return (
                       <Box
                         key={vehicle.id}
@@ -757,7 +779,8 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                     )
                   })}
                 </Box>
-              )} */}
+              )}
+              */}
 
               {message.clarificationNeeded && message.sender === 'ai' && (
                 <>

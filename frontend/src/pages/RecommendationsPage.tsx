@@ -259,7 +259,13 @@ const RecommendationsPage = () => {
               <Typography
                 variant="subtitle1"
                 component="h3"
-                sx={{ fontWeight: 500 }}
+                sx={{
+                  fontWeight: 600,
+                  color: 'white',
+                  fontSize: '0.95rem',
+                  letterSpacing: '0.2px',
+                  textShadow: '0px 1px 2px rgba(0,0,0,0.2)',
+                }}
               >
                 Smart Auto Assistant
               </Typography>
