@@ -6,6 +6,7 @@ namespace SmartAutoTrader.API.DataSeeding
 {
     using System.Globalization;
     using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
 
     public class VehicleSeeder
@@ -169,7 +170,7 @@ namespace SmartAutoTrader.API.DataSeeding
                     Status = GetRandomStatusWithWeights(random),
                     Images = new List<VehicleImage>
                     {
-                        new ()
+                        new()
                         {
                             ImageUrl = $"images/vehicles/{imageFileName}",
                             IsPrimary = true,

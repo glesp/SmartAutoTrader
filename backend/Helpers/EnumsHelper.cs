@@ -5,6 +5,7 @@
 namespace SmartAutoTrader.API.Helpers
 {
     using System.Globalization;
+    using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
 
     public static class EnumHelpers

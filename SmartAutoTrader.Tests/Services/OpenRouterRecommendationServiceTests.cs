@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using SmartAutoTrader.API.Enums;
 using SmartAutoTrader.API.Models;
 using SmartAutoTrader.API.Repositories;
 using SmartAutoTrader.API.Services;

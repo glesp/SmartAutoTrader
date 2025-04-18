@@ -8,8 +8,10 @@ namespace SmartAutoTrader.API.Controllers
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.DTOs;
     using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Repositories;
     using SmartAutoTrader.API.Services;
 
     [Route("api/[controller]")]
@@ -34,7 +36,9 @@ namespace SmartAutoTrader.API.Controllers
                 // Explain: Log the ConversationId received directly from the frontend request DTO.
                 this.logger.LogInformation(
                     "ChatController Received DTO: ConversationId='{ConversationId}', IsClarification={IsClarification}, IsFollowUp={IsFollowUp}",
-                    message.ConversationId ?? "NULL", message.IsClarification, message.IsFollowUp);
+                    message.ConversationId ?? "NULL",
+                    message.IsClarification,
+                    message.IsFollowUp);
 
                 if (string.IsNullOrWhiteSpace(message.Content))
                 {
@@ -99,11 +103,13 @@ namespace SmartAutoTrader.API.Controllers
                 // Log retrieved history count
                 this.logger.LogInformation(
                     "Retrieved {HistoryCount} history items for conversation {ConversationId}",
-                    responseDto.RecommendedVehicles.Count, message.ConversationId);
+                    responseDto.RecommendedVehicles.Count,
+                    message.ConversationId);
 
                 this.logger.LogInformation(
                     "Processing response with {VehicleCount} vehicles for conversation {ConversationId}",
-                    responseDto.RecommendedVehicles.Count, message.ConversationId);
+                    responseDto.RecommendedVehicles.Count,
+                    message.ConversationId);
 
                 return this.Ok(responseDto);
             }
@@ -217,68 +223,6 @@ namespace SmartAutoTrader.API.Controllers
                 this.logger.LogError(ex, "Error starting new conversation");
                 return this.StatusCode(500, "An error occurred while starting a new conversation.");
             }
-        }
-
-        public class ChatMessageDto
-        {
-            public string? Content { get; set; }
-
-            public bool IsClarification { get; set; }
-
-            public string? OriginalUserInput { get; set; }
-
-            public bool IsFollowUp { get; set; }
-
-            public string? ConversationId { get; set; }
-        }
-
-        public class ChatResponseDto
-        {
-            public string? Message { get; set; }
-
-            public List<Vehicle> RecommendedVehicles { get; set; } = [];
-
-            public RecommendationParametersDto? Parameters { get; set; }
-
-            public bool ClarificationNeeded { get; set; }
-
-            public string? OriginalUserInput { get; set; }
-
-            public string? ConversationId { get; set; }
-        }
-
-        public class RecommendationParametersDto
-        {
-            public decimal? MinPrice { get; set; }
-
-            public decimal? MaxPrice { get; set; }
-
-            public int? MinYear { get; set; }
-
-            public int? MaxYear { get; set; }
-
-            public int? MaxMileage { get; set; }
-
-            public List<string> PreferredMakes { get; set; } = [];
-
-            public List<string> PreferredVehicleTypes { get; set; } = [];
-
-            public List<string> PreferredFuelTypes { get; set; } = [];
-
-            public List<string> DesiredFeatures { get; set; } = [];
-        }
-
-        public class ChatHistoryDto
-        {
-            public int Id { get; set; }
-
-            public string? UserMessage { get; set; }
-
-            public string? AIResponse { get; set; }
-
-            public string? Timestamp { get; set; }
-
-            public string? ConversationId { get; set; }
         }
     }
 }

@@ -6,41 +6,7 @@ namespace SmartAutoTrader.API.Models
 {
     using System.ComponentModel.DataAnnotations;
     using System.Text.Json.Serialization;
-
-    public enum FuelType
-    {
-        Petrol,
-        Diesel,
-        Electric,
-        Hybrid,
-        Plugin,
-    }
-
-    public enum TransmissionType
-    {
-        Manual,
-        Automatic,
-        SemiAutomatic,
-    }
-
-    public enum VehicleType
-    {
-        Sedan,
-        SUV,
-        Hatchback,
-        Estate,
-        Coupe,
-        Convertible,
-        Pickup,
-        Van,
-    }
-
-    public enum VehicleStatus
-    {
-        Available,
-        Reserved,
-        Sold,
-    }
+    using SmartAutoTrader.API.Enums;
 
     public class Vehicle
     {
@@ -87,35 +53,5 @@ namespace SmartAutoTrader.API.Models
 
         [JsonIgnore]
         public IEnumerable<UserFavorite>? FavoritedBy { get; set; }
-    }
-
-    public class VehicleImage
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public string? ImageUrl { get; set; }
-
-        public bool IsPrimary { get; set; }
-
-        public int VehicleId { get; set; }
-
-        [JsonIgnore]
-        public Vehicle? Vehicle { get; set; }
-    }
-
-    public class VehicleFeature
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public string? Name { get; set; }
-
-        public int VehicleId { get; set; }
-
-        [JsonIgnore]
-        public Vehicle? Vehicle { get; set; }
     }
 }

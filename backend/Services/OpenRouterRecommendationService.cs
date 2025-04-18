@@ -6,6 +6,7 @@ namespace SmartAutoTrader.API.Services
 {
     using System.Linq.Expressions;
     using System.Text.Json;
+    using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 
@@ -177,7 +178,7 @@ namespace SmartAutoTrader.API.Services
             if (parameters.PreferredMakes?.Any() == true)
             {
                 // Create an OR condition for each make
-                Expression<Func<Vehicle, bool>> makesExpression = null;
+                Expression<Func<Vehicle, bool>>? makesExpression = null;
 
                 foreach (string make in parameters.PreferredMakes)
                 {

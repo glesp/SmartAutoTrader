@@ -1,0 +1,113 @@
+[*]
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = false
+insert_final_newline = false
+indent_style = space
+indent_size = 4
+
+# Microsoft .NET properties
+csharp_new_line_before_members_in_object_initializers = false
+csharp_preferred_modifier_order = public, private, protected, internal, file, new, static, abstract, virtual, sealed, readonly, override, extern, unsafe, volatile, async, required:suggestion
+csharp_style_prefer_utf8_string_literals = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+dotnet_naming_rule.unity_serialized_field_rule.import_to_resharper = True
+dotnet_naming_rule.unity_serialized_field_rule.resharper_description = Unity serialized field
+dotnet_naming_rule.unity_serialized_field_rule.resharper_guid = 5f0fdb63-c892-4d2c-9324-15c80b22a7ef
+dotnet_naming_rule.unity_serialized_field_rule.severity = warning
+dotnet_naming_rule.unity_serialized_field_rule.style = lower_camel_case_style
+dotnet_naming_rule.unity_serialized_field_rule.symbols = unity_serialized_field_symbols
+dotnet_naming_style.lower_camel_case_style.capitalization = camel_case
+dotnet_naming_symbols.unity_serialized_field_symbols.applicable_accessibilities = *
+dotnet_naming_symbols.unity_serialized_field_symbols.applicable_kinds = 
+dotnet_naming_symbols.unity_serialized_field_symbols.resharper_applicable_kinds = unity_serialised_field
+dotnet_naming_symbols.unity_serialized_field_symbols.resharper_required_modifiers = instance
+dotnet_style_parentheses_in_arithmetic_binary_operators = never_if_unnecessary:none
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:none
+dotnet_style_parentheses_in_relational_binary_operators = never_if_unnecessary:none
+dotnet_style_predefined_type_for_locals_parameters_members = true:suggestion
+dotnet_style_predefined_type_for_member_access = true:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+
+# Disable StyleCop's SA1009 rule (Closing parenthesis should not be followed by a space)
+# This resolves conflict with csharp_space_before_colon_in_inheritance_clause for primary constructors
+dotnet_diagnostic.SA1009.severity = none
+
+# ReSharper properties
+resharper_autodetect_indent_settings = true
+resharper_formatter_off_tag = @formatter:off
+resharper_formatter_on_tag = @formatter:on
+resharper_formatter_tags_enabled = true
+resharper_use_indent_from_vs = false
+
+# ReSharper inspection severities
+# (Your existing ReSharper settings remain unchanged)
+resharper_arrange_redundant_parentheses_highlighting = hint
+# ... (rest of your ReSharper settings) ...
+resharper_web_config_wrong_module_highlighting = warning
+
+[{*.har,*.inputactions,*.jsb2,*.jsb3,*.json,*.jsonc,*.postman_collection,*.postman_collection.json,*.postman_environment,*.postman_environment.json,.babelrc,.eslintrc,.prettierrc,.stylelintrc,.ws-context,jest.config}]
+indent_style = space
+indent_size = 2
+
+[*.{appxmanifest,asax,ascx,aspx,axaml,blockshader,build,c,c++,c++m,cc,ccm,cginc,compute,cp,cpp,cppm,cs,cshtml,cu,cuh,cxx,cxxm,dtd,fs,fsi,fsscript,fsx,fx,fxh,h,h++,hh,hlsl,hlsli,hlslinc,hp,hpp,hxx,icc,inc,inl,ino,ipp,ixx,master,ml,mli,mpp,mq4,mq5,mqh,mxx,nuspec,paml,razor,resw,resx,shader,shaderFoundry,skin,tcc,tpp,urtshader,usf,ush,uxml,vb,xaml,xamlx,xoml,xsd}]
+indent_style = space
+indent_size = 4
+tab_width = 4
+
+# Added/Modified Rules based on our discussion:
+# --------------------------------------------
+
+# --- Configuration for C# Compiler Warnings ---
+
+# CS1591: Suppress Missing XML Comment warnings for public members
+# Rationale: Avoids excessive documentation effort for assignment scope, focus on pipeline.
+# Requirement: Must justify this suppression in the assignment report.
+dotnet_diagnostic.CS1591.severity = none
+
+# CSxxxx Nullability Rules:
+# Rationale: Fixing code is best. Suppress ONLY if needed to focus on pipeline for assignment.
+# Requirement: Must justify any suppressions in the assignment report.
+# Uncomment lines below only if suppressing:
+# dotnet_diagnostic.CS8600.severity = none
+# dotnet_diagnostic.CS8601.severity = none
+# dotnet_diagnostic.CS8619.severity = none
+# dotnet_diagnostic.CS8629.severity = none
+
+# --- Configuration for StyleCop Analyzers (SAxxxx Rules) ---
+
+# Documentation Rules (Relaxed for assignment scope)
+# Rationale: Similar to CS1591, reduces documentation burden for non-core assignment task.
+# Requires SA0001 fix in .csproj first to be effective.
+dotnet_diagnostic.SA1600.severity = suggestion  # Elements documented
+dotnet_diagnostic.SA1601.severity = suggestion  # Partial elements documented
+dotnet_diagnostic.SA1602.severity = suggestion  # Enum items documented
+dotnet_diagnostic.SA1633.severity = none        # File header (Often disabled if not standard practice)
+# Add any other SA16xx rule here if they appear and need relaxing
+
+# File Naming / Structure Rules
+# SA1402: Severity not changed (kept as default warning). Rationale: User committed to fixing this code for good structure.
+dotnet_diagnostic.SA1649.severity = suggestion  # File name should match type
+# Rationale: Relaxed as fixing might be tedious and less critical than SA1402 for demo.
+
+# Ordering Rules (Relaxed)
+# Rationale: Specific ordering is often stylistic, relaxing allows focus on more critical rules for assignment.
+dotnet_diagnostic.SA1202.severity = suggestion  # Ordering: public before private
+dotnet_diagnostic.SA1204.severity = suggestion  # Ordering: static before instance
+
+# Readability / Layout Rules (Relaxed slightly)
+# Rationale: Reduces noise from formatting preferences, allows focus on logic. Fixing is often easy anyway.
+dotnet_diagnostic.SA1117.severity = suggestion  # Parameter layout
+dotnet_diagnostic.SA1118.severity = suggestion  # Parameter layout (multi-line)
+
+# Naming Rules
+dotnet_diagnostic.SA1309.severity = none        # Allow underscore prefix for private fields
+# Rationale: Based on user preference/common convention, demonstrates configurability.
+dotnet_diagnostic.SA1316.severity = suggestion  # Tuple element casing
+# Rationale: Minor naming convention, relaxed slightly. Fixing is easy.

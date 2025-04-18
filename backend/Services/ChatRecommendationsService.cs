@@ -8,6 +8,7 @@ namespace SmartAutoTrader.API.Services
     using System.Globalization;
     using System.Text;
     using System.Text.Json;
+    using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
@@ -533,10 +534,10 @@ namespace SmartAutoTrader.API.Services
                         MinYear = existingParams.MinYear,
                         MaxYear = existingParams.MaxYear,
                         MaxMileage = existingParams.MaxMileage,
-                        PreferredMakes = existingParams.PreferredMakes?.ToList(),
-                        PreferredFuelTypes = existingParams.PreferredFuelTypes?.ToList(),
-                        PreferredVehicleTypes = existingParams.PreferredVehicleTypes?.ToList(),
-                        DesiredFeatures = existingParams.DesiredFeatures?.ToList(),
+                        PreferredMakes = existingParams.PreferredMakes.ToList(),
+                        PreferredFuelTypes = existingParams.PreferredFuelTypes.ToList(),
+                        PreferredVehicleTypes = existingParams.PreferredVehicleTypes.ToList(),
+                        DesiredFeatures = existingParams.DesiredFeatures.ToList(),
                         TextPrompt = newParams.TextPrompt, // Use the new text prompt
                         MaxResults = existingParams.MaxResults,
                         RetrieverSuggestion = newParams.RetrieverSuggestion,
@@ -1040,7 +1041,7 @@ namespace SmartAutoTrader.API.Services
                 RecommendationParameters parameters = new()
                 {
                     TextPrompt = message,
-                    MaxResults = 10, // CHANGED FROM 5 TO 10
+                    MaxResults = 10,
 
                     // Parse numerical values safely
                     MinPrice = jsonDoc.RootElement.TryGetProperty("minPrice", out JsonElement minPriceElement) &&
@@ -1072,15 +1073,23 @@ namespace SmartAutoTrader.API.Services
                     PreferredMakes =
                         jsonDoc.RootElement.TryGetProperty("preferredMakes", out JsonElement makesElement) &&
                         makesElement.ValueKind == JsonValueKind.Array
-                            ? makesElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                                .Select(e => e.GetString()).ToList()
+                            ? makesElement.EnumerateArray()
+                                .Where(e => e.ValueKind == JsonValueKind.String)
+                                .Select(e => e.GetString())
+                                .Where(s => s != null)
+                                .Select(s => s!)
+                                .ToList()
                             : new List<string>(),
 
                     DesiredFeatures =
                         jsonDoc.RootElement.TryGetProperty("desiredFeatures", out JsonElement featuresElement) &&
                         featuresElement.ValueKind == JsonValueKind.Array
-                            ? featuresElement.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String)
-                                .Select(e => e.GetString()).ToList()
+                            ? featuresElement.EnumerateArray()
+                                .Where(e => e.ValueKind == JsonValueKind.String)
+                                .Select(e => e.GetString())
+                                .Where(s => s != null)
+                                .Select(s => s!)
+                                .ToList()
                             : new List<string>(),
 
                     // Parse enums correctly
@@ -1089,17 +1098,14 @@ namespace SmartAutoTrader.API.Services
                         fuelTypesElement.ValueKind == JsonValueKind.Array
                             ? fuelTypesElement.EnumerateArray()
                                 .Where(e => e.ValueKind == JsonValueKind.String)
-
-                                // Replace standard TryParse with your helper:
                                 .Select(e =>
                                     EnumHelpers.TryParseFuelType(
                                         e.GetString() ?? string.Empty,
-                                        out FuelType fuel) // <-- Use your helper
+                                        out FuelType fuel)
                                         ? fuel
                                         : (FuelType?)null)
-                                .Where(f => f
-                                    .HasValue) // Keep this to filter out any strings your helper still couldn't parse
-                                .Select(f => f.Value)
+                                .Where(f => f.HasValue)
+                                .Select(f => f!.Value)
                                 .ToList()
                             : new List<FuelType>(),
 
@@ -1110,17 +1116,14 @@ namespace SmartAutoTrader.API.Services
                         vehicleTypesElement.ValueKind == JsonValueKind.Array
                             ? vehicleTypesElement.EnumerateArray()
                                 .Where(e => e.ValueKind == JsonValueKind.String)
-
-                                // Replace standard TryParse with your helper:
                                 .Select(e =>
                                     EnumHelpers.TryParseVehicleType(
                                         e.GetString() ?? string.Empty,
-                                        out VehicleType vehicle) // Use your helper
+                                        out VehicleType vehicle)
                                         ? vehicle
                                         : (VehicleType?)null)
-                                .Where(v => v
-                                    .HasValue) // Keep this to filter out any strings your helper still couldn't parse
-                                .Select(v => v.Value)
+                                .Where(v => v.HasValue)
+                                .Select(v => v!.Value)
                                 .ToList()
                             : new List<VehicleType>(),
 
@@ -1166,6 +1169,8 @@ namespace SmartAutoTrader.API.Services
                     parameters.ClarificationNeededFor = clarificationNeededForElement.EnumerateArray()
                         .Where(e => e.ValueKind == JsonValueKind.String)
                         .Select(e => e.GetString())
+                        .Where(s => s != null)
+                        .Select(s => s!)
                         .ToList();
                 }
 

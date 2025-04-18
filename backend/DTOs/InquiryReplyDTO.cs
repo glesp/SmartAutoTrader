@@ -2,7 +2,7 @@
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
-namespace SmartAutoTrader.API.Models
+namespace SmartAutoTrader.API.DTOs
 {
     public class InquiryReplyDto
     {

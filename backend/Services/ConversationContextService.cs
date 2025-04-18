@@ -8,44 +8,7 @@ namespace SmartAutoTrader.API.Services
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 
-    public interface IConversationContextService
-    {
-        Task<ConversationContext> GetOrCreateContextAsync(int userId);
-
-        Task UpdateContextAsync(int userId, ConversationContext context);
-
-        Task<ConversationSession> StartNewSessionAsync(int userId);
-
-        Task<ConversationSession?> GetCurrentSessionAsync(int userId);
-    }
-
     // This class represents the state we want to track throughout a conversation
-    public class ConversationContext
-    {
-        // Current search parameters
-        public RecommendationParameters CurrentParameters { get; set; } = new();
-
-        // Track conversation flow
-        public int MessageCount { get; set; }
-
-        public DateTime LastInteraction { get; set; } = DateTime.UtcNow;
-
-        // Track user intent and context
-        public string LastUserIntent { get; set; } = string.Empty;
-
-        public List<string> MentionedVehicleFeatures { get; set; } = [];
-
-        public List<string> ExplicitlyRejectedOptions { get; set; } = [];
-
-        // Track active conversation topics
-        public Dictionary<string, object> TopicContext { get; set; } = [];
-
-        // Track recommendations shown to the user
-        public List<int> ShownVehicleIds { get; set; } = [];
-
-        public string? ModelUsed { get; set; }
-    }
-
     public class ConversationContextService(
         IUserRepository userRepo,
         IChatRepository chatRepo,

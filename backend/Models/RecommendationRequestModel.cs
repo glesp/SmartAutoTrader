@@ -4,6 +4,8 @@
 
 namespace SmartAutoTrader.API.Models
 {
+    using SmartAutoTrader.API.Enums;
+
     public class RecommendationRequestModel
     {
         public decimal? MinPrice { get; set; }

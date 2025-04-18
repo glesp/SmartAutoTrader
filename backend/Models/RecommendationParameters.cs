@@ -4,6 +4,8 @@
 
 namespace SmartAutoTrader.API.Models
 {
+    using SmartAutoTrader.API.Enums;
+
     // Parameter class to pass user preferences and context to the recommendation service
     public class RecommendationParameters
     {

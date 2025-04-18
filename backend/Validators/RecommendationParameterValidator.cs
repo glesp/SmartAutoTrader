@@ -4,6 +4,7 @@
 
 namespace SmartAutoTrader.API.Validators
 {
+    using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
 
     public static class RecommendationParameterValidator

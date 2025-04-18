@@ -8,6 +8,7 @@ namespace SmartAutoTrader.API.Controllers
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
     using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.DTOs;
     using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
