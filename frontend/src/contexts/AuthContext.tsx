@@ -1,25 +1,24 @@
 import { createContext } from 'react';
 
-// Define the User interface
 export interface User {
   id: number;
   username: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
+  roles?: string[];
 }
 
-// Define a UserRegistration interface for the register function
 export interface UserRegistration {
   username: string;
   email: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
-  phoneNumber?: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
 }
 
-// Define the AuthContextType interface
 export interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -30,7 +29,6 @@ export interface AuthContextType {
   logout: () => void;
 }
 
-// Create the context with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,

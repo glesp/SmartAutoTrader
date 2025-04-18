@@ -51,13 +51,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Register services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<VehicleSeeder>();
-
-builder.Services.AddHttpClient(); // For HttpClient
+builder.Services.AddScoped<UserRoleSeeder>();
+builder.Services.AddHttpClient();
 builder.Services.AddAIRecommendationServices(builder.Configuration);
 builder.Services.AddScoped<IChatRecommendationService, ChatRecommendationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(
@@ -149,14 +150,33 @@ app.UseAuthorization();
 app.MapControllers();
 app.UseStaticFiles();
 
-// Create the database if it doesn't exist
-using (IServiceScope scope = app.Services.CreateScope())
+// Recommended Seeding Block in Program.cs
+using (var scope = app.Services.CreateScope())
 {
-    IServiceProvider services = scope.ServiceProvider;
-    ApplicationDbContext context = services.GetRequiredService<ApplicationDbContext>();
-    _ = context.Database.EnsureCreated();
-    VehicleSeeder vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
-    vehicleSeeder.SeedVehicles(services);
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+
+        logger.LogInformation("Applying database migrations...");
+        context.Database.Migrate();
+
+        logger.LogInformation("Seeding vehicles...");
+        var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
+        vehicleSeeder.SeedVehicles(services);
+
+        logger.LogInformation("Seeding admin user/roles...");
+        var userRoleSeeder = services.GetRequiredService<UserRoleSeeder>();
+        await userRoleSeeder.SeedAdminUserAsync(services);
+
+        logger.LogInformation("Database seeding/migration check completed.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred during database seeding/migration.");
+        // Consider re-throwing or shutting down if seeding is critical
+    }
 }
 
 app.Run();

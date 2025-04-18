@@ -25,11 +25,12 @@ import {
   ExitToApp as LogoutIcon,
   Menu as MenuIcon,
   Home as HomeIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { AuthContext } from '../../contexts/AuthContext';
 
 const Header = () => {
-  const { isAuthenticated, logout } = useContext(AuthContext);
+  const { isAuthenticated, logout, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
@@ -104,6 +105,18 @@ const Header = () => {
                 <ListItemText primary="Your Recommendations" />
               </ListItemButton>
             </ListItem>
+            {isAuthenticated && user?.roles?.includes('Admin') && (
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => handleNavigation('/admin/inquiries')}
+                >
+                  <ListItemIcon>
+                    <EmailIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="Admin Inquiries" />
+                </ListItemButton>
+              </ListItem>
+            )}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
                 <ListItemIcon>
@@ -199,6 +212,17 @@ const Header = () => {
                 >
                   Your Recommendations
                 </Button>
+                {isAuthenticated && user?.roles?.includes('Admin') && (
+                  <Button
+                    color="inherit"
+                    component={RouterLink}
+                    to="/admin/inquiries"
+                    sx={{ ml: 2 }}
+                    startIcon={<EmailIcon />}
+                  >
+                    Admin Inquiries
+                  </Button>
+                )}
                 <Button
                   color="inherit"
                   onClick={handleLogout}

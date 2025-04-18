@@ -28,6 +28,8 @@ namespace SmartAutoTrader.API.Data
         public DbSet<ChatHistory> ChatHistory { get; set; }
 
         public DbSet<ConversationSession> ConversationSessions { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<UserRole> UserRoles { get; set; }
 
         /// <inheritdoc/>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -105,6 +107,22 @@ namespace SmartAutoTrader.API.Data
                 .WithOne(ch => ch.Session)
                 .HasForeignKey(ch => ch.ConversationSessionId)
                 .IsRequired(false); // Make the relationship optional
+            modelBuilder.Entity<UserRole>()
+                .HasKey(ur => new { ur.UserId, ur.RoleId }); // Define composite key
+            modelBuilder.Entity<UserRole>()
+                .HasOne(ur => ur.User)
+                .WithMany(u => u.UserRoles) // Use navigation property in User
+                .HasForeignKey(ur => ur.UserId);
+            modelBuilder.Entity<UserRole>()
+                .HasOne(ur => ur.Role)
+                .WithMany(r => r.UserRoles) // Use navigation property in Role
+                .HasForeignKey(ur => ur.RoleId); 
+            
+            // Seed initial roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { Id = 1, Name = "Admin" },
+                new Role { Id = 2, Name = "User" }
+            );
         }
     }
 }

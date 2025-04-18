@@ -25,12 +25,27 @@ namespace SmartAutoTrader.API.Services
         Task<(string token, User user)> LoginAsync(string email, string password);
 
         string GenerateJwtToken(User user);
+
+        Task<IEnumerable<string>> GetUserRolesAsync(int userId);
+
+        Task AssignRoleToUserAsync(int userId, string roleName);
     }
 
-    public class AuthService(IUserRepository userRepo, IConfiguration configuration) : IAuthService
+    public class AuthService : IAuthService
     {
-        private readonly IConfiguration configuration = configuration;
-        private readonly IUserRepository userRepo = userRepo;
+        private readonly IUserRepository userRepo;
+        private readonly IRoleRepository roleRepo;
+        private readonly IConfiguration configuration;
+
+        public AuthService(
+            IUserRepository userRepo,
+            IRoleRepository roleRepo,
+            IConfiguration configuration)
+        {
+            this.userRepo = userRepo;
+            this.roleRepo = roleRepo;
+            this.configuration = configuration;
+        }
 
         /// <inheritdoc/>
         public async Task<User> RegisterAsync(
@@ -62,6 +77,9 @@ namespace SmartAutoTrader.API.Services
             await this.userRepo.AddAsync(user);
             await this.userRepo.SaveChangesAsync();
 
+            // Assign default "User" role
+            await this.AssignRoleToUserAsync(user.Id, "User");
+
             return user;
         }
 
@@ -92,16 +110,27 @@ namespace SmartAutoTrader.API.Services
                 throw new InvalidOperationException("JWT key is missing from configuration.");
             }
 
+            // Get user roles asynchronously but wait for result
+            var roles = this.GetUserRolesAsync(user.Id).GetAwaiter().GetResult();
+
+            // Create claims list with basic user info
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username!),
+                new Claim(ClaimTypes.Email, user.Email!)
+            };
+
+            // Add role claims
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
             byte[] key = Encoding.ASCII.GetBytes(jwtKey);
             SecurityTokenDescriptor tokenDescriptor = new()
             {
-                Subject = new ClaimsIdentity(
-                    new[]
-                    {
-                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                        new Claim(ClaimTypes.Name, user.Username!),
-                        new Claim(ClaimTypes.Email, user.Email!),
-                    }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials =
                     new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
@@ -113,6 +142,26 @@ namespace SmartAutoTrader.API.Services
             SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
 
             return tokenHandler.WriteToken(token);
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<string>> GetUserRolesAsync(int userId)
+        {
+            return await this.roleRepo.GetUserRolesAsync(userId);
+        }
+
+        /// <inheritdoc/>
+        public async Task AssignRoleToUserAsync(int userId, string roleName)
+        {
+            // Get the role ID for the specified role name
+            var role = await this.roleRepo.GetRoleByNameAsync(roleName);
+            if (role == null)
+            {
+                throw new Exception($"Role '{roleName}' not found.");
+            }
+
+            // Assign the role to the user
+            await this.roleRepo.AssignRoleToUserAsync(userId, role.Id);
         }
     }
 }
