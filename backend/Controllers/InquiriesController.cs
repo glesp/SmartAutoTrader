@@ -69,6 +69,7 @@ namespace SmartAutoTrader.API.Controllers
             {
                 query = query.Where(i => i.Status == inquiryStatus);
             }
+
             List<Inquiry> inquiries = await query.ToListAsync();
             return inquiries;
         }

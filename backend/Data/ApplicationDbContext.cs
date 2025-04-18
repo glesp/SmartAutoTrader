@@ -28,7 +28,9 @@ namespace SmartAutoTrader.API.Data
         public DbSet<ChatHistory> ChatHistory { get; set; }
 
         public DbSet<ConversationSession> ConversationSessions { get; set; }
+
         public DbSet<Role> Roles { get; set; }
+
         public DbSet<UserRole> UserRoles { get; set; }
 
         /// <inheritdoc/>
@@ -116,13 +118,12 @@ namespace SmartAutoTrader.API.Data
             modelBuilder.Entity<UserRole>()
                 .HasOne(ur => ur.Role)
                 .WithMany(r => r.UserRoles) // Use navigation property in Role
-                .HasForeignKey(ur => ur.RoleId); 
-            
+                .HasForeignKey(ur => ur.RoleId);
+
             // Seed initial roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin" },
-                new Role { Id = 2, Name = "User" }
-            );
+                new Role { Id = 2, Name = "User" });
         }
     }
 }

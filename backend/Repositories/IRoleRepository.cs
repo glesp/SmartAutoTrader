@@ -11,17 +11,17 @@ namespace SmartAutoTrader.API.Repositories
     public interface IRoleRepository
     {
         Task<IEnumerable<string>> GetUserRolesAsync(int userId);
-        
+
         Task<Role?> GetRoleByNameAsync(string roleName);
-        
+
         Task<Role?> GetRoleByIdAsync(int roleId);
-        
+
         Task AssignRoleToUserAsync(int userId, int roleId);
-        
+
         Task RemoveRoleFromUserAsync(int userId, int roleId);
-        
+
         Task<bool> UserHasRoleAsync(int userId, string roleName);
-        
+
         Task SaveChangesAsync();
     }
 
@@ -74,9 +74,9 @@ namespace SmartAutoTrader.API.Repositories
                 var userRole = new UserRole
                 {
                     UserId = userId,
-                    RoleId = roleId
+                    RoleId = roleId,
                 };
-                
+
                 this.context.UserRoles.Add(userRole);
                 await this.SaveChangesAsync();
             }

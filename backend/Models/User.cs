@@ -31,6 +31,7 @@ namespace SmartAutoTrader.API.Models
 
         // Navigation properties
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
         public ICollection<UserFavorite>? Favorites { get; set; }
 
         public ICollection<UserPreference>? Preferences { get; set; }

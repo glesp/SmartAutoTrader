@@ -175,6 +175,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred during database seeding/migration.");
+
         // Consider re-throwing or shutting down if seeding is critical
     }
 }

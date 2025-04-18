@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace SmartAutoTrader.API.Models;
+
+using System.ComponentModel.DataAnnotations;
 
 public class Role
 {
@@ -8,7 +8,7 @@ public class Role
 
     [Required]
     [StringLength(50)]
-    public string Name { get; set; } = null!; // e.g., "Admin", "User"
+    public string Name { get; set; } = null!;
 
     // Navigation property for the join table
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
