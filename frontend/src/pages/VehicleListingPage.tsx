@@ -86,17 +86,18 @@ const VehicleListingPage = () => {
       </Typography>
       <Divider sx={{ mb: 4 }} />
 
-      <Grid container spacing={4}>
-        {/* Filters sidebar */}
-        <Grid item xs={12} lg={3}>
+      {/* Main Grid container for layout */}
+      <Grid container spacing={3}>
+        {/* Filters section - 3 columns on md+ screens, full width on smaller screens */}
+        <Grid item xs={12} md={3}>
           <Box
             component={Paper}
             elevation={1}
             sx={{
               p: 2,
               borderRadius: 2,
-              position: { lg: 'sticky' },
-              top: { lg: '24px' },
+              position: { md: 'sticky' },
+              top: { md: '24px' },
             }}
           >
             <VehicleFilters
@@ -106,8 +107,8 @@ const VehicleListingPage = () => {
           </Box>
         </Grid>
 
-        {/* Vehicle grid */}
-        <Grid item xs={12} lg={9}>
+        {/* Vehicle results section - 9 columns on md+ screens, full width on smaller screens */}
+        <Grid item xs={12} md={9}>
           {loading ? (
             <Box
               display="flex"
@@ -137,6 +138,7 @@ const VehicleListingPage = () => {
             </Paper>
           ) : (
             <>
+              {/* Responsive grid for vehicle cards */}
               <Grid container spacing={3}>
                 {vehicles.map((vehicle) => (
                   <Grid item xs={12} sm={6} md={4} lg={4} key={vehicle.id}>

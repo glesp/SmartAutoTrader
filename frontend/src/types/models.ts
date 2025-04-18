@@ -24,12 +24,24 @@ export interface Vehicle {
   images?: VehicleImage[] | ReferenceWrapper<VehicleImage>;
 }
 
+// Add the RecommendationParameters interface here
+export interface RecommendationParameters {
+  minPrice?: number;
+  maxPrice?: number;
+  minYear?: number;
+  maxYear?: number;
+  maxMileage?: number;
+  preferredMakes?: string[];
+  preferredVehicleTypes?: string[] | number[];
+  preferredFuelTypes?: string[] | number[];
+  desiredFeatures?: string[];
+  matchedCategory?: string;
+}
+
 // Interface for component props
 export interface VehicleRecommendationsProps {
   recommendedVehicles?: Vehicle[] | ReferenceWrapper<Vehicle>;
-  parameters?: {
-    [key: string]: string | number | boolean;
-  };
+  parameters?: RecommendationParameters;
 }
 
 export interface VehicleProps {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../../contexts/AuthContext';
-// Import Material-UI components
+import { Vehicle, RecommendationParameters } from '../../types/models';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -40,37 +40,6 @@ interface Message {
   clarificationNeeded?: boolean;
   originalUserInput?: string;
   conversationId?: string;
-}
-
-interface Vehicle {
-  id: number;
-  make: string;
-  model: string;
-  year: number;
-  price: number;
-  mileage: number;
-  fuelType: number;
-  vehicleType: number;
-  images?: VehicleImage[] | { $values: VehicleImage[] };
-}
-
-interface VehicleImage {
-  id: number;
-  imageUrl: string;
-  isPrimary: boolean;
-}
-
-interface RecommendationParameters {
-  minPrice?: number;
-  maxPrice?: number;
-  minYear?: number;
-  maxYear?: number;
-  maxMileage?: number;
-  preferredMakes?: string[];
-  preferredVehicleTypes?: number[] | string[];
-  preferredFuelTypes?: number[] | string[];
-  desiredFeatures?: string[];
-  matchedCategory?: string;
 }
 
 interface ChatHistoryItem {

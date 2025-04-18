@@ -216,9 +216,10 @@ const VehicleDetailPage = () => {
         </Typography>
       </Breadcrumbs>
 
+      {/* Main content Grid container */}
       <Grid container spacing={4}>
-        {/* Left column - Images and description */}
-        <Grid item xs={12} md={7}>
+        {/* Left column - Vehicle Images */}
+        <Grid item xs={12} md={6}>
           {/* Main image */}
           <Paper
             elevation={2}
@@ -258,9 +259,12 @@ const VehicleDetailPage = () => {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
+                gridTemplateColumns: {
+                  xs: 'repeat(3, 1fr)',
+                  sm: 'repeat(5, 1fr)',
+                },
                 gap: 1,
-                mb: 4,
+                mb: { xs: 4, md: 0 },
               }}
             >
               {imageArray.map((image, index) => (
@@ -291,22 +295,10 @@ const VehicleDetailPage = () => {
               ))}
             </Box>
           )}
-
-          {/* Description */}
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h5" gutterBottom fontWeight="500">
-              Description
-            </Typography>
-            <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-                {vehicle.description}
-              </Typography>
-            </Paper>
-          </Box>
         </Grid>
 
         {/* Right column - Vehicle details */}
-        <Grid item xs={12} md={5}>
+        <Grid item xs={12} md={6}>
           <Paper
             elevation={3}
             sx={{
@@ -391,6 +383,20 @@ const VehicleDetailPage = () => {
               </Button>
             )}
           </Paper>
+        </Grid>
+
+        {/* Description section - Full width below the other content */}
+        <Grid item xs={12}>
+          <Box sx={{ mt: { xs: 0, md: 4 } }}>
+            <Typography variant="h5" gutterBottom fontWeight="500">
+              Description
+            </Typography>
+            <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                {vehicle.description}
+              </Typography>
+            </Paper>
+          </Box>
         </Grid>
       </Grid>
     </Container>

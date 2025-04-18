@@ -17,29 +17,8 @@ import {
   Chip,
 } from '@mui/material';
 
-// Define VehicleImage interface
-interface VehicleImage {
-  id: number;
-  imageUrl: string;
-  isPrimary: boolean;
-}
-
-// Define ReferenceWrapper for ASP.NET serialization
-interface ReferenceWrapper<T> {
-  $id?: string;
-  $values: T[];
-}
-
-// Define Vehicle interface
-interface Vehicle {
-  id: number;
-  make: string;
-  model: string;
-  year: number;
-  price: number;
-  mileage: number;
-  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | undefined;
-}
+// Import the types from your models file
+import { Vehicle, ReferenceWrapper } from '../types/models';
 
 // Define Inquiry interface
 interface Inquiry {
@@ -154,190 +133,203 @@ const ProfilePage = () => {
           />
         </Tabs>
 
-        {/* Tab content */}
+        {/* Tab content - Refactored with Grid */}
         <Box sx={{ p: 3 }}>
           {/* Favorites tab */}
           {activeTab === 'favorites' && (
-            <>
+            <Grid container spacing={3}>
               {loading ? (
-                <Box textAlign="center" py={4}>
-                  <Typography>Loading your favorites...</Typography>
-                </Box>
-              ) : favoritesArray.length === 0 ? (
-                <Box textAlign="center" py={4}>
-                  <Typography color="text.secondary" mb={2}>
-                    You haven't added any vehicles to your favorites yet.
-                  </Typography>
-                  <Button variant="contained" component={Link} to="/vehicles">
-                    Browse Vehicles
-                  </Button>
-                </Box>
-              ) : (
-                <Grid container spacing={3}>
-                  {favoritesArray.map((vehicle: Vehicle) => (
-                    <Grid item xs={12} sm={6} md={4} lg={3} key={vehicle.id}>
-                      <VehicleCard vehicle={vehicle} />
-                    </Grid>
-                  ))}
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="center" py={4}>
+                    <Typography>Loading your favorites...</Typography>
+                  </Box>
                 </Grid>
+              ) : favoritesArray.length === 0 ? (
+                <Grid item xs={12}>
+                  <Box textAlign="center" py={4}>
+                    <Typography color="text.secondary" mb={2}>
+                      You haven't added any vehicles to your favorites yet.
+                    </Typography>
+                    <Button variant="contained" component={Link} to="/vehicles">
+                      Browse Vehicles
+                    </Button>
+                  </Box>
+                </Grid>
+              ) : (
+                // Use the same responsive sizing as VehicleListingPage
+                favoritesArray.map((vehicle: Vehicle) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={vehicle.id}>
+                    <VehicleCard vehicle={vehicle} />
+                  </Grid>
+                ))
               )}
-            </>
+            </Grid>
           )}
 
-          {/* Inquiries tab */}
+          {/* Inquiries tab - Refactored with Grid */}
           {activeTab === 'inquiries' && (
-            <>
+            <Grid container spacing={3}>
               {loading ? (
-                <Box textAlign="center" py={4}>
-                  <Typography>Loading your inquiries...</Typography>
-                </Box>
+                <Grid item xs={12}>
+                  <Box display="flex" justifyContent="center" py={4}>
+                    <Typography>Loading your inquiries...</Typography>
+                  </Box>
+                </Grid>
               ) : inquiriesArray.length === 0 ? (
-                <Box textAlign="center" py={4}>
-                  <Typography color="text.secondary" mb={2}>
-                    You haven't sent any inquiries yet.
-                  </Typography>
-                  <Button variant="contained" component={Link} to="/vehicles">
-                    Browse Vehicles
-                  </Button>
-                </Box>
+                <Grid item xs={12}>
+                  <Box textAlign="center" py={4}>
+                    <Typography color="text.secondary" mb={2}>
+                      You haven't sent any inquiries yet.
+                    </Typography>
+                    <Button variant="contained" component={Link} to="/vehicles">
+                      Browse Vehicles
+                    </Button>
+                  </Box>
+                </Grid>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {inquiriesArray.map((inquiry: Inquiry) => (
-                    <Paper
-                      key={inquiry.id}
-                      elevation={1}
-                      sx={{ overflow: 'hidden', borderRadius: 2 }}
-                    >
-                      <Box
-                        sx={{
-                          bgcolor: 'grey.50',
-                          px: 2,
-                          py: 1.5,
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
-                        }}
+                <Grid item xs={12}>
+                  <Box
+                    sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+                  >
+                    {inquiriesArray.map((inquiry: Inquiry) => (
+                      <Paper
+                        key={inquiry.id}
+                        elevation={1}
+                        sx={{ overflow: 'hidden', borderRadius: 2 }}
                       >
                         <Box
                           sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
+                            bgcolor: 'grey.50',
+                            px: 2,
+                            py: 1.5,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
                           }}
                         >
-                          <Typography variant="subtitle1" fontWeight="medium">
-                            {inquiry.subject}
-                          </Typography>
-                          <Chip
-                            label={inquiry.status}
-                            size="small"
-                            color={
-                              inquiry.status === 'New'
-                                ? 'primary'
-                                : inquiry.status === 'Read'
-                                  ? 'warning'
-                                  : inquiry.status === 'Replied'
-                                    ? 'success'
-                                    : 'default'
-                            }
-                            variant="outlined"
-                          />
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(inquiry.dateSent).toLocaleDateString()} •
-                          {inquiry.vehicle &&
-                            ` regarding ${inquiry.vehicle.year} ${inquiry.vehicle.make} ${inquiry.vehicle.model}`}
-                        </Typography>
-                      </Box>
-
-                      <Box sx={{ p: 2 }}>
-                        <Box mb={2}>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            mb={0.5}
-                            display="block"
-                          >
-                            Your message:
-                          </Typography>
-                          <Typography variant="body2">
-                            {inquiry.message}
-                          </Typography>
-                        </Box>
-
-                        {inquiry.response && (
                           <Box
                             sx={{
-                              bgcolor: 'primary.50',
-                              p: 2,
-                              borderRadius: 1,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
                             }}
                           >
-                            <Typography
-                              variant="caption"
-                              color="primary.dark"
-                              mb={0.5}
-                              display="block"
-                              fontWeight="medium"
-                            >
-                              Response:
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              {inquiry.subject}
                             </Typography>
-                            <Typography variant="body2">
-                              {inquiry.response}
-                            </Typography>
+                            <Chip
+                              label={inquiry.status}
+                              size="small"
+                              color={
+                                inquiry.status === 'New'
+                                  ? 'primary'
+                                  : inquiry.status === 'Read'
+                                    ? 'warning'
+                                    : inquiry.status === 'Replied'
+                                      ? 'success'
+                                      : 'default'
+                              }
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {new Date(inquiry.dateSent).toLocaleDateString()} •
+                            {inquiry.vehicle &&
+                              ` regarding ${inquiry.vehicle.year} ${inquiry.vehicle.make} ${inquiry.vehicle.model}`}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ p: 2 }}>
+                          <Box mb={2}>
                             <Typography
                               variant="caption"
                               color="text.secondary"
-                              mt={1}
+                              mb={0.5}
                               display="block"
                             >
-                              Replied on{' '}
-                              {inquiry.dateReplied &&
-                                new Date(
-                                  inquiry.dateReplied
-                                ).toLocaleDateString()}
+                              Your message:
+                            </Typography>
+                            <Typography variant="body2">
+                              {inquiry.message}
                             </Typography>
                           </Box>
-                        )}
 
-                        {inquiry.status !== 'Closed' && (
-                          <Box sx={{ mt: 2, textAlign: 'right' }}>
-                            <Button
-                              variant="text"
-                              size="small"
-                              color="inherit"
-                              sx={{ color: 'text.secondary' }}
-                              onClick={async () => {
-                                try {
-                                  await inquiryService.closeInquiry(inquiry.id);
-                                  setInquiries(
-                                    (prev: SerializedData<Inquiry>) => {
-                                      const prevArray =
-                                        extractArray<Inquiry>(prev);
-                                      return prevArray.map((i) =>
-                                        i.id === inquiry.id
-                                          ? { ...i, status: 'Closed' }
-                                          : i
-                                      );
-                                    }
-                                  );
-                                } catch (error) {
-                                  console.error(
-                                    'Error closing inquiry:',
-                                    error
-                                  );
-                                }
+                          {inquiry.response && (
+                            <Box
+                              sx={{
+                                bgcolor: 'primary.50',
+                                p: 2,
+                                borderRadius: 1,
                               }}
                             >
-                              Mark as Closed
-                            </Button>
-                          </Box>
-                        )}
-                      </Box>
-                    </Paper>
-                  ))}
-                </Box>
+                              <Typography
+                                variant="caption"
+                                color="primary.dark"
+                                mb={0.5}
+                                display="block"
+                                fontWeight="medium"
+                              >
+                                Response:
+                              </Typography>
+                              <Typography variant="body2">
+                                {inquiry.response}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                mt={1}
+                                display="block"
+                              >
+                                Replied on{' '}
+                                {inquiry.dateReplied &&
+                                  new Date(
+                                    inquiry.dateReplied
+                                  ).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                          )}
+
+                          {inquiry.status !== 'Closed' && (
+                            <Box sx={{ mt: 2, textAlign: 'right' }}>
+                              <Button
+                                variant="text"
+                                size="small"
+                                color="inherit"
+                                sx={{ color: 'text.secondary' }}
+                                onClick={async () => {
+                                  try {
+                                    await inquiryService.closeInquiry(
+                                      inquiry.id
+                                    );
+                                    setInquiries(
+                                      (prev: SerializedData<Inquiry>) => {
+                                        const prevArray =
+                                          extractArray<Inquiry>(prev);
+                                        return prevArray.map((i) =>
+                                          i.id === inquiry.id
+                                            ? { ...i, status: 'Closed' }
+                                            : i
+                                        );
+                                      }
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      'Error closing inquiry:',
+                                      error
+                                    );
+                                  }
+                                }}
+                              >
+                                Mark as Closed
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Box>
+                </Grid>
               )}
-            </>
+            </Grid>
           )}
         </Box>
       </Paper>

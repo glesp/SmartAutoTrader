@@ -19,22 +19,13 @@ import {
   AlertTitle,
   Fade,
   useTheme,
+  Grid,
+  Stack,
 } from '@mui/material';
 import MinimizeIcon from '@mui/icons-material/Minimize';
 import ChatIcon from '@mui/icons-material/Chat';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { Vehicle } from '../types/models';
-
-interface RecommendationParameters {
-  minPrice?: number;
-  maxPrice?: number;
-  minYear?: number;
-  maxYear?: number;
-  preferredMakes?: string[];
-  preferredVehicleTypes?: string[] | number[];
-  preferredFuelTypes?: string[] | number[];
-  desiredFeatures?: string[];
-}
+import { Vehicle, RecommendationParameters } from '../types/models';
 
 const RecommendationsPage = () => {
   const theme = useTheme();
@@ -97,123 +88,135 @@ const RecommendationsPage = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4, pb: 20 }}>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" fontWeight="bold" gutterBottom>
-          Personalized Recommendations
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Our AI analyzes your preferences to recommend vehicles you might like.
-          Chat with our assistant for personalized suggestions.
-        </Typography>
-        <Divider sx={{ mt: 3 }} />
-      </Box>
+    <Container maxWidth="lg" sx={{ py: 4, pb: { xs: 24, md: 20 } }}>
+      <Grid container spacing={3}>
+        {/* Page Header - Full width */}
+        <Grid item xs={12}>
+          <Stack spacing={2}>
+            <Typography variant="h3" component="h1" fontWeight="bold">
+              Personalized Recommendations
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary">
+              Our AI analyzes your preferences to recommend vehicles you might
+              like. Chat with our assistant for personalized suggestions.
+            </Typography>
+            <Divider sx={{ mt: 1 }} />
+          </Stack>
+        </Grid>
 
-      {/* Tabs Navigation */}
-      <Box sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          indicatorColor="primary"
-          textColor="primary"
-        >
-          <Tab
-            icon={<DirectionsCarIcon sx={{ mr: 1 }} />}
-            iconPosition="start"
-            label="Recommendations"
-            value="recommendations"
-            sx={{ fontWeight: 500, textTransform: 'none' }}
-          />
-          <Tab
-            icon={<ChatIcon sx={{ mr: 1 }} />}
-            iconPosition="start"
-            label="AI Assistant"
-            value="assistant"
-            sx={{ fontWeight: 500, textTransform: 'none' }}
-          />
-        </Tabs>
-      </Box>
+        {/* Tabs Navigation - Full width */}
+        <Grid item xs={12}>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs
+              value={activeTab}
+              onChange={(e, newValue) => setActiveTab(newValue)}
+              indicatorColor="primary"
+              textColor="primary"
+            >
+              <Tab
+                icon={<DirectionsCarIcon sx={{ mr: 1 }} />}
+                iconPosition="start"
+                label="Recommendations"
+                value="recommendations"
+                sx={{ fontWeight: 500, textTransform: 'none' }}
+              />
+              <Tab
+                icon={<ChatIcon sx={{ mr: 1 }} />}
+                iconPosition="start"
+                label="AI Assistant"
+                value="assistant"
+                sx={{ fontWeight: 500, textTransform: 'none' }}
+              />
+            </Tabs>
+          </Box>
+        </Grid>
 
-      {/* Main Content Area - with recommendation highlight effect */}
-      <Fade in={newRecommendationsFlag}>
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(25, 118, 210, 0.05)',
-            zIndex: -1,
-            pointerEvents: 'none',
-          }}
-        />
-      </Fade>
+        {/* Main Content Area - Full width */}
+        <Grid item xs={12}>
+          {/* Background effect for new recommendations */}
+          <Fade in={newRecommendationsFlag}>
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(25, 118, 210, 0.05)',
+                zIndex: -1,
+                pointerEvents: 'none',
+              }}
+            />
+          </Fade>
 
-      <Paper
-        elevation={0}
-        sx={{
-          mb: 4,
-          p: 0,
-          borderRadius: 2,
-          transition: 'all 0.5s ease',
-          backgroundColor: newRecommendationsFlag
-            ? 'rgba(25, 118, 210, 0.05)'
-            : 'transparent',
-        }}
-      >
-        {activeTab === 'recommendations' ? (
-          <VehicleRecommendations
-            recommendedVehicles={recommendedVehicles}
-            parameters={parameters}
-          />
-        ) : (
           <Paper
-            elevation={2}
+            elevation={0}
             sx={{
-              height: { xs: '500px', md: '600px' },
+              p: 0,
               borderRadius: 2,
-              overflow: 'hidden',
+              transition: 'all 0.5s ease',
+              backgroundColor: newRecommendationsFlag
+                ? 'rgba(25, 118, 210, 0.05)'
+                : 'transparent',
             }}
           >
-            <ChatInterface
-              onRecommendationsUpdated={handleRecommendationsUpdate}
-            />
+            {activeTab === 'recommendations' ? (
+              <VehicleRecommendations
+                recommendedVehicles={recommendedVehicles}
+                parameters={parameters}
+              />
+            ) : (
+              <Paper
+                elevation={2}
+                sx={{
+                  height: { xs: '500px', md: '600px' },
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                }}
+              >
+                <ChatInterface
+                  onRecommendationsUpdated={handleRecommendationsUpdate}
+                />
+              </Paper>
+            )}
           </Paper>
-        )}
-      </Paper>
+        </Grid>
 
-      {/* Show assistant promo only if there are no recommendations yet */}
-      {activeTab === 'recommendations' && recommendedVehicles.length === 0 && (
-        <Alert
-          severity="info"
-          variant="outlined"
-          sx={{
-            borderRadius: 2,
-            mb: 4,
-            backgroundColor: 'rgba(25, 118, 210, 0.05)',
-          }}
-        >
-          <AlertTitle sx={{ fontWeight: 'bold' }}>
-            Need help finding your perfect car?
-          </AlertTitle>
-          Our AI assistant can help you discover vehicles based on your specific
-          requirements and preferences. Use the chat in the bottom right corner
-          or switch to the AI Assistant tab!
-        </Alert>
-      )}
+        {/* Assistant Promo - Shown conditionally */}
+        {activeTab === 'recommendations' &&
+          recommendedVehicles.length === 0 && (
+            <Grid item xs={12}>
+              <Alert
+                severity="info"
+                variant="outlined"
+                sx={{
+                  borderRadius: 2,
+                  backgroundColor: 'rgba(25, 118, 210, 0.05)',
+                }}
+              >
+                <AlertTitle sx={{ fontWeight: 'bold' }}>
+                  Need help finding your perfect car?
+                </AlertTitle>
+                Our AI assistant can help you discover vehicles based on your
+                specific requirements and preferences. Use the chat in the
+                bottom right corner or switch to the AI Assistant tab!
+              </Alert>
+            </Grid>
+          )}
+      </Grid>
 
-      {/* Facebook Messenger Style Chat - Header Always Visible */}
+      {/* Chat Widget - Fixed position */}
       {activeTab === 'recommendations' && (
         <Paper
           elevation={4}
           sx={{
             position: 'fixed',
             bottom: 0,
-            right: 24,
-            width: { xs: '300px', sm: '350px' },
-            height: isChatMinimized ? 'auto' : '500px',
+            right: { xs: '16px', sm: '24px' },
+            width: { xs: '90%', sm: '350px' },
+            maxWidth: { xs: 'calc(100% - 32px)', sm: '350px' },
+            height: isChatMinimized ? 'auto' : { xs: '80vh', sm: '500px' },
+            maxHeight: { xs: '80vh', sm: '500px' },
             display: 'flex',
             flexDirection: 'column',
             zIndex: 1050,
