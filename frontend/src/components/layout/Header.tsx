@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -7,28 +7,153 @@ import {
   Button,
   Box,
   Container,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Star as StarIcon,
   DirectionsCar as CarIcon,
   Person as PersonIcon,
   ExitToApp as LogoutIcon,
+  Menu as MenuIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 import { AuthContext } from '../../contexts/AuthContext';
 
 const Header = () => {
   const { isAuthenticated, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleLogout = () => {
     logout();
     navigate('/');
+    setDrawerOpen(false);
   };
+
+  const toggleDrawer = (open: boolean) => () => {
+    setDrawerOpen(open);
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    setDrawerOpen(false);
+  };
+
+  const drawerContent = (
+    <Box
+      sx={{ width: 250 }}
+      role="presentation"
+      onClick={toggleDrawer(false)}
+      onKeyDown={toggleDrawer(false)}
+    >
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+          <CarIcon sx={{ mr: 1 }} />
+          Smart Auto Trader
+        </Typography>
+      </Box>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigation('/')}>
+            <ListItemIcon>
+              <HomeIcon />
+            </ListItemIcon>
+            <ListItemText primary="Home" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+          <ListItemButton onClick={() => handleNavigation('/vehicles')}>
+            <ListItemIcon>
+              <CarIcon />
+            </ListItemIcon>
+            <ListItemText primary="Vehicles" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+      <Divider />
+      <List>
+        {isAuthenticated ? (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => handleNavigation('/profile')}>
+                <ListItemIcon>
+                  <PersonIcon />
+                </ListItemIcon>
+                <ListItemText primary="My Profile" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => handleNavigation('/recommendations')}
+              >
+                <ListItemIcon>
+                  <StarIcon />
+                </ListItemIcon>
+                <ListItemText primary="Your Recommendations" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleLogout}>
+                <ListItemIcon>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary="Log Out" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        ) : (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => handleNavigation('/login')}>
+                <ListItemIcon>
+                  <LogoutIcon sx={{ transform: 'rotate(180deg)' }} />
+                </ListItemIcon>
+                <ListItemText primary="Log In" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => handleNavigation('/register')}>
+                <ListItemIcon>
+                  <PersonIcon />
+                </ListItemIcon>
+                <ListItemText primary="Register" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        )}
+      </List>
+    </Box>
+  );
 
   return (
     <AppBar position="static">
       <Container>
         <Toolbar>
+          {/* Mobile Menu Button */}
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={toggleDrawer(true)}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
           {/* Logo */}
           <Typography
             variant="h6"
@@ -46,7 +171,7 @@ const Header = () => {
             Smart Auto Trader
           </Typography>
 
-          {/* Navigation Links */}
+          {/* Desktop Navigation Links */}
           <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
             <Button color="inherit" component={RouterLink} to="/">
               Home
@@ -54,10 +179,8 @@ const Header = () => {
             <Button color="inherit" component={RouterLink} to="/vehicles">
               Vehicles
             </Button>
-          </Box>
 
-          {/* Auth Actions */}
-          <Box>
+            {/* Auth Actions */}
             {isAuthenticated ? (
               <>
                 <Button
@@ -103,6 +226,11 @@ const Header = () => {
           </Box>
         </Toolbar>
       </Container>
+
+      {/* Mobile Navigation Drawer */}
+      <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
+        {drawerContent}
+      </Drawer>
     </AppBar>
   );
 };
