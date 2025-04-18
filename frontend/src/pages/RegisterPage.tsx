@@ -1,8 +1,8 @@
 // src/pages/RegisterPage.tsx
-import { useState, useContext } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
-import { UserRegistration } from '../contexts/AuthContext'
+import { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import { UserRegistration } from '../contexts/AuthContext';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState<UserRegistration>({
@@ -12,52 +12,52 @@ const RegisterPage = () => {
     firstName: '',
     lastName: '',
     phoneNumber: '',
-  })
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  });
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const { register } = useContext(AuthContext)
-  const navigate = useNavigate()
+  const { register } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }))
-  }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Basic validation
     if (!formData.username || !formData.email || !formData.password) {
-      setError('Username, email and password are required')
-      return
+      setError('Username, email and password are required');
+      return;
     }
 
     if (formData.password !== confirmPassword) {
-      setError('Passwords do not match')
-      return
+      setError('Passwords do not match');
+      return;
     }
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      await register(formData)
-      navigate('/') // Redirect to home after successful registration
+      await register(formData);
+      navigate('/'); // Redirect to home after successful registration
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : 'Registration failed. Please try again.'
-      setError(errorMessage)
+          : 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
@@ -225,7 +225,7 @@ const RegisterPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default RegisterPage
+export default RegisterPage;

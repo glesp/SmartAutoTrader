@@ -1,9 +1,9 @@
 // src/pages/VehicleListingPage.tsx
-import { useState, useEffect } from 'react'
-import { vehicleService } from '../services/api'
-import VehicleCard from '../components/vehicles/VehicleCard'
-import VehicleFilters from '../components/vehicles/VehicleFilters'
-import { Vehicle } from '../types/models'
+import { useState, useEffect } from 'react';
+import { vehicleService } from '../services/api';
+import VehicleCard from '../components/vehicles/VehicleCard';
+import VehicleFilters from '../components/vehicles/VehicleFilters';
+import { Vehicle } from '../types/models';
 import {
   Grid,
   Box,
@@ -13,71 +13,71 @@ import {
   Pagination,
   CircularProgress,
   Divider,
-} from '@mui/material'
+} from '@mui/material';
 
 interface FilterState {
-  make?: string
-  model?: string
-  minYear?: number
-  maxYear?: number
-  minPrice?: number
-  maxPrice?: number
-  fuelType?: string
-  transmission?: string
-  vehicleType?: string
-  sortBy: string
-  ascending: boolean
+  make?: string;
+  model?: string;
+  minYear?: number;
+  maxYear?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  fuelType?: string;
+  transmission?: string;
+  vehicleType?: string;
+  sortBy: string;
+  ascending: boolean;
 }
 
 const VehicleListingPage = () => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
-  const [loading, setLoading] = useState(true)
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
     sortBy: 'DateListed',
     ascending: false,
-  })
+  });
 
   useEffect(() => {
     const loadVehicles = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
         const response = await vehicleService.getVehicles({
           ...filters,
           pageNumber: page,
           pageSize: 8,
-        })
+        });
 
-        setVehicles(response)
+        setVehicles(response);
 
         // Axios response headers need to be accessed differently
         // If your API isn't returning headers correctly, you can adjust this:
-        const totalCount = 20 // Default value or calculate from total vehicles
-        const calculatedTotalPages = Math.ceil(totalCount / 8)
-        setTotalPages(calculatedTotalPages || 1)
+        const totalCount = 20; // Default value or calculate from total vehicles
+        const calculatedTotalPages = Math.ceil(totalCount / 8);
+        setTotalPages(calculatedTotalPages || 1);
       } catch (error) {
-        console.error('Error loading vehicles:', error)
+        console.error('Error loading vehicles:', error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadVehicles()
-  }, [filters, page])
+    loadVehicles();
+  }, [filters, page]);
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }))
-    setPage(1) // Reset to first page when filters change
-  }
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+    setPage(1); // Reset to first page when filters change
+  };
 
   const handlePageChange = (
     event: React.ChangeEvent<unknown>,
     newPage: number
   ) => {
-    setPage(newPage)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -162,7 +162,7 @@ const VehicleListingPage = () => {
         </Grid>
       </Grid>
     </Container>
-  )
-}
+  );
+};
 
-export default VehicleListingPage
+export default VehicleListingPage;

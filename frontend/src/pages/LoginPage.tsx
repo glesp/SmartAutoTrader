@@ -1,45 +1,45 @@
 // src/pages/LoginPage.tsx (completing the component)
-import { useState, useContext } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
+import { useState, useContext } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const { login } = useContext(AuthContext)
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Get redirect path from location state or default to home
-  const from = (location.state as { from?: string })?.from || '/'
+  const from = (location.state as { from?: string })?.from || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!email || !password) {
-      setError('Please enter your email and password')
-      return
+      setError('Please enter your email and password');
+      return;
     }
 
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      await login(email, password)
-      navigate(from, { replace: true })
+      await login(email, password);
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : 'Failed to login. Please check your credentials.'
-      setError(errorMessage)
+          : 'Failed to login. Please check your credentials.';
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
@@ -119,7 +119,7 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;

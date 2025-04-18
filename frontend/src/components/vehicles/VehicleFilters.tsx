@@ -1,5 +1,5 @@
 // src/components/vehicles/VehicleFilters.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -16,35 +16,35 @@ import {
   AccordionDetails,
   InputAdornment,
   IconButton,
-} from '@mui/material'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import RestartAltIcon from '@mui/icons-material/RestartAlt'
-import { vehicleService } from '../../services/api'
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import { vehicleService } from '../../services/api';
 
 interface FilterState {
-  make?: string
-  model?: string
-  minYear?: number
-  maxYear?: number
-  minPrice?: number
-  maxPrice?: number
-  fuelType?: string
-  transmission?: string
-  vehicleType?: string
-  sortBy: string
-  ascending: boolean
+  make?: string;
+  model?: string;
+  minYear?: number;
+  maxYear?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  fuelType?: string;
+  transmission?: string;
+  vehicleType?: string;
+  sortBy: string;
+  ascending: boolean;
 }
 
 interface VehicleFiltersProps {
-  filters: FilterState
-  onFilterChange: (filters: Partial<FilterState>) => void
+  filters: FilterState;
+  onFilterChange: (filters: Partial<FilterState>) => void;
 }
 
 // These will be fetched from API but we include fallbacks
-const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Plugin Hybrid']
-const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic']
+const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Plugin Hybrid'];
+const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic'];
 const vehicleTypes = [
   'Sedan',
   'SUV',
@@ -54,66 +54,66 @@ const vehicleTypes = [
   'Wagon',
   'Van',
   'Truck',
-]
+];
 
 const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
   // State for available makes and models from database
-  const [availableMakes, setAvailableMakes] = useState<string[]>([])
-  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [availableMakes, setAvailableMakes] = useState<string[]>([]);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [yearRange, setYearRange] = useState<[number, number]>([
     1990,
     new Date().getFullYear(),
-  ])
+  ]);
 
   // Fetch available makes when component mounts
   useEffect(() => {
     const fetchMakesAndYears = async () => {
       try {
         // Fetch makes
-        const makesResponse = await vehicleService.getAvailableMakes()
+        const makesResponse = await vehicleService.getAvailableMakes();
         if (Array.isArray(makesResponse)) {
-          setAvailableMakes(makesResponse)
+          setAvailableMakes(makesResponse);
         }
 
         // Fetch year range
-        const yearRangeResponse = await vehicleService.getYearRange()
+        const yearRangeResponse = await vehicleService.getYearRange();
         if (
           yearRangeResponse &&
           yearRangeResponse.min &&
           yearRangeResponse.max
         ) {
-          setYearRange([yearRangeResponse.min, yearRangeResponse.max])
+          setYearRange([yearRangeResponse.min, yearRangeResponse.max]);
         }
       } catch (error) {
-        console.error('Error fetching makes or years:', error)
+        console.error('Error fetching makes or years:', error);
       }
-    }
+    };
 
-    fetchMakesAndYears()
-  }, [])
+    fetchMakesAndYears();
+  }, []);
 
   // Fetch models when make changes
   useEffect(() => {
     const fetchModels = async () => {
       if (!filters.make) {
-        setAvailableModels([])
-        return
+        setAvailableModels([]);
+        return;
       }
 
       try {
         const modelsResponse = await vehicleService.getAvailableModels(
           filters.make
-        )
+        );
         if (Array.isArray(modelsResponse)) {
-          setAvailableModels(modelsResponse)
+          setAvailableModels(modelsResponse);
         }
       } catch (error) {
-        console.error('Error fetching models:', error)
+        console.error('Error fetching models:', error);
       }
-    }
+    };
 
-    fetchModels()
-  }, [filters.make])
+    fetchModels();
+  }, [filters.make]);
 
   // Handle year range changes
   const handleYearRangeChange = (event: Event, newValue: number | number[]) => {
@@ -121,9 +121,9 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
       onFilterChange({
         minYear: newValue[0],
         maxYear: newValue[1],
-      })
+      });
     }
-  }
+  };
 
   // Reset all filters
   const handleResetFilters = () => {
@@ -139,13 +139,13 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
       vehicleType: undefined,
       sortBy: 'DateListed',
       ascending: false,
-    })
-  }
+    });
+  };
 
   // Toggle sort direction
   const toggleSortDirection = () => {
-    onFilterChange({ ascending: !filters.ascending })
-  }
+    onFilterChange({ ascending: !filters.ascending });
+  };
 
   return (
     <Box>
@@ -374,8 +374,8 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
                 size="small"
                 edge="end"
                 onClick={(e) => {
-                  e.stopPropagation()
-                  toggleSortDirection()
+                  e.stopPropagation();
+                  toggleSortDirection();
                 }}
                 sx={{ mr: 2 }}
               >
@@ -397,7 +397,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         </FormControl>
       </Box>
     </Box>
-  )
-}
+  );
+};
 
-export default VehicleFilters
+export default VehicleFilters;

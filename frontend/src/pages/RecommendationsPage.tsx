@@ -1,8 +1,8 @@
-import { useContext, useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
-import VehicleRecommendations from '../components/vehicles/VehicleRecommendations'
-import ChatInterface from '../components/chat/ChatInterface'
+import { useContext, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import VehicleRecommendations from '../components/vehicles/VehicleRecommendations';
+import ChatInterface from '../components/chat/ChatInterface';
 // Import Material-UI components
 import {
   Paper,
@@ -19,34 +19,34 @@ import {
   AlertTitle,
   Fade,
   useTheme,
-} from '@mui/material'
-import MinimizeIcon from '@mui/icons-material/Minimize'
-import ChatIcon from '@mui/icons-material/Chat'
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'
-import { Vehicle } from '../types/models'
+} from '@mui/material';
+import MinimizeIcon from '@mui/icons-material/Minimize';
+import ChatIcon from '@mui/icons-material/Chat';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import { Vehicle } from '../types/models';
 
 interface RecommendationParameters {
-  minPrice?: number
-  maxPrice?: number
-  minYear?: number
-  maxYear?: number
-  preferredMakes?: string[]
-  preferredVehicleTypes?: string[] | number[]
-  preferredFuelTypes?: string[] | number[]
-  desiredFeatures?: string[]
+  minPrice?: number;
+  maxPrice?: number;
+  minYear?: number;
+  maxYear?: number;
+  preferredMakes?: string[];
+  preferredVehicleTypes?: string[] | number[];
+  preferredFuelTypes?: string[] | number[];
+  desiredFeatures?: string[];
 }
 
 const RecommendationsPage = () => {
-  const theme = useTheme()
-  const { isAuthenticated, loading } = useContext(AuthContext)
+  const theme = useTheme();
+  const { isAuthenticated, loading } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState<'recommendations' | 'assistant'>(
     'recommendations'
-  )
-  const [recommendedVehicles, setRecommendedVehicles] = useState<Vehicle[]>([])
-  const [parameters, setParameters] = useState<RecommendationParameters>({})
-  const [isChatMinimized, setIsChatMinimized] = useState(true)
-  const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false)
-  const [showChatBadge, setShowChatBadge] = useState(false)
+  );
+  const [recommendedVehicles, setRecommendedVehicles] = useState<Vehicle[]>([]);
+  const [parameters, setParameters] = useState<RecommendationParameters>({});
+  const [isChatMinimized, setIsChatMinimized] = useState(true);
+  const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false);
+  const [showChatBadge, setShowChatBadge] = useState(false);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -56,12 +56,12 @@ const RecommendationsPage = () => {
           Loading...
         </Typography>
       </Container>
-    )
+    );
   }
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: '/recommendations' }} />
+    return <Navigate to="/login" state={{ from: '/recommendations' }} />;
   }
 
   // Handle recommendations update from chat
@@ -69,32 +69,32 @@ const RecommendationsPage = () => {
     vehicles: Vehicle[],
     newParams: RecommendationParameters
   ) => {
-    console.log('Received recommendations:', vehicles.length, 'vehicles')
-    setRecommendedVehicles(vehicles)
-    setParameters(newParams)
+    console.log('Received recommendations:', vehicles.length, 'vehicles');
+    setRecommendedVehicles(vehicles);
+    setParameters(newParams);
 
     // Set flag for animation
-    setNewRecommendationsFlag(true)
+    setNewRecommendationsFlag(true);
 
     // Show badge on minimized chat to indicate new recommendations
     if (isChatMinimized) {
-      setShowChatBadge(true)
+      setShowChatBadge(true);
     }
 
     // Reset flag after animation completes
     setTimeout(() => {
-      setNewRecommendationsFlag(false)
-    }, 2000)
-  }
+      setNewRecommendationsFlag(false);
+    }, 2000);
+  };
 
   // Toggle chat minimized state
   const toggleChat = () => {
-    setIsChatMinimized(!isChatMinimized)
+    setIsChatMinimized(!isChatMinimized);
     if (!isChatMinimized) {
       // When minimizing, clear any badge notification
-      setShowChatBadge(false)
+      setShowChatBadge(false);
     }
-  }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4, pb: 20 }}>
@@ -282,8 +282,8 @@ const RecommendationsPage = () => {
               sx={{ color: 'white' }}
               aria-label={isChatMinimized ? 'Expand chat' : 'Minimize chat'}
               onClick={(e) => {
-                e.stopPropagation()
-                toggleChat()
+                e.stopPropagation();
+                toggleChat();
               }}
             >
               <MinimizeIcon fontSize="small" />
@@ -305,7 +305,7 @@ const RecommendationsPage = () => {
         </Paper>
       )}
     </Container>
-  )
-}
+  );
+};
 
-export default RecommendationsPage
+export default RecommendationsPage;

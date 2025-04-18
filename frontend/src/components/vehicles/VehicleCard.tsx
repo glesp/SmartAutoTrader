@@ -1,27 +1,27 @@
-import { Link } from 'react-router-dom'
-import { VehicleProps } from '../../types/models'
+import { Link } from 'react-router-dom';
+import { VehicleProps } from '../../types/models';
 
 // Define image type to avoid type errors
 interface VehicleImage {
-  imageUrl: string
-  isPrimary: boolean
+  imageUrl: string;
+  isPrimary: boolean;
 }
 
 // Helper function to extract arrays from ASP.NET response format
 const extractArray = <T,>(
   data: T[] | { $values: T[] } | undefined | Record<string, unknown>
 ): T[] => {
-  if (!data) return []
-  if (Array.isArray(data)) return data
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
   if (data && '$values' in data && Array.isArray(data.$values))
-    return data.$values as T[]
-  return []
-}
+    return data.$values as T[];
+  return [];
+};
 
 // Map fuel type numbers to strings
 const getFuelTypeName = (fuelType?: number | string): string => {
-  if (!fuelType) return ''
-  if (typeof fuelType === 'string') return fuelType
+  if (!fuelType) return '';
+  if (typeof fuelType === 'string') return fuelType;
 
   const fuelTypes: Record<number, string> = {
     0: 'Petrol',
@@ -29,21 +29,21 @@ const getFuelTypeName = (fuelType?: number | string): string => {
     2: 'Electric',
     3: 'Hybrid',
     4: 'Plugin Hybrid',
-  }
-  return fuelTypes[fuelType] || 'Unknown'
-}
+  };
+  return fuelTypes[fuelType] || 'Unknown';
+};
 
 const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
   // Get primary image URL
   const getImageUrl = () => {
-    const images = extractArray<VehicleImage>(vehicle.images)
-    if (!images || images.length === 0) return ''
+    const images = extractArray<VehicleImage>(vehicle.images);
+    if (!images || images.length === 0) return '';
 
-    const primary = images.find((img) => img.isPrimary) || images[0]
-    const path = primary.imageUrl
+    const primary = images.find((img) => img.isPrimary) || images[0];
+    const path = primary.imageUrl;
 
-    return path ? `https://localhost:7001/${path}` : ''
-  }
+    return path ? `https://localhost:7001/${path}` : '';
+  };
 
   return (
     <Link
@@ -80,7 +80,7 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
               objectFit: 'cover',
             }}
             onError={(e) => {
-              e.currentTarget.style.display = 'none' // optionally hide if broken
+              e.currentTarget.style.display = 'none'; // optionally hide if broken
             }}
           />
         </div>
@@ -144,7 +144,7 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
         </div>
       </div>
     </Link>
-  )
-}
+  );
+};
 
-export default VehicleCard
+export default VehicleCard;

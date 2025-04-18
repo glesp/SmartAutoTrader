@@ -1,20 +1,20 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import {
   Container,
   CssBaseline,
   ThemeProvider,
   createTheme,
-} from '@mui/material'
-import HomePage from './pages/HomePage'
-import VehicleListingPage from './pages/VehicleListingPage'
-import VehicleDetailPage from './pages/VehicleDetailPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ProfilePage from './pages/ProfilePage'
-import Header from './components/layout/Header'
-import Footer from './components/layout/Footer'
-import { AuthProvider } from './contexts'
-import RecommendationsPage from './pages/RecommendationsPage'
+} from '@mui/material';
+import HomePage from './pages/HomePage';
+import VehicleListingPage from './pages/VehicleListingPage';
+import VehicleDetailPage from './pages/VehicleDetailPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import { AuthProvider } from './contexts';
+import RecommendationsPage from './pages/RecommendationsPage';
 
 // Create a theme instance
 const theme = createTheme({
@@ -26,7 +26,7 @@ const theme = createTheme({
       main: '#dc004e', // Pink color
     },
   },
-})
+});
 
 function App() {
   return (
@@ -67,7 +67,7 @@ function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;

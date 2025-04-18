@@ -1,7 +1,7 @@
-import { useContext } from 'react'
-import { AuthContext } from '../../contexts/AuthContext'
-import { Vehicle } from '../../types/models.ts'
-import { VehicleRecommendationsProps } from '../../types/models.ts'
+import { useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
+import { Vehicle } from '../../types/models.ts';
+import { VehicleRecommendationsProps } from '../../types/models.ts';
 import {
   Box,
   Typography,
@@ -10,59 +10,59 @@ import {
   CardMedia,
   CardContent,
   CardActions,
-} from '@mui/material'
-import { Link } from 'react-router-dom'
+} from '@mui/material';
+import { Link } from 'react-router-dom';
 
 // Helper function to extract arrays from ASP.NET response format
 const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
-  if (!data) return []
-  if (Array.isArray(data)) return data
-  if (data && '$values' in data) return data.$values
-  return []
-}
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (data && '$values' in data) return data.$values;
+  return [];
+};
 
 const VehicleRecommendations = ({
   recommendedVehicles,
 }: VehicleRecommendationsProps) => {
-  const { user } = useContext(AuthContext)
+  const { user } = useContext(AuthContext);
 
   // Direct conversion function
   const getVehicles = () => {
-    if (!recommendedVehicles) return []
+    if (!recommendedVehicles) return [];
 
     // If it's an array, use it directly
-    if (Array.isArray(recommendedVehicles)) return recommendedVehicles
+    if (Array.isArray(recommendedVehicles)) return recommendedVehicles;
 
     // If it has $values property
     if (recommendedVehicles && '$values' in recommendedVehicles) {
-      return recommendedVehicles.$values
+      return recommendedVehicles.$values;
     }
 
-    return []
-  }
+    return [];
+  };
 
   // Get vehicles directly from props
-  const vehicles = getVehicles()
+  const vehicles = getVehicles();
 
   // Helper function to get primary image URL or fallback
   const getImageUrl = (vehicle: Vehicle) => {
-    const images = extractArray(vehicle.images)
+    const images = extractArray(vehicle.images);
     if (images.length === 0)
-      return 'https://via.placeholder.com/300x200?text=No+Image'
+      return 'https://via.placeholder.com/300x200?text=No+Image';
 
     // Find primary image
-    const primaryImage = images.find((img) => img.isPrimary)
-    const path = primaryImage?.imageUrl || images[0]?.imageUrl
+    const primaryImage = images.find((img) => img.isPrimary);
+    const path = primaryImage?.imageUrl || images[0]?.imageUrl;
 
     // Important: Add the base URL prefix just like in VehicleDetailPage
     return path
       ? `https://localhost:7001/${path}`
-      : 'https://via.placeholder.com/300x200?text=No+Image'
-  }
+      : 'https://via.placeholder.com/300x200?text=No+Image';
+  };
 
   // Map fuel type numbers to strings
   const getFuelTypeName = (fuelType: number | string): string => {
-    if (typeof fuelType === 'string') return fuelType
+    if (typeof fuelType === 'string') return fuelType;
 
     const fuelTypes: Record<number, string> = {
       0: 'Petrol',
@@ -70,13 +70,13 @@ const VehicleRecommendations = ({
       2: 'Electric',
       3: 'Hybrid',
       4: 'Plugin Hybrid',
-    }
-    return fuelTypes[fuelType] || 'Unknown'
-  }
+    };
+    return fuelTypes[fuelType] || 'Unknown';
+  };
 
   // Alternative content when user is not authenticated
   if (!user) {
-    return <Box p={4}>Please sign in to view recommendations.</Box>
+    return <Box p={4}>Please sign in to view recommendations.</Box>;
   }
 
   return (
@@ -141,7 +141,7 @@ const VehicleRecommendations = ({
                 sx={{ objectFit: 'cover' }}
                 onError={(e) => {
                   e.currentTarget.src =
-                    'https://via.placeholder.com/300x200?text=No+Image'
+                    'https://via.placeholder.com/300x200?text=No+Image';
                 }}
               />
               <CardContent sx={{ flexGrow: 1, pb: 1 }}>
@@ -192,7 +192,7 @@ const VehicleRecommendations = ({
         </Box>
       )}
     </Box>
-  )
-}
+  );
+};
 
-export default VehicleRecommendations
+export default VehicleRecommendations;

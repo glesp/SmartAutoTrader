@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { vehicleService } from '../services/api'
-import VehicleCard from '../components/vehicles/VehicleCard'
-import { Vehicle } from '../types/models'
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { vehicleService } from '../services/api';
+import VehicleCard from '../components/vehicles/VehicleCard';
+import { Vehicle } from '../types/models';
 // Import Material UI components
 import {
   Box,
@@ -13,46 +13,46 @@ import {
   Paper,
   CircularProgress,
   Divider,
-} from '@mui/material'
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'
-import RecommendIcon from '@mui/icons-material/Recommend'
+} from '@mui/material';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import RecommendIcon from '@mui/icons-material/Recommend';
 
 const HomePage = () => {
-  const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([])
-  const [loading, setLoading] = useState(true)
+  const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadFeaturedVehicles = async () => {
       try {
         // Get the latest 4 vehicles
-        console.log('Fetching vehicles...')
+        console.log('Fetching vehicles...');
         const response = await vehicleService.getVehicles({
           pageSize: 4,
           sortBy: 'DateListed',
           ascending: false,
-        })
+        });
 
-        console.log('API response type:', typeof response)
-        console.log('Is array?', Array.isArray(response))
-        console.log('Raw response:', response)
+        console.log('API response type:', typeof response);
+        console.log('Is array?', Array.isArray(response));
+        console.log('Raw response:', response);
 
         // Safe check before setting state
         if (Array.isArray(response)) {
-          setFeaturedVehicles(response)
+          setFeaturedVehicles(response);
         } else {
-          console.error('Response is not an array:', response)
-          setFeaturedVehicles([]) // Use empty array as fallback
+          console.error('Response is not an array:', response);
+          setFeaturedVehicles([]); // Use empty array as fallback
         }
       } catch (error) {
-        console.error('Error loading featured vehicles:', error)
-        setFeaturedVehicles([])
+        console.error('Error loading featured vehicles:', error);
+        setFeaturedVehicles([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadFeaturedVehicles()
-  }, [])
+    loadFeaturedVehicles();
+  }, []);
 
   return (
     <Box>
@@ -334,7 +334,7 @@ const HomePage = () => {
         </Container>
       </Box>
     </Box>
-  )
-}
+  );
+};
 
-export default HomePage
+export default HomePage;

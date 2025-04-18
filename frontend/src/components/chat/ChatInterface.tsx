@@ -1,144 +1,144 @@
-import { useState, useRef, useEffect, useContext, useCallback } from 'react'
-import axios from 'axios'
-import { AuthContext } from '../../contexts/AuthContext'
+import { useState, useRef, useEffect, useContext, useCallback } from 'react';
+import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
 // Import Material-UI components
-import Box from '@mui/material/Box'
-import TextField from '@mui/material/TextField'
-import Typography from '@mui/material/Typography'
-import Paper from '@mui/material/Paper'
-import CircularProgress from '@mui/material/CircularProgress'
-import SendIcon from '@mui/icons-material/Send'
-import InputAdornment from '@mui/material/InputAdornment'
-import IconButton from '@mui/material/IconButton'
-import Tooltip from '@mui/material/Tooltip'
-import Chip from '@mui/material/Chip'
-import Button from '@mui/material/Button'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import ListItemText from '@mui/material/ListItemText'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import HistoryIcon from '@mui/icons-material/History'
-import ChatIcon from '@mui/icons-material/Chat'
-import AddIcon from '@mui/icons-material/Add'
-import Zoom from '@mui/material/Zoom'
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import CircularProgress from '@mui/material/CircularProgress';
+import SendIcon from '@mui/icons-material/Send';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import Chip from '@mui/material/Chip';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import HistoryIcon from '@mui/icons-material/History';
+import ChatIcon from '@mui/icons-material/Chat';
+import AddIcon from '@mui/icons-material/Add';
+import Zoom from '@mui/material/Zoom';
 
 // Type definitions
 interface ChatInterfaceProps {
   onRecommendationsUpdated: (
     vehicles: Vehicle[],
     parameters: RecommendationParameters
-  ) => void
+  ) => void;
 }
 
 interface Message {
-  id: string | number
-  content: string
-  sender: 'user' | 'ai'
-  timestamp: Date
-  vehicles?: Vehicle[]
-  parameters?: RecommendationParameters
-  clarificationNeeded?: boolean
-  originalUserInput?: string
-  conversationId?: string
+  id: string | number;
+  content: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  vehicles?: Vehicle[];
+  parameters?: RecommendationParameters;
+  clarificationNeeded?: boolean;
+  originalUserInput?: string;
+  conversationId?: string;
 }
 
 interface Vehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  fuelType: number
-  vehicleType: number
-  images?: VehicleImage[] | { $values: VehicleImage[] }
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  fuelType: number;
+  vehicleType: number;
+  images?: VehicleImage[] | { $values: VehicleImage[] };
 }
 
 interface VehicleImage {
-  id: number
-  imageUrl: string
-  isPrimary: boolean
+  id: number;
+  imageUrl: string;
+  isPrimary: boolean;
 }
 
 interface RecommendationParameters {
-  minPrice?: number
-  maxPrice?: number
-  minYear?: number
-  maxYear?: number
-  maxMileage?: number
-  preferredMakes?: string[]
-  preferredVehicleTypes?: number[] | string[]
-  preferredFuelTypes?: number[] | string[]
-  desiredFeatures?: string[]
-  matchedCategory?: string
+  minPrice?: number;
+  maxPrice?: number;
+  minYear?: number;
+  maxYear?: number;
+  maxMileage?: number;
+  preferredMakes?: string[];
+  preferredVehicleTypes?: number[] | string[];
+  preferredFuelTypes?: number[] | string[];
+  desiredFeatures?: string[];
+  matchedCategory?: string;
 }
 
 interface ChatHistoryItem {
-  id: number
-  userMessage: string
-  aiResponse: string
-  timestamp: string
-  conversationId?: string
+  id: number;
+  userMessage: string;
+  aiResponse: string;
+  timestamp: string;
+  conversationId?: string;
 }
 
 interface ChatResponseDTO {
-  message: string
-  recommendedVehicles?: Vehicle[]
-  parameters?: RecommendationParameters
-  clarificationNeeded?: boolean
-  originalUserInput?: string
-  conversationId?: string
-  matchedCategory?: string
+  message: string;
+  recommendedVehicles?: Vehicle[];
+  parameters?: RecommendationParameters;
+  clarificationNeeded?: boolean;
+  originalUserInput?: string;
+  conversationId?: string;
+  matchedCategory?: string;
 }
 
 interface Conversation {
-  id: number
-  createdAt: string
-  lastInteractionAt: string
-  messageCount: number
+  id: number;
+  createdAt: string;
+  lastInteractionAt: string;
+  messageCount: number;
 }
 
 // Helper function for date formatting
 const formatDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-    })
+    });
   } catch {
-    return dateString
+    return dateString;
   }
-}
+};
 
 const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [updatingRecommendations, setUpdatingRecommendations] =
-    useState<boolean>(false)
+    useState<boolean>(false);
   const [clarificationState, setClarificationState] = useState<{
-    awaiting: boolean
-    originalUserInput: string
-  }>({ awaiting: false, originalUserInput: '' })
+    awaiting: boolean;
+    originalUserInput: string;
+  }>({ awaiting: false, originalUserInput: '' });
   const [currentConversationId, setCurrentConversationId] = useState<
     string | undefined
-  >(undefined)
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  >(undefined);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsMenuAnchor, setConversationsMenuAnchor] =
-    useState<null | HTMLElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const { token } = useContext(AuthContext)
+    useState<null | HTMLElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { token } = useContext(AuthContext);
 
   // Suggested prompts
   const suggestedPrompts = [
     'I need an SUV under €30,000',
     'Show me electric cars with good range',
     'Family cars with low mileage',
-  ]
+  ];
 
   // Load conversations on component mount - callback reference
   const loadConversations = useCallback(async () => {
@@ -148,24 +148,24 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-      })
+      });
 
       if (response.data) {
         const conversationsData = Array.isArray(response.data)
           ? response.data
-          : response.data.$values || []
+          : response.data.$values || [];
 
-        setConversations(conversationsData)
+        setConversations(conversationsData);
 
         // If we have conversations but none selected, select the most recent one
         if (conversationsData.length > 0 && !currentConversationId) {
-          setCurrentConversationId(conversationsData[0].id.toString())
+          setCurrentConversationId(conversationsData[0].id.toString());
         }
       }
     } catch (error) {
-      console.error('Failed to load conversations:', error)
+      console.error('Failed to load conversations:', error);
     }
-  }, [token, currentConversationId])
+  }, [token, currentConversationId]);
 
   // Load chat history for a specific conversation - callback reference
   const loadChatHistory = useCallback(
@@ -179,12 +179,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               'Content-Type': 'application/json',
             },
           }
-        )
+        );
 
         if (response.data) {
           const historyData = Array.isArray(response.data)
             ? response.data
-            : response.data.$values || []
+            : response.data.$values || [];
 
           const formattedHistory = historyData
             .map((msg: ChatHistoryItem) => ({
@@ -206,37 +206,37 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             .sort(
               (a: Message, b: Message) =>
                 a.timestamp.getTime() - b.timestamp.getTime()
-            )
+            );
 
-          setMessages(formattedHistory)
+          setMessages(formattedHistory);
         }
       } catch (error) {
-        console.error('Failed to load chat history:', error)
+        console.error('Failed to load chat history:', error);
       }
     },
     [token]
-  )
+  );
 
   // Use the callback references in useEffect hooks
   useEffect(() => {
     if (token) {
-      loadConversations()
+      loadConversations();
     }
-  }, [token, loadConversations])
+  }, [token, loadConversations]);
 
   useEffect(() => {
     if (token && currentConversationId) {
-      loadChatHistory(currentConversationId)
+      loadChatHistory(currentConversationId);
     } else {
       // Clear messages if no conversation is selected
-      setMessages([])
+      setMessages([]);
     }
-  }, [token, currentConversationId, loadChatHistory])
+  }, [token, currentConversationId, loadChatHistory]);
 
   // Scroll to bottom of messages when messages update
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Start a new conversation
   const startNewConversation = async () => {
@@ -250,56 +250,56 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             'Content-Type': 'application/json',
           },
         }
-      )
+      );
 
       if (response.data?.conversationId) {
-        setCurrentConversationId(response.data.conversationId.toString())
-        setMessages([])
+        setCurrentConversationId(response.data.conversationId.toString());
+        setMessages([]);
 
         // Reset any ongoing clarification
         setClarificationState({
           awaiting: false,
           originalUserInput: '',
-        })
+        });
 
         // Refresh the conversations list
-        loadConversations()
+        loadConversations();
       }
     } catch (error) {
-      console.error('Failed to start new conversation:', error)
+      console.error('Failed to start new conversation:', error);
     }
-  }
+  };
 
   // Open conversations menu
   const handleConversationsMenuOpen = (
     event: React.MouseEvent<HTMLElement>
   ) => {
-    setConversationsMenuAnchor(event.currentTarget)
-  }
+    setConversationsMenuAnchor(event.currentTarget);
+  };
 
   // Close conversations menu
   const handleConversationsMenuClose = () => {
-    setConversationsMenuAnchor(null)
-  }
+    setConversationsMenuAnchor(null);
+  };
 
   // Select a conversation
   const selectConversation = (conversationId: string) => {
-    setCurrentConversationId(conversationId)
-    handleConversationsMenuClose()
-  }
+    setCurrentConversationId(conversationId);
+    handleConversationsMenuClose();
+  };
 
   const handleSendMessage = async (
     e: React.FormEvent | null = null,
     promptText: string | null = null
   ) => {
-    if (e) e.preventDefault()
+    if (e) e.preventDefault();
 
-    const messageText = promptText || input
-    if (!messageText.trim()) return
+    const messageText = promptText || input;
+    if (!messageText.trim()) return;
 
     // Track the conversation ID that will be used for this specific message
     // This ensures we use the most up-to-date ID even with rapid message sending
-    let messageConversationId = currentConversationId
+    let messageConversationId = currentConversationId;
 
     // If no conversation is selected, start a new one first
     if (!messageConversationId) {
@@ -313,20 +313,20 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               'Content-Type': 'application/json',
             },
           }
-        )
+        );
 
         if (response.data?.conversationId) {
           // Store the ID both in component state and in our local variable
-          const newConversationId = response.data.conversationId.toString()
-          setCurrentConversationId(newConversationId)
-          messageConversationId = newConversationId
+          const newConversationId = response.data.conversationId.toString();
+          setCurrentConversationId(newConversationId);
+          messageConversationId = newConversationId;
         } else {
-          console.error('Failed to get new conversation ID')
-          return
+          console.error('Failed to get new conversation ID');
+          return;
         }
       } catch (error) {
-        console.error('Failed to start new conversation:', error)
-        return
+        console.error('Failed to start new conversation:', error);
+        return;
       }
     }
 
@@ -336,11 +336,11 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
       sender: 'user',
       timestamp: new Date(),
       conversationId: messageConversationId, // Use our local tracking variable
-    }
+    };
 
-    setMessages((prev) => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
+    setMessages((prev) => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
 
     try {
       // Prepare the message payload with conversation context
@@ -352,24 +352,24 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         isClarification: clarificationState.awaiting,
         isFollowUp: messages.length > 0,
         conversationId: messageConversationId, // Use our local tracking variable
-      }
+      };
 
       // Debug conversationId tracking in POST request
       console.log(
         'Sending payload with conversationId:',
         messageConversationId,
         payload
-      )
+      );
 
       const response = await axios.post('/api/chat/message', payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-      })
+      });
 
       if (response.data) {
-        const responseData: ChatResponseDTO = response.data
+        const responseData: ChatResponseDTO = response.data;
 
         // Create AI message with response data
         const aiMessage: Message = {
@@ -382,17 +382,17 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           clarificationNeeded: responseData.clarificationNeeded,
           // Use the conversation ID from the response for the AI message
           conversationId: responseData.conversationId || messageConversationId,
-        }
+        };
 
-        setMessages((prev) => [...prev, aiMessage])
+        setMessages((prev) => [...prev, aiMessage]);
 
         // If we got a new conversation ID, update it
         if (
           responseData.conversationId &&
           responseData.conversationId !== messageConversationId
         ) {
-          setCurrentConversationId(responseData.conversationId)
-          loadConversations() // Refresh the list
+          setCurrentConversationId(responseData.conversationId);
+          loadConversations(); // Refresh the list
         }
 
         // If clarification is needed, update the clarification state
@@ -402,34 +402,34 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             originalUserInput: clarificationState.awaiting
               ? clarificationState.originalUserInput
               : messageText,
-          })
+          });
         } else {
           // If we get a final answer, reset clarification state
           setClarificationState({
             awaiting: false,
             originalUserInput: '',
-          })
+          });
 
           // Update recommendations in parent component if available
           if (onRecommendationsUpdated && responseData.recommendedVehicles) {
             // Show updating indicator
-            setUpdatingRecommendations(true)
+            setUpdatingRecommendations(true);
 
             // Update recommendations
             onRecommendationsUpdated(
               responseData.recommendedVehicles,
               responseData.parameters || {}
-            )
+            );
 
             // Hide indicator after a delay
             setTimeout(() => {
-              setUpdatingRecommendations(false)
-            }, 1500)
+              setUpdatingRecommendations(false);
+            }, 1500);
           }
         }
       }
     } catch (error) {
-      console.error('Failed to send message:', error)
+      console.error('Failed to send message:', error);
 
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
@@ -438,25 +438,25 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         sender: 'ai',
         timestamp: new Date(),
         conversationId: messageConversationId,
-      }
+      };
 
-      setMessages((prev) => [...prev, errorMessage])
+      setMessages((prev) => [...prev, errorMessage]);
 
       // Reset clarification state on error
       setClarificationState({
         awaiting: false,
         originalUserInput: '',
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // Handle clicking a suggested prompt
   const handleSuggestedPrompt = (prompt: string) => {
-    setInput(prompt)
-    handleSendMessage(null, prompt)
-  }
+    setInput(prompt);
+    handleSendMessage(null, prompt);
+  };
 
   return (
     <Box
@@ -917,7 +917,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         )}
       </Box>
     </Box>
-  )
-}
+  );
+};
 
-export default ChatInterface
+export default ChatInterface;

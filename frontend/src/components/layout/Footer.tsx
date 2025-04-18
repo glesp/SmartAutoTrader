@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography, Link } from '@mui/material'
+import { Box, Container, Grid, Typography, Link } from '@mui/material';
 import {
   Facebook as FacebookIcon,
   Twitter as TwitterIcon,
@@ -6,11 +6,11 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   LocationOn as LocationIcon,
-} from '@mui/icons-material'
-import { Link as RouterLink } from 'react-router-dom'
+} from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear()
+  const currentYear = new Date().getFullYear();
 
   return (
     <Box
@@ -147,7 +147,7 @@ const Footer = () => {
         </Box>
       </Container>
     </Box>
-  )
-}
+  );
+};
 
-export default Footer
+export default Footer;

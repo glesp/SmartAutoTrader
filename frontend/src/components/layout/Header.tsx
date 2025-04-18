@@ -1,5 +1,5 @@
-import { useContext } from 'react'
-import { Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useContext } from 'react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -7,23 +7,23 @@ import {
   Button,
   Box,
   Container,
-} from '@mui/material'
+} from '@mui/material';
 import {
   Star as StarIcon,
   DirectionsCar as CarIcon,
   Person as PersonIcon,
   ExitToApp as LogoutIcon,
-} from '@mui/icons-material'
-import { AuthContext } from '../../contexts/AuthContext'
+} from '@mui/icons-material';
+import { AuthContext } from '../../contexts/AuthContext';
 
 const Header = () => {
-  const { isAuthenticated, logout } = useContext(AuthContext)
-  const navigate = useNavigate()
+  const { isAuthenticated, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout()
-    navigate('/')
-  }
+    logout();
+    navigate('/');
+  };
 
   return (
     <AppBar position="static">
@@ -104,7 +104,7 @@ const Header = () => {
         </Toolbar>
       </Container>
     </AppBar>
-  )
-}
+  );
+};
 
-export default Header
+export default Header;

@@ -1,9 +1,9 @@
 // src/pages/ProfilePage.tsx
-import { useState, useEffect, useContext } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { AuthContext } from '../contexts/AuthContext'
-import { favoriteService, inquiryService } from '../services/api'
-import VehicleCard from '../components/vehicles/VehicleCard'
+import { useState, useEffect, useContext } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import { favoriteService, inquiryService } from '../services/api';
+import VehicleCard from '../components/vehicles/VehicleCard';
 // Add Material UI imports
 import {
   Box,
@@ -15,110 +15,110 @@ import {
   Tab,
   Container,
   Chip,
-} from '@mui/material'
+} from '@mui/material';
 
 // Define VehicleImage interface
 interface VehicleImage {
-  id: number
-  imageUrl: string
-  isPrimary: boolean
+  id: number;
+  imageUrl: string;
+  isPrimary: boolean;
 }
 
 // Define ReferenceWrapper for ASP.NET serialization
 interface ReferenceWrapper<T> {
-  $id?: string
-  $values: T[]
+  $id?: string;
+  $values: T[];
 }
 
 // Define Vehicle interface
 interface Vehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | undefined
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  images: VehicleImage[] | ReferenceWrapper<VehicleImage> | undefined;
 }
 
 // Define Inquiry interface
 interface Inquiry {
-  id: number
-  vehicleId: number
-  subject: string
-  message: string
-  response?: string
-  dateSent: string
-  dateReplied?: string
-  status: string
-  vehicle?: Vehicle
+  id: number;
+  vehicleId: number;
+  subject: string;
+  message: string;
+  response?: string;
+  dateSent: string;
+  dateReplied?: string;
+  status: string;
+  vehicle?: Vehicle;
 }
 
 // Define what the arrays might look like with ASP.NET serialization
-type SerializedData<T> = T[] | ReferenceWrapper<T> | undefined | null
+type SerializedData<T> = T[] | ReferenceWrapper<T> | undefined | null;
 
 // Helper function to extract arrays from ASP.NET reference format
 const extractArray = <T,>(data: SerializedData<T>): T[] => {
-  if (!data) return []
+  if (!data) return [];
 
   if (Array.isArray(data)) {
-    return data
+    return data;
   } else if (typeof data === 'object' && data !== null && '$values' in data) {
-    return (data as ReferenceWrapper<T>).$values
+    return (data as ReferenceWrapper<T>).$values;
   }
 
-  return []
-}
+  return [];
+};
 
 const ProfilePage = () => {
   const {
     user,
     isAuthenticated,
     loading: authLoading,
-  } = useContext(AuthContext)
+  } = useContext(AuthContext);
   const [favoriteVehicles, setFavoriteVehicles] = useState<
     SerializedData<Vehicle>
-  >([])
-  const [inquiries, setInquiries] = useState<SerializedData<Inquiry>>([])
-  const [activeTab, setActiveTab] = useState('favorites')
-  const [loading, setLoading] = useState(true)
+  >([]);
+  const [inquiries, setInquiries] = useState<SerializedData<Inquiry>>([]);
+  const [activeTab, setActiveTab] = useState('favorites');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!isAuthenticated) return
+      if (!isAuthenticated) return;
 
-      setLoading(true)
+      setLoading(true);
 
       try {
         if (activeTab === 'favorites') {
-          const favorites = await favoriteService.getFavorites()
-          setFavoriteVehicles(favorites)
+          const favorites = await favoriteService.getFavorites();
+          setFavoriteVehicles(favorites);
         } else if (activeTab === 'inquiries') {
-          const userInquiries = await inquiryService.getInquiries()
-          setInquiries(userInquiries)
+          const userInquiries = await inquiryService.getInquiries();
+          setInquiries(userInquiries);
         }
       } catch (error) {
-        console.error(`Error fetching ${activeTab}:`, error)
+        console.error(`Error fetching ${activeTab}:`, error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchUserData()
-  }, [isAuthenticated, activeTab])
+    fetchUserData();
+  }, [isAuthenticated, activeTab]);
 
   // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
-    return <Navigate to="/login" state={{ from: '/profile' }} />
+    return <Navigate to="/login" state={{ from: '/profile' }} />;
   }
 
   if (authLoading) {
-    return <div className="text-center py-12">Loading profile...</div>
+    return <div className="text-center py-12">Loading profile...</div>;
   }
 
   // Extract arrays from potentially reference-wrapped data
-  const favoritesArray = extractArray<Vehicle>(favoriteVehicles)
-  const inquiriesArray = extractArray<Inquiry>(inquiries)
+  const favoritesArray = extractArray<Vehicle>(favoriteVehicles);
+  const inquiriesArray = extractArray<Inquiry>(inquiries);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -308,20 +308,23 @@ const ProfilePage = () => {
                               sx={{ color: 'text.secondary' }}
                               onClick={async () => {
                                 try {
-                                  await inquiryService.closeInquiry(inquiry.id)
+                                  await inquiryService.closeInquiry(inquiry.id);
                                   setInquiries(
                                     (prev: SerializedData<Inquiry>) => {
                                       const prevArray =
-                                        extractArray<Inquiry>(prev)
+                                        extractArray<Inquiry>(prev);
                                       return prevArray.map((i) =>
                                         i.id === inquiry.id
                                           ? { ...i, status: 'Closed' }
                                           : i
-                                      )
+                                      );
                                     }
-                                  )
+                                  );
                                 } catch (error) {
-                                  console.error('Error closing inquiry:', error)
+                                  console.error(
+                                    'Error closing inquiry:',
+                                    error
+                                  );
                                 }
                               }}
                             >
@@ -339,7 +342,7 @@ const ProfilePage = () => {
         </Box>
       </Paper>
     </Container>
-  )
-}
+  );
+};
 
-export default ProfilePage
+export default ProfilePage;

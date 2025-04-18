@@ -1,8 +1,8 @@
 // src/pages/VehicleDetailPage.tsx
-import { useState, useEffect, useContext } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { vehicleService, favoriteService } from '../services/api'
-import { AuthContext } from '../contexts/AuthContext'
+import { useState, useEffect, useContext } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { vehicleService, favoriteService } from '../services/api';
+import { AuthContext } from '../contexts/AuthContext';
 // Add Material-UI imports
 import {
   Box,
@@ -15,140 +15,142 @@ import {
   Link as MuiLink,
   ButtonBase,
   Divider,
-} from '@mui/material'
-import FavoriteIcon from '@mui/icons-material/Favorite'
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+} from '@mui/material';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 
 // Define what your API actually returns
 interface VehicleImage {
-  id: number
-  imageUrl: string
-  isPrimary: boolean
+  id: number;
+  imageUrl: string;
+  isPrimary: boolean;
 }
 
 // Define a type for the ASP.NET Core reference format
 interface ReferenceWrapper {
-  $id?: string
-  $values: VehicleImage[]
+  $id?: string;
+  $values: VehicleImage[];
 }
 
 interface ApiVehicle {
-  id: number
-  make: string
-  model: string
-  year: number
-  price: number
-  mileage: number
-  fuelType: string
-  transmission: string
-  vehicleType: string
-  description: string
-  images: VehicleImage[] | ReferenceWrapper | null | undefined
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage: number;
+  fuelType: string;
+  transmission: string;
+  vehicleType: string;
+  description: string;
+  images: VehicleImage[] | ReferenceWrapper | null | undefined;
 }
 
 const VehicleDetailPage = () => {
-  const { id } = useParams<{ id: string }>()
-  const [vehicle, setVehicle] = useState<ApiVehicle | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [checkingFavorite, setCheckingFavorite] = useState(false)
-  const { isAuthenticated } = useContext(AuthContext)
+  const { id } = useParams<{ id: string }>();
+  const [vehicle, setVehicle] = useState<ApiVehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [checkingFavorite, setCheckingFavorite] = useState(false);
+  const { isAuthenticated } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchVehicle = async () => {
-      if (!id) return
+      if (!id) return;
 
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       try {
-        const data = await vehicleService.getVehicle(parseInt(id))
-        setVehicle(data)
+        const data = await vehicleService.getVehicle(parseInt(id));
+        setVehicle(data);
 
-        let imageArray: VehicleImage[] = []
+        let imageArray: VehicleImage[] = [];
         if (data.images) {
           if (Array.isArray(data.images)) {
-            imageArray = data.images
+            imageArray = data.images;
           } else if (
             typeof data.images === 'object' &&
             data.images !== null &&
             '$values' in data.images
           ) {
-            const imagesWithValues = data.images as { $values: VehicleImage[] }
-            imageArray = imagesWithValues.$values
+            const imagesWithValues = data.images as { $values: VehicleImage[] };
+            imageArray = imagesWithValues.$values;
           }
         }
 
         if (imageArray.length > 0) {
-          const primaryIndex = imageArray.findIndex((img) => img.isPrimary)
-          setActiveImageIndex(primaryIndex >= 0 ? primaryIndex : 0)
+          const primaryIndex = imageArray.findIndex((img) => img.isPrimary);
+          setActiveImageIndex(primaryIndex >= 0 ? primaryIndex : 0);
         }
       } catch (err) {
-        console.error('Error fetching vehicle:', err)
-        setError('Failed to load vehicle details')
+        console.error('Error fetching vehicle:', err);
+        setError('Failed to load vehicle details');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchVehicle()
-  }, [id])
+    fetchVehicle();
+  }, [id]);
 
   useEffect(() => {
     const checkFavorite = async () => {
-      if (!isAuthenticated || !id) return
+      if (!isAuthenticated || !id) return;
 
-      setCheckingFavorite(true)
+      setCheckingFavorite(true);
       try {
-        const favoriteStatus = await favoriteService.checkFavorite(parseInt(id))
-        setIsFavorite(favoriteStatus)
+        const favoriteStatus = await favoriteService.checkFavorite(
+          parseInt(id)
+        );
+        setIsFavorite(favoriteStatus);
       } catch (err) {
-        console.error('Error checking favorite status:', err)
+        console.error('Error checking favorite status:', err);
       } finally {
-        setCheckingFavorite(false)
+        setCheckingFavorite(false);
       }
-    }
+    };
 
-    checkFavorite()
-  }, [id, isAuthenticated])
+    checkFavorite();
+  }, [id, isAuthenticated]);
 
   const handleToggleFavorite = async () => {
-    if (!isAuthenticated || !id) return
+    if (!isAuthenticated || !id) return;
 
     try {
       if (isFavorite) {
-        await favoriteService.removeFavorite(parseInt(id))
+        await favoriteService.removeFavorite(parseInt(id));
       } else {
-        await favoriteService.addFavorite(parseInt(id))
+        await favoriteService.addFavorite(parseInt(id));
       }
-      setIsFavorite(!isFavorite)
+      setIsFavorite(!isFavorite);
     } catch (err) {
-      console.error('Error toggling favorite:', err)
+      console.error('Error toggling favorite:', err);
     }
-  }
+  };
 
   const getImageArray = (): VehicleImage[] => {
-    if (!vehicle) return []
+    if (!vehicle) return [];
 
     if (Array.isArray(vehicle.images)) {
-      return vehicle.images
+      return vehicle.images;
     } else if (
       typeof vehicle.images === 'object' &&
       vehicle.images !== null &&
       '$values' in vehicle.images
     ) {
-      const imagesWithValues = vehicle.images as { $values: VehicleImage[] }
-      return imagesWithValues.$values
+      const imagesWithValues = vehicle.images as { $values: VehicleImage[] };
+      return imagesWithValues.$values;
     }
-    return []
-  }
+    return [];
+  };
 
   const getImageUrl = (image: VehicleImage | undefined) => {
-    if (!image || !image.imageUrl) return ''
-    return `https://localhost:7001/${image.imageUrl.replace(/^\/+/, '')}`
-  }
+    if (!image || !image.imageUrl) return '';
+    return `https://localhost:7001/${image.imageUrl.replace(/^\/+/, '')}`;
+  };
 
   if (loading) {
     return (
@@ -162,7 +164,7 @@ const VehicleDetailPage = () => {
           <Typography>Loading vehicle details...</Typography>
         </Box>
       </Container>
-    )
+    );
   }
 
   if (error || !vehicle) {
@@ -189,10 +191,10 @@ const VehicleDetailPage = () => {
           </Button>
         </Paper>
       </Container>
-    )
+    );
   }
 
-  const imageArray = getImageArray()
+  const imageArray = getImageArray();
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -392,7 +394,7 @@ const VehicleDetailPage = () => {
         </Grid>
       </Grid>
     </Container>
-  )
-}
+  );
+};
 
-export default VehicleDetailPage
+export default VehicleDetailPage;
