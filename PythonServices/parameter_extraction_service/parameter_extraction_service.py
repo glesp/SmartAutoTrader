@@ -271,45 +271,16 @@ def is_car_related(query: str) -> bool:
     if not query:
         return False
     query_lower = query.lower()
+    
     # Combine keywords for better readability
     car_keywords = {
-        "car",
-        "vehicle",
-        "auto",
-        "automobile",
-        "sedan",
-        "suv",
-        "truck",
-        "hatchback",
-        "coupe",
-        "convertible",
-        "van",
-        "minivan",
-        "electric",
-        "hybrid",
-        "diesel",
-        "petrol",
-        "gasoline",
-        "make",
-        "model",
-        "year",
-        "price",
-        "mileage",
-        "engine",
-        "transmission",
-        "drive",
-        "buy",
-        "sell",
-        "lease",
-        "dealer",
-        "used",
-        "new",
-        "road tax",
-        "nct",
-        "insurance",
-        "mpg",
-        "kpl",  # Added context
+        "car", "vehicle", "auto", "automobile", "sedan", "suv", "truck",
+        "hatchback", "coupe", "convertible", "van", "minivan", "electric",
+        "hybrid", "diesel", "petrol", "gasoline", "make", "model", "year", 
+        "price", "mileage", "engine", "transmission", "drive", "buy", "sell",
+        "lease", "dealer", "used", "new", "road tax", "nct", "insurance", "mpg", "kpl"
     }
+    
     # Add common makes dynamically from the global list
     car_keywords.update(make.lower() for make in VALID_MANUFACTURERS)
 
@@ -317,27 +288,33 @@ def is_car_related(query: str) -> bool:
     if any(keyword in query_lower for keyword in car_keywords):
         return True
 
-    # Basic check for greetings or clearly unrelated questions
-    # Be careful not to exclude car-related questions like "what is an SUV"
-    off_topic_starts = ("hi", "hello", "how are you", "who is", "tell me a joke")
-    if query_lower.startswith(off_topic_starts):
+    # Enhanced off-topic detection - include more greetings
+    off_topic_starts = (
+        "hi", "hello", "how are you", "who is", "tell me a joke", 
+        "hey", "hey there", "yo", "sup", "what's up", "hiya", "howdy", 
+        "good morning", "good afternoon", "good evening"
+    )
+    
+    # Improved check: either starts with or equals one of these phrases
+    if query_lower.startswith(off_topic_starts) or query_lower in off_topic_starts:
         return False
+        
     # Check for questions that are unlikely car related unless containing keywords
     if query_lower.startswith(("what is", "what are", "where is")) and not any(
         kw in query_lower for kw in ["car", "vehicle", "suv", "sedan"]
     ):
         return False
 
-    # Consider very short queries potentially off-topic unless they are follow-ups
-    # (We don't have history here, so assume short non-keyword queries are off-topic)
-    if word_count_clean(query) < 2 and not any(
-        keyword in query_lower for keyword in car_keywords
-    ):
-        return False
+    # Consider very short queries potentially off-topic unless they meet certain conditions
+    if word_count_clean(query) < 2:
+        # Short query is only car-related if it contains specific car terminology
+        if not any(keyword in query_lower for keyword in car_keywords):
+            # Single make names like "BMW" or "Audi" should be considered car-related
+            if not any(make.lower() == query_lower for make in VALID_MANUFACTURERS):
+                return False
 
-    return (
-        True  # Default to assuming it might be car-related if not caught by above rules
-    )
+    # Default to assuming it might be car-related if not caught by above rules
+    return True
 
 
 def create_default_parameters(
@@ -544,79 +521,109 @@ def process_parameters(
 ) -> Dict[str, Any]:
     """
     Cleans and validates the structure of parameters extracted by the LLM.
-    Uses globally defined VALID_ lists.
+    Uses globally defined VALID_ lists for validation.
+    
+    Args:
+        params: Raw parameters from the LLM
+        
+    Returns:
+        Dict with validated and properly structured parameters
     """
-    result = create_default_parameters()  # Start with default structure
+    # Start with default structure to ensure all fields exist
+    result = create_default_parameters()  
 
-    # Overwrite with values from params if they exist and are valid types
-    # Numeric fields
-    for field in ["minPrice", "maxPrice"]:
-        if field in params and isinstance(params[field], (int, float)):
-            result[field] = float(params[field])  # Ensure float
-    for field in ["minYear", "maxYear", "maxMileage"]:
-        if field in params and isinstance(params[field], (int, float)):
-            result[field] = int(params[field])  # Ensure int
+    try:
+        # Handle numeric fields with proper type validation
+        for field in ["minPrice", "maxPrice"]:
+            if field in params and isinstance(params[field], (int, float)) and params[field] is not None:
+                # Ensure values are positive
+                if params[field] > 0:
+                    result[field] = float(params[field])
+                else:
+                    logger.warning(f"Invalid {field} value: {params[field]} (must be positive)")
+                    
+        for field in ["minYear", "maxYear", "maxMileage"]:
+            if field in params and isinstance(params[field], (int, float)) and params[field] is not None:
+                # Basic range validation
+                current_year = datetime.datetime.now().year
+                if field == "minYear" and params[field] > 1900 and params[field] <= current_year + 1:
+                    result[field] = int(params[field])
+                elif field == "maxYear" and params[field] > 1900 and params[field] <= current_year + 1:
+                    result[field] = int(params[field])
+                elif field == "maxMileage" and params[field] > 0:
+                    result[field] = int(params[field])
+                else:
+                    logger.warning(f"Invalid {field} value: {params[field]} (out of reasonable range)")
 
-    # Array fields with validation
-    if isinstance(params.get("preferredMakes"), list):
-        result["preferredMakes"] = [
-            m
-            for m in params["preferredMakes"]
-            if isinstance(m, str) and m in VALID_MANUFACTURERS  # Validate against list
-        ]
-    if isinstance(params.get("preferredFuelTypes"), list):
-        # Convert strings to enum values if needed by backend (or handle strings)
-        # Assuming backend expects strings matching VALID_FUEL_TYPES for now
-        result["preferredFuelTypes"] = [
-            f
-            for f in params["preferredFuelTypes"]
-            if isinstance(f, str) and f in VALID_FUEL_TYPES  # Validate against list
-        ]
-    if isinstance(params.get("preferredVehicleTypes"), list):
-        # Validate against VALID_VEHICLE_TYPES (includes aliases)
-        result["preferredVehicleTypes"] = [
-            v
-            for v in params["preferredVehicleTypes"]
-            if isinstance(v, str) and v in VALID_VEHICLE_TYPES  # Validate against list
-        ]
-    if isinstance(params.get("desiredFeatures"), list):
-        result["desiredFeatures"] = [
-            f
-            for f in params["desiredFeatures"]
-            if isinstance(f, str) and f  # Ensure non-empty strings
-        ]
-
-    # Boolean and string fields
-    if "isOffTopic" in params and isinstance(params["isOffTopic"], bool):
-        result["isOffTopic"] = params["isOffTopic"]
-    if (
-        result["isOffTopic"]
-        and "offTopicResponse" in params
-        and isinstance(params["offTopicResponse"], str)
-    ):
-        result["offTopicResponse"] = params["offTopicResponse"]
-    if "clarificationNeeded" in params and isinstance(
-        params["clarificationNeeded"], bool
-    ):
-        result["clarificationNeeded"] = params["clarificationNeeded"]
-    if "clarificationNeededFor" in params and isinstance(
-        params["clarificationNeededFor"], list
-    ):
-        result["clarificationNeededFor"] = [
-            str(item) for item in params["clarificationNeededFor"]
-        ]  # Ensure strings
-    if "retrieverSuggestion" in params and isinstance(
-        params["retrieverSuggestion"], str
-    ):
-        result["retrieverSuggestion"] = params["retrieverSuggestion"]
-    if "matchedCategory" in params and isinstance(params["matchedCategory"], str):
-        result["matchedCategory"] = params["matchedCategory"]
-    if "intent" in params and isinstance(params["intent"], str):
-        # Validate intent? For now, just convert to lowercase
-        result["intent"] = params["intent"].lower()
-    else:
-        result["intent"] = "new_query"  # Default if missing
-
+        # Handle array fields with validation against known valid values
+        if isinstance(params.get("preferredMakes"), list):
+            result["preferredMakes"] = [
+                m
+                for m in params["preferredMakes"]
+                if isinstance(m, str) and m in VALID_MANUFACTURERS  # Validate against list
+            ]
+            
+        if isinstance(params.get("preferredFuelTypes"), list):
+            result["preferredFuelTypes"] = [
+                f
+                for f in params["preferredFuelTypes"]
+                if isinstance(f, str) and f in VALID_FUEL_TYPES  # Validate against list
+            ]
+            
+        if isinstance(params.get("preferredVehicleTypes"), list):
+            result["preferredVehicleTypes"] = [
+                v
+                for v in params["preferredVehicleTypes"]
+                if isinstance(v, str) and v in VALID_VEHICLE_TYPES  # Validate against list
+            ]
+            
+        if isinstance(params.get("desiredFeatures"), list):
+            result["desiredFeatures"] = [
+                f
+                for f in params["desiredFeatures"]
+                if isinstance(f, str)  # Basic validation only (feature list is more open-ended)
+            ]
+            
+        # Handle boolean flags
+        if isinstance(params.get("isOffTopic"), bool):
+            result["isOffTopic"] = params["isOffTopic"]
+            
+        if isinstance(params.get("clarificationNeeded"), bool):
+            result["clarificationNeeded"] = params["clarificationNeeded"]
+            
+        # Handle string fields
+        if "offTopicResponse" in params and isinstance(params["offTopicResponse"], str):
+            result["offTopicResponse"] = params["offTopicResponse"]
+            
+        if "retrieverSuggestion" in params and isinstance(params["retrieverSuggestion"], str):
+            result["retrieverSuggestion"] = params["retrieverSuggestion"]
+            
+        if "matchedCategory" in params and isinstance(params["matchedCategory"], str):
+            result["matchedCategory"] = params["matchedCategory"]
+            
+        # Process intent with validation
+        if "intent" in params and isinstance(params["intent"], str):
+            valid_intents = ["new_query", "clarify", "refine_criteria", "add_criteria", "replace_criteria", "error", "off_topic"]
+            intent = params["intent"].lower()
+            if intent in valid_intents:
+                result["intent"] = intent
+            else:
+                logger.warning(f"Unknown intent '{intent}', defaulting to 'new_query'")
+                result["intent"] = "new_query"
+        else:
+            result["intent"] = "new_query"  # Default if missing
+            
+        # Process clarificationNeededFor as array of strings
+        if isinstance(params.get("clarificationNeededFor"), list):
+            result["clarificationNeededFor"] = [
+                item for item in params["clarificationNeededFor"] 
+                if isinstance(item, str)
+            ]
+        
+    except Exception as e:
+        logger.exception(f"Error during parameter processing: {e}")
+        # We return the default result if processing fails
+            
     return result
 
 
@@ -682,48 +689,112 @@ def build_enhanced_system_prompt(
     valid_makes: List[str],
     valid_fuels: List[str],
     valid_vehicles: List[str],
+    confirmed_context: Optional[Dict] = None,
+    rejected_context: Optional[Dict] = None,
 ) -> str:
-    """Builds an enhanced system prompt including history, context, and more complex intent logic."""
+    """
+    Builds an enhanced system prompt including history, context, and more complex intent logic.
+    Includes explicit handling of confirmed and rejected preferences.
+    """
+    # Format conversation history
     history_context = ""
     if conversation_history:
-        history_context = "Recent conversation history (User/Assistant):\n"
+        history_context = "## RECENT CONVERSATION HISTORY:\n"
         # Format the last few turns
-        for turn in conversation_history[-3:]:  # Limit context window
-            # Adjust based on actual history format if needed
-            role = (
-                "User" if turn.get("role") == "user" or "user" in turn else "Assistant"
-            )
+        for turn in conversation_history[-3:]:  # Limit context window 
+            role = "User" if turn.get("role") == "user" or "user" in turn else "Assistant"
             content = turn.get("content") or turn.get("user") or turn.get("ai", "")
             history_context += f"{role}: {content}\n"
         history_context += "---\n"
 
+    # Format category context if provided
     category_context = ""
     if matched_category:
         category_context = (
-            "Context Suggestion: The user might be interested in "
-            f"'{matched_category}' based on earlier analysis.\n"
+            "## SUGGESTED CATEGORY:\n"
+            f"The user might be interested in '{matched_category}' based on earlier analysis.\n"
+            "---\n"
         )
+
+    # Format rejected context with strong emphasis
+    rejected_context_str = ""
+    if rejected_context and any(rejected_context.values()):
+        rejected_makes = rejected_context.get("rejectedMakes", [])
+        rejected_types = rejected_context.get("rejectedVehicleTypes", [])
+        rejected_fuels = rejected_context.get("rejectedFuelTypes", [])
+        rejected_features = rejected_context.get("rejectedFeatures", [])
+
+        if rejected_makes or rejected_types or rejected_fuels or rejected_features:
+            rejected_context_str = "## USER HAS EXPLICITLY REJECTED (CRITICAL):\n"
+
+            if rejected_makes:
+                rejected_context_str += f"- Rejected Makes: {json.dumps(rejected_makes)}\n"
+            if rejected_types:
+                rejected_context_str += f"- Rejected Vehicle Types: {json.dumps(rejected_types)}\n"
+            if rejected_fuels:
+                rejected_context_str += f"- Rejected Fuel Types: {json.dumps(rejected_fuels)}\n"
+            if rejected_features:
+                rejected_context_str += f"- Rejected Features: {json.dumps(rejected_features)}\n"
+
+            rejected_context_str += "\n⚠️ IMPORTANT: You MUST NOT include any of these in your extracted parameters!\n---\n"
+
+    # Format confirmed context with clear structure
+    confirmed_context_str = ""
+    if confirmed_context and any(confirmed_context.values()):
+        confirmed_context_str = "## CURRENT CONFIRMED CRITERIA:\n"
+
+        # Format confirmed context for clarity
+        if confirmed_context.get("confirmedMakes"):
+            confirmed_context_str += f"- Confirmed Makes: {json.dumps(confirmed_context.get('confirmedMakes', []))}\n"
+        if confirmed_context.get("confirmedVehicleTypes"):
+            confirmed_context_str += f"- Confirmed Vehicle Types: {json.dumps(confirmed_context.get('confirmedVehicleTypes', []))}\n"
+        if confirmed_context.get("confirmedFuelTypes"):
+            confirmed_context_str += f"- Confirmed Fuel Types: {json.dumps(confirmed_context.get('confirmedFuelTypes', []))}\n"
+        if confirmed_context.get("confirmedFeatures"):
+            confirmed_context_str += f"- Confirmed Features: {json.dumps(confirmed_context.get('confirmedFeatures', []))}\n"
+
+        # Add price/year/mileage info if available
+        price_info = []
+        if confirmed_context.get("confirmedMinPrice"):
+            price_info.append(f"Min: {confirmed_context['confirmedMinPrice']}")
+        if confirmed_context.get("confirmedMaxPrice"):
+            price_info.append(f"Max: {confirmed_context['confirmedMaxPrice']}")
+        if price_info:
+            confirmed_context_str += f"- Price Range: {', '.join(price_info)}\n"
+
+        year_info = []
+        if confirmed_context.get("confirmedMinYear"):
+            year_info.append(f"Min: {confirmed_context['confirmedMinYear']}")
+        if confirmed_context.get("confirmedMaxYear"):
+            year_info.append(f"Max: {confirmed_context['confirmedMaxYear']}")
+        if year_info:
+            confirmed_context_str += f"- Year Range: {', '.join(year_info)}\n"
+
+        if confirmed_context.get("confirmedMaxMileage"):
+            confirmed_context_str += f"- Max Mileage: {confirmed_context['confirmedMaxMileage']}\n"
+
+        confirmed_context_str += "---\n"
 
     current_year = datetime.datetime.now().year
     default_json_keys = create_default_parameters().keys()
     json_format_example = json.dumps(create_default_parameters(), indent=2)
 
-    # NOTE: This prompt is complex. Ensure the LLM can handle it.
     return f"""
 You are an advanced automotive parameter extraction assistant for Smart Auto Trader.
 Analyze the latest user query in the context of the conversation history.
-Extract search parameters EXPLICITLY mentioned
-in the LATEST user query, but use history to understand context and determine INTENT.
-YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT
-containing the following keys: {list(default_json_keys)}.
+Extract search parameters EXPLICITLY mentioned in the LATEST user query, but use history to understand context and determine INTENT.
+
+YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT containing the following keys: {list(default_json_keys)}.
 Use this exact format, filling values based on the LATEST query and context:
 {json_format_example}
 
 {history_context}
 {category_context}
+{confirmed_context_str}
+{rejected_context_str}
 Latest User Query: "{user_query}"
 
-RULES:
+## CORE EXTRACTION RULES:
 - Focus on the LATEST user query for explicit parameters.
 - Use conversation history PRIMARILY to determine the 'intent'.
 - Numeric values MUST be numbers (int or float), not strings. Use null if not mentioned in the latest query.
@@ -734,17 +805,26 @@ RULES:
 - clarificationNeeded: Set to true if the LATEST query is vague and requires more information
   (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor (e.g., ["budget", "type"]).
 
-# --- ADD/ENSURE THIS RULE EXISTS ---
-- **CONTEXTUAL INTERPRETATION:** Pay close attention to the IMMEDIATELY PRECEDING Assistant message in the history.
-    - If the Assistant asked a question (e.g., "What's your budget?", "Which year?", "Max mileage?"),
-      interpret the LATEST user query as the answer to that question.
-    - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000'
-      or '€50k' in the user's reply as `{{"maxPrice": 50000.0}}` (or minPrice/etc. based on phrasing
-      like 'over'/'under'). If the assistant asked for mileage, interpret it as `{{"maxMileage": 50000}}`.
-      Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
-# --- END RULE ---
+## NEGATION HANDLING (CRITICAL RULES):
+- If the user says "no [make]", "not [make]", "don't want [make]", or any similar negation, DO NOT include that make in preferredMakes.
+- CRITICAL: Check the Rejected Options list above. NEVER include any make, vehicle type, or fuel type from that list in your response.
+- For negations in the latest query like "No Hyundai" or "I don't want electric", respect these by OMITTING them from the parameters.
+- If the user says "everything except [make]", include all valid makes EXCEPT the negated one.
+- If the user negates something previously mentioned, REMOVE it from your response.
+- If the user is changing their mind about a previously rejected option (e.g., "Actually I want a Hyundai after all"), then it's okay to include it.
 
-# Explain change: Added priority note for intent determination.
+## CONTEXTUAL INTERPRETATION (CRITICAL RULES):
+- Pay close attention to the IMMEDIATELY PRECEDING Assistant message in the history.
+  - If the Assistant asked a question (e.g., "What's your budget?", "Which year?", "Max mileage?"),
+    interpret the LATEST user query as the answer to that question.
+  - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000'
+    or '€50k' in the user's reply as {{"maxPrice": 50000.0}} (or minPrice/etc. based on phrasing
+    like 'over'/'under'). If the assistant asked for mileage, interpret it as {{"maxMileage": 50000}}.
+    Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
+  - Simple phrases like "about 5 years old" or "newer than 2018" should be properly interpreted as year criteria.
+  - Look for natural language in answers: "I'm thinking around 20 grand" → {{"maxPrice": 20000.0}}, etc.
+
+## INTENT DETERMINATION (CRITICAL):
 - **INTENT PRIORITY:** Determining the correct 'intent' is critical.
   Pay close attention to the 'clarify' intent rule below.
 
@@ -760,18 +840,18 @@ RULES:
       (e.g., Assistant asked for budget, User provides ONLY a number like '25000'
       or a price phrase like 'under 20k'). DO NOT use 'new_query' in this case.
 
-PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR contextually interpreted):
-- "under X" / "less than X" ->
-  maxPrice/maxYear/maxMileage = X, min = null
-- "over X" / "more than X" -> minPrice/minYear = X, max = null
-- "between X and Y" -> min = X, max = Y
-- "around X" (for price) -> minPrice = 0.8*X, maxPrice = 1.2*X
-- "low miles" -> maxMileage = 30000
-- "new" / "recent" -> minYear = {current_year - 2}
-- "brand new" -> minYear = {current_year}
-- "older" / "used" (vague) -> maxYear = {current_year - 4}
+## PARAMETER HANDLING RULES:
+- PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR contextually interpreted):
+- "under X" / "less than X" → maxPrice/maxYear/maxMileage = X, min = null
+- "over X" / "more than X" → minPrice/minYear = X, max = null
+- "between X and Y" → min = X, max = Y
+- "around X" (for price) → minPrice = 0.8*X, maxPrice = 1.2*X
+- "low miles" → maxMileage = 30000
+- "new" / "recent" → minYear = {current_year - 2}
+- "brand new" → minYear = {current_year}
+- "older" / "used" (vague) → maxYear = {current_year - 4}
 
-VALID VALUES:
+## VALID VALUES:
 - Valid Makes:
   {json.dumps(valid_makes)}
 - Valid Fuel Types:
@@ -779,33 +859,38 @@ VALID VALUES:
 - Valid Vehicle Types (includes aliases):
   {json.dumps(valid_vehicles)}
 
-EXAMPLE (Focus on LATEST query + history for intent):
-# Explain change: Added more examples demonstrating the 'clarify' intent for different types of answers.
-# --- ENSURE/ADD THESE EXAMPLES ---
+## EXAMPLES (Focus on LATEST query + history for intent):
+# --- CLARIFICATION ANSWER EXAMPLES ---
 History: Assistant: What's your budget?
 Latest User Query: "Under €20000"
 Output: {{..., "maxPrice": 20000.0, "intent": "clarify", ...}}
 
 History: Assistant: What year are you looking for?
 Latest User Query: "2021"
-Output: {{..., "minYear": 2021, "intent": "clarify", ...}}
+Output: {{..., "minYear": 2021, "maxYear": 2021, "intent": "clarify", ...}}
 
 History: Assistant: What's the maximum mileage you'd consider?
 Latest User Query: "50000"
 Output: {{..., "maxMileage": 50000, "intent": "clarify", ...}}
+
 History: Assistant: What fuel type do you prefer?
 Latest User Query: "Petrol"
 Output: {{..., "preferredFuelTypes": ["Petrol"], "intent": "clarify", ...}}
+
 History: Assistant: Any preferred makes?
 Latest User Query: "Toyota please"
 Output: {{..., "preferredMakes": ["Toyota"], "intent": "clarify", ...}}
-# --- END EXAMPLES ---
 
-History: User: looking for suv / Assistant: Found 5 SUVs...
+# --- NEGATION EXAMPLES ---
+History: User: I need an SUV under 50k, 2020 or newer / Assistant: Okay...
+Latest User Query: "same but no Hyundai"
+Output: {{..., "preferredMakes": [], "minYear": 2020, "maxPrice": 50000.0, "preferredVehicleTypes": ["SUV"], "intent": "refine_criteria", ...}}  # Note: Hyundai explicitly NOT included
+
+History: User: looking for SUV / Assistant: Found 5 SUVs...
 Latest User Query: "Show me sedans instead"
 Output: {{..., "preferredVehicleTypes": ["Sedan", "Saloon"], "intent": "replace_criteria", ...}}
 
-History: User: looking for suv / Assistant: Found 5 SUVs...
+History: User: looking for SUV / Assistant: Found 5 SUVs...
 Latest User Query: "also make it hybrid"
 Output: {{..., "preferredFuelTypes": ["Hybrid"], "intent": "add_criteria", ...}}
 
@@ -818,6 +903,8 @@ def run_llm_with_history(
     conversation_history: List[Dict[str, str]],
     matched_category: Optional[str] = None,
     force_model: Optional[str] = None,
+    confirmed_context: Optional[Dict] = None,
+    rejected_context: Optional[Dict] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Main function to run LLM extraction, potentially trying multiple models.
@@ -847,7 +934,7 @@ def run_llm_with_history(
             FAST_MODEL
         ]  # Default to only the fast model if no valid strategy
 
-    # Build the appropriate system prompt
+    # Build the appropriate system prompt, now with context
     system_prompt = build_enhanced_system_prompt(
         user_query,
         conversation_history,
@@ -855,6 +942,8 @@ def run_llm_with_history(
         VALID_MANUFACTURERS,
         VALID_FUEL_TYPES,
         VALID_VEHICLE_TYPES,
+        confirmed_context,
+        rejected_context,
     )
 
     # Try models in order
@@ -902,8 +991,9 @@ with app.app_context():
 @app.route("/extract_parameters", methods=["POST"])
 def extract_parameters():
     """
-    Main endpoint for parameter extraction. Uses zero-shot intent classification
-    to route between RAG and LLM.
+    Main endpoint for parameter extraction with improved routing logic.
+    Uses intent classification, conversation context, and special conditions
+    to determine the best processing path.
     """
     try:
         start_time = datetime.datetime.now()
@@ -917,6 +1007,22 @@ def extract_parameters():
         user_query = data["query"]
         force_model = data.get("forceModel")  # Model strategy from backend
         conversation_history = data.get("conversationHistory", [])
+        
+        # Safely retrieve context information
+        confirmed_context = data.get("confirmedContext", {})
+        rejected_context = data.get("rejectedContext", {})
+        
+        # Extract specific rejection lists for easier access
+        rejected_makes = rejected_context.get("rejectedMakes", [])
+        rejected_types = rejected_context.get("rejectedVehicleTypes", [])
+        rejected_fuels = rejected_context.get("rejectedFuelTypes", [])
+
+        # Enhanced logging for context
+        if rejected_makes or rejected_types or rejected_fuels:
+            logger.info(f"Rejected context: makes={rejected_makes}, types={rejected_types}, fuels={rejected_fuels}")
+        
+        if confirmed_context and any(confirmed_context.values()):
+            logger.info(f"Confirmed context present with {len(confirmed_context)} items")
 
         logger.info(
             "Processing query: %s (forceModel=%s) with %d history items",
@@ -928,7 +1034,6 @@ def extract_parameters():
         # 1) Quick check for off-topic
         if not is_car_related(user_query):
             logger.info("Query classified as off-topic.")
-            # Return structured default response for off-topic
             return (
                 jsonify(
                     create_default_parameters(
@@ -945,7 +1050,7 @@ def extract_parameters():
         try:
             query_embedding = get_query_embedding(user_query)
             if query_embedding is not None:
-                # Adjusted threshold based on testing, might need further tuning
+                # Adjusted threshold based on testing
                 intent_result = classify_intent_zero_shot(
                     query_embedding, threshold=0.35
                 )
@@ -956,8 +1061,7 @@ def extract_parameters():
                         "Intent classification score below threshold, using fallback logic."
                     )
                     # Fallback logic is now inside classify_intent_zero_shot
-                    # If it returns None, we default below
-                    if intent_result is None:  # Explicitly check if fallback failed
+                    if intent_result is None:
                         classified_intent = "SPECIFIC_SEARCH"  # Safe default
             else:
                 logger.error(
@@ -967,187 +1071,444 @@ def extract_parameters():
             logger.error(
                 f"Error during embedding or classification: {e}", exc_info=True
             )
-            # Fallback safely if classification fails
-            classified_intent = "SPECIFIC_SEARCH"
+            classified_intent = "SPECIFIC_SEARCH"  # Fallback safely
 
-        # 3) Routing based on Intent
-        final_response = None
-        query_fragment = extract_newest_user_fragment(
-            user_query
-        )  # Use for RAG and checks
+        # 3) Extract newest query fragment for processing
+        query_fragment = extract_newest_user_fragment(user_query)
+        lower_query_fragment = query_fragment.lower()
 
-        if classified_intent == "VAGUE_INQUIRY":
-            logger.info(
-                "Intent initially classified as VAGUE_INQUIRY. Checking history for clarification context..."
-            )
+        # 4) Initialize routing condition flags
+        is_clarification_answer = False
+        contains_override = False
+        mentions_rejected = False
 
-            # --- New Logic: Check if this is likely an answer to a clarification question ---
-            is_clarification_answer = False
-            if conversation_history:
-                try:
-                    last_turn = conversation_history[-1]
-                    # Assuming 'ai' role for assistant, adjust if needed
-                    if last_turn.get("ai"):
-                        last_ai_message = last_turn["ai"].lower()
-                        # Check if last AI message was likely a question
-                        is_question = "?" in last_ai_message or any(
-                            q_word in last_ai_message
-                            for q_word in [
-                                "what",
-                                "which",
-                                "how",
-                                "budget",
-                                "price",
-                                "year",
-                                "make",
-                                "type",
-                                "mileage",
-                            ]
+        # 5) Enhanced check for override keywords
+        override_keywords = [
+            # Core negation words with spacing to avoid false matches
+            "not ", " no ", " no.", "don't ", "dont ", "doesn't ", "doesnt ", "won't ", "wont ", "can't ", "cant ",
+            # More specific negation patterns for rejecting brands/types
+            "don't want", "dont want", "no more", "not interested in", "not looking for",
+            # Preference change indicators
+            "nevermind", "never mind", "actually", "instead", "rather", "prefer", "change", 
+            "update", "modify", "switch", "different", "other than", "replace",
+            # Exclusion words
+            "except", "excluding", "without", "but not", "avoid", "remove", "skip", "exclude",
+            # Emphasis on specific preference
+            "only", "just", "specifically", "exclusively", "must be", "has to be",
+            # Change of mind phrases
+            "changed my mind", "thinking again", "on second thought", "actually i want", 
+            "i meant", "i said", "forget", "ignore",
+            # Additional negation phrases
+            "anything but", "anything except", "don't need", "dont need", "not interested in",
+            "not looking for", "apart from", "besides", "other than", "something else",
+            # Toyota-specific patterns from the example
+            "not toyota", "no toyota", "dont toyota", "don't toyota", "except toyota", "but toyota"
+        ]
+
+        # Simplified and reliable substring check - easier to debug and more dependable
+        contains_override = any(keyword in lower_query_fragment for keyword in override_keywords)
+
+        # Direct substring check for very specific example to ensure reliability
+        if "dont want a toyota" in lower_query_fragment:
+            contains_override = True
+
+        # Log the result with the full query fragment for easier debugging
+        logger.info(f"Override check result: {contains_override} for query fragment: '{lower_query_fragment}'")
+
+        # Check for brand-specific negation patterns (as a fallback for cases the keyword list might miss)
+        if not contains_override:
+            # Pattern for "don't/dont want [brand]"
+            dont_want_pattern = re.compile(r"don'?t\s+want\s+[a-z]+", re.IGNORECASE)
+            # Pattern for "no [brand]" where brand is a word
+            no_brand_pattern = re.compile(r"no\s+[a-z]+\b", re.IGNORECASE)
+            # Pattern for "not [brand]" where brand is a word
+            not_brand_pattern = re.compile(r"not\s+[a-z]+\b", re.IGNORECASE)
+            
+            if (dont_want_pattern.search(lower_query_fragment) or 
+                no_brand_pattern.search(lower_query_fragment) or
+                not_brand_pattern.search(lower_query_fragment)):
+                contains_override = True
+                logger.info(f"Negation pattern for brand detected in: '{lower_query_fragment}'")
+
+        # Final log after all checks
+        logger.info(f"Final override check result: {contains_override} for query fragment: '{lower_query_fragment}'")
+
+        # 6) Enhanced check if query mentions any rejected items
+        if rejected_makes or rejected_types or rejected_fuels:
+            # Check all rejection lists - use full word boundaries when possible
+            mentions_rejected = False
+            all_rejected = rejected_makes + rejected_types + rejected_fuels
+            
+            for item in all_rejected:
+                item_lower = item.lower()
+                # Look for whole word matches when possible
+                if re.search(r'\b' + re.escape(item_lower) + r'\b', lower_query_fragment):
+                    mentions_rejected = True
+                    break
+                # For partial matches, be more cautious
+                elif item_lower in lower_query_fragment and len(item_lower) > 3:
+                    mentions_rejected = True
+                    break
+            
+            logger.info(f"Rejected items check result: {mentions_rejected}")
+
+        # 7) Sophisticated check for clarification answers
+        if conversation_history:
+            try:
+                last_turn = conversation_history[-1]
+                
+                # Try to get assistant's last message
+                last_ai_message = ""
+                if last_turn.get("ai"):
+                    last_ai_message = last_turn["ai"].lower()
+                elif last_turn.get("role") == "assistant" and last_turn.get("content"):
+                    last_ai_message = last_turn["content"].lower()
+                
+                if last_ai_message:
+                    # Enhanced detection of questions in the last AI message
+                    is_question = (
+                        "?" in last_ai_message or 
+                        any(q_word in last_ai_message for q_word in [
+                            "what", "which", "how", "would you", "do you", "could you", "are you",
+                            "budget", "price", "year", "make", "type", "mileage", "consider",
+                            "looking for", "preferred", "want", "like", "interested in"
+                        ])
+                    )
+
+                    if is_question:
+                        logger.info("Detected potential question in last AI message")
+                        
+                        # Is the input short enough to likely be an answer?
+                        word_count = word_count_clean(query_fragment)
+                        is_short_answer = word_count < 10  # Slightly increased to catch natural answers
+                        
+                        # Identify question type for context-specific matching
+                        is_budget_question = any(
+                            budget_term in last_ai_message for budget_term in 
+                            ["budget", "price", "afford", "cost", "spend", "money", "how much", "pay", "value", "worth"]
+                        )
+                        
+                        is_year_question = any(
+                            year_term in last_ai_message for year_term in 
+                            ["year", "old", "new", "age", "recent", "modern", "how old", "when", "latest", "vintage"]
+                        )
+                        
+                        is_make_question = any(
+                            make_term in last_ai_message for make_term in 
+                            ["make", "brand", "manufacturer", "company", "which car", "preferred make", "what brand"]
+                        )
+                        
+                        is_type_question = any(
+                            type_term in last_ai_message for type_term in 
+                            ["type", "style", "body", "suv", "sedan", "vehicle type", "what kind", "model", "category"]
+                        )
+                        
+                        is_fuel_question = any(
+                            fuel_term in last_ai_message for fuel_term in 
+                            ["fuel", "petrol", "diesel", "electric", "hybrid", "power", "engine"]
+                        )
+                        
+                        is_mileage_question = any(
+                            mileage_term in last_ai_message for mileage_term in 
+                            ["mileage", "kilometers", "miles", "km", "odometer", "distance", "driven"]
+                        )
+                        
+                        is_general_question = any(
+                            general_term in last_ai_message for general_term in 
+                            ["tell me more", "details", "specify", "looking for", "interested in", "help you find"]
                         )
 
-                        if is_question:
-                            # Check if the user's current query fragment is short and looks like an answer
-                            word_count = word_count_clean(query_fragment)
-                            is_short_answer = (
-                                word_count < 6
-                            )  # Adjust threshold as needed
-                            # Check for numbers, simple keywords, or common answer patterns
-                            looks_like_answer = (
-                                re.search(r"\d", query_fragment)  # Contains numbers
-                                or any(
-                                    ans_word in query_fragment.lower()
-                                    for ans_word in [
-                                        "yes",
-                                        "no",
-                                        "petrol",
-                                        "diesel",
-                                        "electric",
-                                        "hybrid",
-                                        "under",
-                                        "over",
-                                        "between",
-                                        "around",
-                                    ]
-                                )
-                                or query_fragment.lower()
-                                in VALID_MANUFACTURERS  # Is just a make
-                                or query_fragment.lower()
-                                in VALID_FUEL_TYPES  # Is just a fuel type
-                                or query_fragment.lower()
-                                in VALID_VEHICLE_TYPES  # Is just a vehicle type
-                            )
-
-                            if is_short_answer and looks_like_answer:
-                                logger.info(
-                                    "Detected likely clarification answer to previous question. "
-                                    "Re-routing to LLM (SPECIFIC_SEARCH path)."
-                                )
+                        # Check for context-specific answer patterns
+                        
+                        # 1. Budget/Price context-specific detection
+                        if is_budget_question:
+                            logger.info("AI asked about budget/price")
+                            # Look for numbers with currency symbols/terms
+                            currency_pattern = re.compile(r'[€$£]?\s*\d+[k.]?\d*|\d+[k.]?\d*\s*[€$£]')
+                            price_keywords = ["under", "over", "around", "between", "less than", "more than", "maximum", 
+                                             "budget", "afford", "spend", "cheap", "expensive", "grand", "k", "thousand"]
+                            
+                            has_currency_match = bool(currency_pattern.search(lower_query_fragment))
+                            has_price_keywords = any(word in lower_query_fragment for word in price_keywords)
+                            
+                            if has_currency_match or has_price_keywords:
                                 is_clarification_answer = True
-                                classified_intent = (
-                                    "SPECIFIC_SEARCH"  # Override intent to use LLM path
-                                )
-                except IndexError:
-                    logger.warning(
-                        "Could not access last turn in conversation history."
-                    )
-                except Exception as hist_ex:
-                    logger.error(
-                        f"Error checking conversation history for clarification context: {hist_ex}",
-                        exc_info=True,
-                    )
-            # --- End New Logic ---
+                                logger.info("MATCH: Budget/price clarification answer detected (currency or price keywords)")
+                            # Additional check for just numbers in a budget context
+                            elif re.search(r'\b\d{4,6}\b', lower_query_fragment):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Budget clarification answer detected (number range typical for price)")
+                        
+                        # 2. Year context-specific detection
+                        elif is_year_question:
+                            logger.info("AI asked about year")
+                            # Check for 4-digit years or year-related words
+                            year_pattern = re.compile(r'\b(19|20)\d{2}\b')  # years like 1990-2099
+                            year_keywords = ["new", "recent", "old", "older", "newer", "latest", "young", "fresh", 
+                                            "vintage", "classic", "year", "modern", "decade", "current"]
+                            relative_year_pattern = re.compile(r'\b\d{1,2}\s*years?\s*(old|ago|new)')
+                            
+                            has_year_match = bool(year_pattern.search(lower_query_fragment))
+                            has_relative_year = bool(relative_year_pattern.search(lower_query_fragment))
+                            has_year_keywords = any(word in lower_query_fragment.split() for word in year_keywords)
+                            
+                            if has_year_match or has_relative_year or has_year_keywords:
+                                is_clarification_answer = True
+                                logger.info("MATCH: Year clarification answer detected")
+                        
+                        # 3. Make/Brand context-specific detection  
+                        elif is_make_question:
+                            logger.info("AI asked about vehicle make/brand")
+                            # Check if response predominantly contains valid manufacturers
+                            content_words = set(re.findall(r'\b\w+\b', lower_query_fragment))
+                            filler_words = {"a", "the", "and", "or", "maybe", "possibly", "prefer", "like", "want", 
+                                           "would", "either", "both", "all", "none", "not", "also", "i", "my", "me", 
+                                           "please", "thanks", "you", "looking", "for", "something", "by"}
+                            
+                            # Remove filler words for analysis
+                            content_words = content_words - filler_words
+                            
+                            # Check if any of the content words match manufacturers
+                            valid_makes_lower = [make.lower() for make in VALID_MANUFACTURERS]
+                            matches = [word for word in content_words if word in valid_makes_lower or 
+                                      any(make.lower() in word for make in valid_makes_lower)]
+                            
+                            if matches:
+                                is_clarification_answer = True
+                                logger.info(f"MATCH: Make clarification answer detected with {matches}")
+                            
+                            # Also check for answers like "no preference" or "any make is fine"
+                            any_make_patterns = ["any", "doesn't matter", "don't care", "not important", "whatever", "no preference"]
+                            if any(pattern in lower_query_fragment for pattern in any_make_patterns):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Make clarification with 'any make' pattern detected")
+                        
+                        # 4. Vehicle Type context-specific detection
+                        elif is_type_question:
+                            logger.info("AI asked about vehicle type")
+                            # Check if response predominantly contains valid vehicle types
+                            valid_types_lower = [vtype.lower() for vtype in VALID_VEHICLE_TYPES]
+                            
+                            # Look for matching vehicle types in the response
+                            matches = []
+                            for vtype in valid_types_lower:
+                                if vtype in lower_query_fragment:
+                                    matches.append(vtype)
+                            
+                            if matches:
+                                is_clarification_answer = True
+                                logger.info(f"MATCH: Vehicle type clarification answer detected with {matches}")
+                            
+                            # Check for common vehicle categories not explicitly in the list
+                            extra_categories = ["family car", "city car", "small car", "big car", "sport car", 
+                                              "luxury", "compact", "spacious", "large", "4x4", "off-road"]
+                            if any(category in lower_query_fragment for category in extra_categories):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Vehicle type clarification with category description detected")
+                                
+                        # 5. Fuel Type context-specific detection
+                        elif is_fuel_question:
+                            logger.info("AI asked about fuel type")
+                            valid_fuels_lower = [fuel.lower() for fuel in VALID_FUEL_TYPES]
+                            
+                            # Look for matching fuel types in the response
+                            matches = []
+                            for fuel in valid_fuels_lower:
+                                if fuel in lower_query_fragment:
+                                    matches.append(fuel)
+                            
+                            if matches:
+                                is_clarification_answer = True
+                                logger.info(f"MATCH: Fuel type clarification answer detected with {matches}")
+                                
+                            # Check for related fuel descriptions
+                            fuel_descriptions = ["gas", "gasoline", "unleaded", "plug-in", "ev", "ice", 
+                                               "combustion", "phev", "alternative", "clean", "green"]
+                            if any(desc in lower_query_fragment for desc in fuel_descriptions):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Fuel type clarification with description detected")
+                        
+                        # 6. Mileage context-specific detection
+                        elif is_mileage_question:
+                            logger.info("AI asked about mileage")
+                            # Look for numbers with distance units
+                            mileage_pattern = re.compile(r'\b\d+[k.]?\d*\s*(km|kilometers|miles|mi|k)\b|\b(km|kilometers|miles|mi)\s*\d+[k.]?\d*\b')
+                            mileage_keywords = ["low", "high", "maximum", "under", "below", "less than", "more than",
+                                               "over", "mileage", "odometer", "driven", "kilometers", "miles", "km"]
+                            
+                            has_mileage_match = bool(mileage_pattern.search(lower_query_fragment))
+                            has_mileage_keywords = any(word in lower_query_fragment for word in mileage_keywords)
+                            
+                            # Check for just numbers that could be mileage
+                            has_likely_mileage_number = bool(re.search(r'\b\d{4,6}\b', lower_query_fragment))
+                            
+                            if has_mileage_match or (has_mileage_keywords and has_likely_mileage_number):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Mileage clarification answer detected")
+                        
+                        # 7. General question context - stricter detection requiring multiple parameter types
+                        elif is_general_question and is_short_answer:
+                            logger.info("AI asked general question about vehicle preferences")
+                            
+                            # Count how many different parameter types the response contains
+                            param_count = 0
+                            
+                            # Check for price info
+                            if re.search(r'[€$£]?\s*\d+[k.]?\d*|\d+[k.]?\d*\s*[€$£]', lower_query_fragment):
+                                param_count += 1
+                            
+                            # Check for year info
+                            if re.search(r'\b(19|20)\d{2}\b', lower_query_fragment):
+                                param_count += 1
+                            
+                            # Check for make info
+                            if any(make.lower() in lower_query_fragment for make in VALID_MANUFACTURERS):
+                                param_count += 1
+                            
+                            # Check for vehicle type info
+                            if any(vtype.lower() in lower_query_fragment for vtype in VALID_VEHICLE_TYPES):
+                                param_count += 1
+                            
+                            # Check for fuel type info
+                            if any(fuel.lower() in lower_query_fragment for fuel in VALID_FUEL_TYPES):
+                                param_count += 1
+                            
+                            # Only consider it a clarification if multiple parameters are provided
+                            if param_count >= 2:
+                                is_clarification_answer = True
+                                logger.info(f"MATCH: General clarification with multiple ({param_count}) parameter types detected")
+                        
+                        # 8. Fallback for simple direct answers to other questions
+                        elif is_short_answer and word_count <= 3:
+                            logger.info("Checking for very short direct answer")
+                            # Only consider very short responses that look like direct answers
+                            
+                            # Direct yes/no answers
+                            if re.match(r'^(yes|no|yeah|nope|not really|sure|ok|okay)$', lower_query_fragment.strip()):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Direct yes/no answer detected")
+                            
+                            # Single-word or very short answers that look like direct responses
+                            elif (any(fuel.lower() == lower_query_fragment.strip() for fuel in VALID_FUEL_TYPES) or
+                                  any(make.lower() == lower_query_fragment.strip() for make in VALID_MANUFACTURERS) or
+                                  any(vtype.lower() == lower_query_fragment.strip() for vtype in VALID_VEHICLE_TYPES)):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Single-word exact match to valid option detected")
+                            
+                            # Just a number with optional units/symbols
+                            elif re.match(r'^[\d€$£\.k,]+(?:\s*(?:km|miles|years|k|thousand))?$', lower_query_fragment.strip()):
+                                is_clarification_answer = True
+                                logger.info("MATCH: Just a number or value detected as direct answer")
 
-            # Only proceed with RAG if it wasn't identified as a clarification answer
-            if not is_clarification_answer:
-                logger.info("Proceeding with RAG for VAGUE_INQUIRY.")
-                try:
-                    match_cat, score = find_best_match(query_fragment)
-                    logger.info(
-                        f"RAG result: Category='{match_cat}', Score={score:.2f}"
-                    )
+                    # Log the final determination
+                    if is_clarification_answer:
+                        logger.info(f"Final determination: This IS a clarification answer (length={word_count})")
+                    else:
+                        logger.info(f"Final determination: This is NOT a clarification answer")
+                        
+            except Exception as hist_ex:
+                logger.error(
+                    f"Error checking conversation history for clarification context: {hist_ex}",
+                    exc_info=True,
+                )
+                
+        logger.info(f"Clarification answer check result: {is_clarification_answer}")
 
-                    if score < 0.6:  # Threshold for weak RAG match
-                        logger.info(
-                            "RAG score too low. Requesting general clarification."
-                        )
-                        final_response = create_default_parameters(
-                            intent="clarify",
-                            clarification_needed=True,
-                            clarification_needed_for=["details"],
-                            retriever_suggestion=(
-                                "Could you provide more specific details about the "
-                                "type of vehicle you need?"
-                            ),
-                        )
-                    else:  # Medium/High RAG score >= 0.6
-                        logger.info(
-                            "RAG score sufficient. Requesting specific clarification "
-                            "based on matched category."
-                        )
-                        final_response = create_default_parameters(
-                            intent="clarify",
-                            clarification_needed=True,
-                            clarification_needed_for=[
-                                "budget",
-                                "year",
-                                "make",
-                            ],  # Suggest common next questions
-                            matched_category=match_cat,
-                            retriever_suggestion=(
-                                f"Okay, thinking about {match_cat}s. What's your "
-                                f"budget or preferred year range?"
-                            ),
-                        )
-                except Exception as e:
-                    logger.error(f"Error during RAG processing: {e}", exc_info=True)
-                    # Fallback if RAG fails: treat as specific search
-                    logger.warning(
-                        "RAG failed, falling back to LLM (SPECIFIC_SEARCH path)."
-                    )
-                    classified_intent = "SPECIFIC_SEARCH"
-                    final_response = (
-                        None  # Reset response, will proceed to LLM block below
-                    )
+        # --- Determine if LLM is required based on priority conditions ---
+        force_llm = False
+        if is_clarification_answer:
+            logger.info("Prioritizing LLM path due to: clarification answer detected.")
+            force_llm = True
+        elif contains_override:
+            logger.info("Prioritizing LLM path due to: override keyword detected.")
+            force_llm = True
+        elif mentions_rejected:
+            logger.info("Prioritizing LLM path due to: query mentions rejected item.")
+            force_llm = True
+        # Optional: Add more sophisticated checks here if desired
+        # elif classified_intent == 'VAGUE_INQUIRY' and context_has_enough_info(confirmedContext):
+        #    logger.info("Intent is VAGUE but context is sufficient, forcing LLM for refinement.")
+        #    force_llm = True
 
-        # Proceed to LLM if intent is specific OR if VAGUE path decided not to return early
-        if classified_intent == "SPECIFIC_SEARCH" and final_response is None:
-            logger.info(
-                "Intent is SPECIFIC_SEARCH (or fallback/clarification answer), "
-                "proceeding to LLM."
-            )
-            # Note: matched_category is None here as we didn't use RAG or it failed/was bypassed
+        # --- Execute based on routing decision ---
+        final_response = None
+        if force_llm or classified_intent == 'SPECIFIC_SEARCH':
+            if not force_llm: # Log if it was originally specific
+                logger.info(f"Intent classified as SPECIFIC_SEARCH, proceeding to LLM.")
+            else: # Log details if forced
+                logger.info(f"Routing conditions met (clarify={is_clarification_answer}, "
+                          f"override={contains_override}, mentions_rejected={mentions_rejected}), "
+                          f"proceeding to LLM.")
+
             extracted_params = run_llm_with_history(
-                user_query, conversation_history, None, force_model
+                user_query, 
+                conversation_history, 
+                None, # matched_category
+                force_model,
+                confirmed_context=confirmed_context,
+                rejected_context=rejected_context
             )
-
+            
             if extracted_params:
-                # Ensure the intent reflects reality, fallback to classified if needed
-                if not extracted_params.get("intent"):
-                    logger.warning(
-                        f"LLM did not return intent, using classified intent: {classified_intent}"
-                    )
-                    # If we rerouted a clarification answer, the LLM *should* set intent to 'clarify'
-                    # If it didn't, we might default back to SPECIFIC_SEARCH here, which might be okay.
-                    extracted_params["intent"] = classified_intent
+                # Post-processing override intent if needed
+                if is_clarification_answer and extracted_params.get("intent") != "clarify":
+                    logger.info("Overriding LLM intent to 'clarify' based on context detection")
+                    extracted_params["intent"] = "clarify"
+                    
                 # Ensure all fields exist using create_default_parameters as base
                 base = create_default_parameters()
                 base.update(extracted_params)  # Overwrite defaults with LLM output
                 final_response = base
                 logger.info("Final extracted parameters from LLM: %s", final_response)
             else:
-                logger.error(
-                    "LLM models failed or no valid extraction after SPECIFIC_SEARCH intent."
-                )
-                final_response = create_default_parameters(
-                    intent="error"
-                )  # Indicate error
+                logger.error("LLM models failed or no valid extraction.")
+                final_response = create_default_parameters(intent="error") # Indicate error
 
-        # Handle cases where final_response wasn't set (should be rare)
+        elif classified_intent == 'VAGUE_INQUIRY':
+            logger.info("Intent is VAGUE_INQUIRY and no override/clarification forced LLM, proceeding with RAG.")
+            try:
+                match_cat, score = find_best_match(query_fragment)
+                logger.info(f"RAG result: Category='{match_cat}', Score={score:.2f}")
+                
+                if score < 0.6: # Threshold for weak RAG match
+                    logger.info("RAG score too low. Requesting general clarification.")
+                    final_response = create_default_parameters(
+                        intent="clarify",
+                        clarification_needed=True,
+                        clarification_needed_for=["details"],
+                        retriever_suggestion=(
+                            "Could you provide more specific details about the "
+                            "type of vehicle you need?"
+                        ),
+                    )
+                else: # Medium/High RAG score >= 0.6
+                    logger.info("RAG score sufficient. Requesting specific clarification based on matched category.")
+                    final_response = create_default_parameters(
+                        intent="clarify",
+                        clarification_needed=True,
+                        clarification_needed_for=["budget", "year", "make"],
+                        matched_category=match_cat,
+                        retriever_suggestion=(
+                            f"Okay, thinking about {match_cat}s. What's your "
+                            f"budget or preferred year range?"
+                        ),
+                    )
+            except Exception as e:
+                logger.error(f"Error during RAG processing: {e}", exc_info=True)
+                logger.warning("RAG failed, falling back to generic clarification.")
+                final_response = create_default_parameters(
+                    intent="clarify", 
+                    clarification_needed=True,
+                    clarification_needed_for=["details"],
+                    retriever_suggestion="Could you tell me more about what you're looking for in a vehicle?"
+                )
+        else:
+            logger.warning(f"Unhandled classified_intent: {classified_intent}. Defaulting to error.")
+            final_response = create_default_parameters(intent="error")
+
+        # Ensure final_response is always set
         if final_response is None:
-            logger.error(
-                f"Reached end of processing without a valid final_response. "
-                f"Intent was '{classified_intent}'. Defaulting to error."
-            )
+            logger.error("Reached end of processing without setting final_response. Defaulting to error.")
             final_response = create_default_parameters(intent="error")
 
         end_time = datetime.datetime.now()
@@ -1158,7 +1519,6 @@ def extract_parameters():
 
     except Exception as e:
         logger.exception(f"Unhandled exception in /extract_parameters: {e}")
-        # Use create_default_parameters for error response structure
         return jsonify(create_default_parameters(intent="error")), 500
 
 

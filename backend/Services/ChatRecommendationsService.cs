@@ -184,8 +184,25 @@ namespace SmartAutoTrader.API.Services
                 RecommendationParameters extractedParameters = await this.ExtractParametersAsync(
                     messageToProcess,
                     modelUsedForSession, // Pass the model strategy
-                    recentHistory);
+                    recentHistory,
+                    conversationContext); // Pass the context
                 sw.Stop();
+
+                // Update the structured context to process any new confirmations/rejections
+                await this.UpdateStructuredContextFromParametersAsync(
+                    extractedParameters, 
+                    conversationContext, 
+                    message.Content);
+
+                // Merge parameters, passing the context to check against rejections
+                RecommendationParameters parameters = MergeParameters(
+                    conversationContext.CurrentParameters,
+                    extractedParameters,
+                    extractedParameters.Intent,
+                    conversationContext);
+
+                // Update the context's CurrentParameters property
+                conversationContext.CurrentParameters = parameters;
 
                 // ⚠️ NEW: Check if this is a vague query from RAG fallback
                 if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
@@ -248,44 +265,24 @@ namespace SmartAutoTrader.API.Services
 
                 this.logger.LogInformation("Parameter extraction completed successfully");
 
-                // Merge with existing parameters if this is a follow-up or clarification
-                RecommendationParameters parameters;
-                if ((isFollowUpQuery || message.IsFollowUp || message.IsClarification) &&
-                    conversationContext.CurrentParameters != null)
-                {
-                    // Pass the intent to the merge method
-                    parameters = MergeParameters(
-                        conversationContext.CurrentParameters,
-                        extractedParameters,
-                        extractedParameters.Intent);
-                    this.logger.LogInformation(
-                        "Merged parameters from context and new extraction with intent: {Intent}",
-                        extractedParameters.Intent);
-                }
-                else
-                {
-                    parameters = extractedParameters;
-                }
-
-                // Store the original message as last user intent
-                conversationContext.LastUserIntent = messageToProcess;
-
-                // Update the conversation context with new parameters
-                conversationContext.CurrentParameters = parameters;
-
-                // Save context
-                await this.contextService.UpdateContextAsync(userId, conversationContext);
-
                 // Determine if we need further clarification based on parameters
-                bool needsClarification = NeedsClarification(parameters, messageToProcess);
+                bool needsClarification = NeedsClarification(parameters, messageToProcess, conversationContext);
 
                 if (needsClarification && !message.IsClarification)
                 {
                     this.logger.LogInformation("Clarification needed for user query");
 
                     // Create clarification message based on context
-                    string clarificationMessage =
-                        GenerateClarificationMessage(parameters, messageToProcess, conversationContext);
+                    string clarificationMessage = GenerateClarificationMessage(parameters, messageToProcess, conversationContext);
+
+                    // Avoid asking the same question again
+                    if (clarificationMessage == conversationContext.LastQuestionAskedByAI)
+                    {
+                        this.logger.LogInformation("Avoiding duplicate question, generating an alternate");
+                        // Generate an alternative question
+                        clarificationMessage = "Could you tell me more about what you're looking for in a vehicle?";
+                        conversationContext.LastQuestionAskedByAI = clarificationMessage;
+                    }
 
                     // Save the chat history
                     await this.SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
@@ -521,8 +518,41 @@ namespace SmartAutoTrader.API.Services
         private static RecommendationParameters MergeParameters(
             RecommendationParameters existingParams,
             RecommendationParameters newParams,
-            string? userIntent = null)
+            string? userIntent = null,
+            ConversationContext? context = null) // Add context parameter
         {
+            // First, filter out any rejected makes from newParams
+            if (context != null && newParams.PreferredMakes?.Any() == true)
+            {
+                newParams.PreferredMakes = newParams.PreferredMakes
+                    .Where(m => !context.RejectedMakes.Contains(m, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            // Filter out rejected vehicle types
+            if (context != null && newParams.PreferredVehicleTypes?.Any() == true)
+            {
+                newParams.PreferredVehicleTypes = newParams.PreferredVehicleTypes
+                    .Where(t => !context.RejectedVehicleTypes.Contains(t))
+                    .ToList();
+            }
+
+            // Filter out rejected fuel types 
+            if (context != null && newParams.PreferredFuelTypes?.Any() == true)
+            {
+                newParams.PreferredFuelTypes = newParams.PreferredFuelTypes
+                    .Where(f => !context.RejectedFuelTypes.Contains(f))
+                    .ToList();
+            }
+
+            // Filter out rejected features
+            if (context != null && newParams.DesiredFeatures?.Any() == true)
+            {
+                newParams.DesiredFeatures = newParams.DesiredFeatures
+                    .Where(f => !context.RejectedFeatures.Contains(f, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
             // Start with a copy of the existing parameters for refinement scenarios
             RecommendationParameters mergedParams =
                 userIntent?.Equals("refine_criteria", StringComparison.OrdinalIgnoreCase) == true
@@ -646,58 +676,35 @@ namespace SmartAutoTrader.API.Services
         }
 
         // This method determines if we need clarification based on the extracted parameters
-        private static bool NeedsClarification(RecommendationParameters parameters, string message)
+        private static bool NeedsClarification(RecommendationParameters parameters, string message, ConversationContext context)
         {
-            // Check if we already have the minimum viable set of parameters
-            // Case 1: We have vehicle type AND either min or max price
-            bool hasVehicleType = parameters.PreferredVehicleTypes?.Count > 0;
-            bool hasPrice = parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue;
-            bool hasMakes = parameters.PreferredMakes?.Count > 0;
-
-            // If we already have a viable combination, we don't need clarification
+            // If Python explicitly determined a "clarify" intent, respect it
+            if (parameters.Intent?.Equals("clarify", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return true;
+            }
+            
+            // Check structured context fields first
+            bool hasVehicleType = context.ConfirmedVehicleTypes.Any();
+            bool hasPrice = context.ConfirmedMinPrice.HasValue || context.ConfirmedMaxPrice.HasValue;
+            bool hasMakes = context.ConfirmedMakes.Any();
+            
+            // If we have a viable combination, we don't need clarification
             if (hasVehicleType && (hasPrice || hasMakes))
             {
                 return false;
             }
-
-            // Fall back to counting missing parameter types only if we don't have a viable combination
+            
+            // Count missing parameter types
             int missingParameterTypes = 0;
-
-            if (!hasPrice)
-            {
-                missingParameterTypes++;
-            }
-
-            if (!hasVehicleType &&
-                !message.Contains("any type", StringComparison.CurrentCultureIgnoreCase) &&
-                !message.Contains("any vehicle", StringComparison.CurrentCultureIgnoreCase))
-            {
-                missingParameterTypes++;
-            }
-
-            if (!hasMakes &&
-                !message.Contains("any make", StringComparison.CurrentCultureIgnoreCase) &&
-                !message.Contains("any brand", StringComparison.CurrentCultureIgnoreCase))
-            {
-                missingParameterTypes++;
-            }
-
-            if (parameters.MinYear == null && parameters.MaxYear == null)
-            {
-                missingParameterTypes++;
-            }
-
-            if (parameters.MaxMileage == null)
-            {
-                missingParameterTypes++;
-            }
-
-            if (parameters.PreferredFuelTypes.Count == 0)
-            {
-                missingParameterTypes++;
-            }
-
-            // Only need clarification if we're missing many parameters
+            
+            if (!hasPrice) missingParameterTypes++;
+            if (!hasVehicleType) missingParameterTypes++;
+            if (!hasMakes) missingParameterTypes++;
+            if (!context.ConfirmedMinYear.HasValue && !context.ConfirmedMaxYear.HasValue) missingParameterTypes++;
+            if (!context.ConfirmedMaxMileage.HasValue) missingParameterTypes++;
+            if (!context.ConfirmedFuelTypes.Any()) missingParameterTypes++;
+            
             return missingParameterTypes >= 3;
         }
 
@@ -853,7 +860,11 @@ namespace SmartAutoTrader.API.Services
                 }
             }
 
-            return clarification.ToString().Trim();
+            // Before returning, store the generated question in context
+            string clarificationMessage = clarification.ToString().Trim();
+            context.LastQuestionAskedByAI = clarificationMessage;
+
+            return clarificationMessage;
         }
 
         // Generate a personalized response message based on context
@@ -866,92 +877,164 @@ namespace SmartAutoTrader.API.Services
 
             if (recommendationCount == 0)
             {
-                _ = response.Append("I couldn't find any vehicles matching all your criteria. ");
+                // No matching vehicles found - create response explaining why
+                _ = response.Append("Unfortunately, I couldn't find any vehicles matching all your criteria. ");
 
-                // Suggest relaxing constraints based on context
-                if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue &&
+                // Build a clear list of the specific search criteria
+                List<string> criteriaDetails = [];
+
+                if (parameters.PreferredVehicleTypes?.Any() == true)
+                    criteriaDetails.Add($"{string.Join("/", parameters.PreferredVehicleTypes)} type");
+                    
+                if (parameters.PreferredMakes?.Any() == true)
+                    criteriaDetails.Add($"{string.Join("/", parameters.PreferredMakes)} make");
+                    
+                if (parameters.PreferredFuelTypes?.Any() == true)
+                    criteriaDetails.Add($"{string.Join("/", parameters.PreferredFuelTypes)} fuel");
+                    
+                if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
+                {
+                    string priceRange = "price ";
+                    if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue)
+                        priceRange += $"€{parameters.MinPrice:N0}-€{parameters.MaxPrice:N0}";
+                    else if (parameters.MaxPrice.HasValue)
+                        priceRange += $"under €{parameters.MaxPrice:N0}";
+                    else
+                        priceRange += $"over €{parameters.MinPrice:N0}";
+                        
+                    criteriaDetails.Add(priceRange);
+                }
+                    
+                if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
+                {
+                    string yearRange = "year ";
+                    if (parameters.MinYear.HasValue && parameters.MaxYear.HasValue)
+                        yearRange += $"{parameters.MinYear}-{parameters.MaxYear}";
+                    else if (parameters.MaxYear.HasValue)
+                        yearRange += $"{parameters.MaxYear} or older";
+                    else
+                        yearRange += $"{parameters.MinYear} or newer";
+                        
+                    criteriaDetails.Add(yearRange);
+                }
+                
+                if (parameters.MaxMileage.HasValue)
+                    criteriaDetails.Add($"under {parameters.MaxMileage:N0}km mileage");
+
+                // Add the criteria explanation to the response
+                if (criteriaDetails.Count > 0)
+                {
+                    if (criteriaDetails.Count == 1)
+                        _ = response.Append($"Your search with {criteriaDetails[0]} returned no results. ");
+                    else
+                        _ = response.Append($"Your search with {string.Join(", ", criteriaDetails.Take(criteriaDetails.Count - 1))} and {criteriaDetails.Last()} returned no results. ");
+                }
+
+                // Suggest relevant ways to broaden the search
+                _ = response.Append("Consider ");
+                
+                List<string> suggestions = [];
+                
+                if (parameters.PreferredMakes?.Count == 1)
+                    suggestions.Add($"including other makes besides {parameters.PreferredMakes[0]}");
+                
+                if (parameters.PreferredVehicleTypes?.Count == 1)
+                    suggestions.Add($"different vehicle types than {parameters.PreferredVehicleTypes[0]}");
+                
+                if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue && 
                     parameters.MaxPrice.Value - parameters.MinPrice.Value < 10000)
+                    suggestions.Add("widening your price range");
+                
+                if (parameters.MinYear.HasValue && parameters.MinYear.Value > DateTime.Now.Year - 5)
+                    suggestions.Add("including older vehicles");
+                
+                if (parameters.MaxMileage.HasValue && parameters.MaxMileage.Value < 50000)
+                    suggestions.Add("increasing the mileage limit");
+                
+                // General suggestion if nothing specific applies
+                if (suggestions.Count == 0)
+                    suggestions.Add("adjusting your search criteria");
+                
+                _ = response.Append(string.Join(", or ", suggestions));
+                _ = response.Append(" to see more options.");
+            }
+            else
+            {
+                // Vehicles found - create response with appropriate intro based on conversation context
+                if (context.MessageCount > 1)
+                    _ = response.Append("Based on our conversation, ");
+                else
+                    _ = response.Append("Great! ");
+
+                // Build summary of key search criteria
+                List<string> criteria = [];
+                
+                if (parameters.PreferredVehicleTypes?.Any() == true)
+                    criteria.Add(string.Join("/", parameters.PreferredVehicleTypes));
+                
+                if (parameters.PreferredMakes?.Any() == true)
+                    criteria.Add(string.Join("/", parameters.PreferredMakes));
+                
+                if (parameters.PreferredFuelTypes?.Any() == true)
                 {
-                    _ = response.Append("Consider broadening your price range. ");
+                    string fuelDesc = string.Join("/", parameters.PreferredFuelTypes);
+                    criteria.Add(fuelDesc.EndsWith("ic") ? $"{fuelDesc}" : $"{fuelDesc}");
+                }
+                
+                // Format year information when present
+                if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
+                {
+                    if (parameters.MinYear.HasValue && parameters.MaxYear.HasValue)
+                    {
+                        if (parameters.MinYear.Value == parameters.MaxYear.Value)
+                            criteria.Add($"{parameters.MinYear.Value}");
+                        else
+                            criteria.Add($"{parameters.MinYear.Value}-{parameters.MaxYear.Value}");
+                    }
+                    else if (parameters.MinYear.HasValue)
+                        criteria.Add($"{parameters.MinYear.Value}+");
+                    else
+                        criteria.Add($"pre-{parameters.MaxYear.Value}");
                 }
 
-                if (parameters.PreferredMakes.Count == 1)
+                // Structure the main response text
+                _ = response.Append($"I found {recommendationCount} ");
+                
+                if (criteria.Any())
+                    _ = response.Append($"{string.Join(" ", criteria)} ");
+                
+                _ = response.Append("vehicles");
+                
+                // Add price information when available
+                if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
                 {
-                    _ = response.Append("Try including more manufacturers in your search. ");
+                    _ = response.Append(" priced ");
+                    if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue)
+                        _ = response.Append($"between €{parameters.MinPrice:N0} and €{parameters.MaxPrice:N0}");
+                    else if (parameters.MinPrice.HasValue)
+                        _ = response.Append($"from €{parameters.MinPrice:N0}");
+                    else
+                        _ = response.Append($"under €{parameters.MaxPrice:N0}");
                 }
+                
+                // Add mileage information when available
+                if (parameters.MaxMileage.HasValue)
+                    _ = response.Append($" with mileage under {parameters.MaxMileage:N0}km");
+                
+                _ = response.Append(" matching your criteria.");
 
-                if (parameters.PreferredVehicleTypes.Count == 1)
-                {
-                    _ = response.Append("Consider exploring different vehicle types. ");
-                }
+                // Add personalized context-based details
+                if (context.TopicContext.ContainsKey("discussing_family_needs"))
+                    _ = response.Append(" These options provide good space and safety features for family needs.");
 
-                return response.ToString();
-            }
+                if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
+                    _ = response.Append(" I've prioritized vehicles with good fuel efficiency.");
 
-            // Personalize based on conversation history
-            if (context.MessageCount > 1)
-            {
-                _ = response.Append("Based on our conversation, ");
-            }
+                if (parameters.DesiredFeatures?.Any() == true)
+                    _ = response.Append($" These vehicles include features like {string.Join(", ", parameters.DesiredFeatures)}.");
 
-            _ = response.Append($"I found {recommendationCount} vehicles that match your preferences. ");
-
-            // Add details about what was matched
-            if (parameters.PreferredVehicleTypes.Count != 0)
-            {
-                _ = response.Append($"Vehicle type: {string.Join(", ", parameters.PreferredVehicleTypes)}. ");
-            }
-
-            if (parameters.PreferredMakes.Count != 0)
-            {
-                _ = response.Append($"Make: {string.Join(", ", parameters.PreferredMakes)}. ");
-            }
-
-            if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
-            {
-                _ = response.Append("Price range: ");
-                if (parameters.MinPrice.HasValue)
-                {
-                    _ = response.Append($"€{parameters.MinPrice:N0} ");
-                }
-
-                _ = response.Append("to ");
-                _ = parameters.MaxPrice.HasValue
-                    ? response.Append($"€{parameters.MaxPrice:N0}. ")
-                    : response.Append("any. ");
-            }
-
-            if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
-            {
-                _ = response.Append("Year: ");
-                if (parameters.MinYear.HasValue)
-                {
-                    _ = response.Append($"{parameters.MinYear} ");
-                }
-
-                _ = response.Append("to ");
-                _ = parameters.MaxYear.HasValue
-                    ? response.Append($"{parameters.MaxYear}. ")
-                    : response.Append("present. ");
-            }
-
-            // Add personalized guidance based on context
-            if (context.TopicContext.ContainsKey("discussing_family_needs"))
-            {
-                _ = response.Append(
-                    "These options should provide good space and safety features for your family needs. ");
-            }
-
-            if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
-            {
-                _ = response.Append("I've focused on vehicles with good fuel efficiency based on your requirements. ");
-            }
-
-            // Contextual follow-up cues
-            if (context.MentionedVehicleFeatures.Count != 0)
-            {
-                _ = response.Append(
-                    "You can ask me for more details about any of these vehicles, including specific features. ");
+                // Add helpful follow-up prompt
+                _ = response.Append(" You can ask for more details about any of these recommendations.");
             }
 
             return response.ToString();
@@ -961,7 +1044,8 @@ namespace SmartAutoTrader.API.Services
         private async Task<RecommendationParameters> ExtractParametersAsync(
             string message,
             string? modelStrategy = null,
-            List<ConversationTurn>? recentHistory = null)
+            List<ConversationTurn>? recentHistory = null,
+            ConversationContext context = null)
         {
             try
             {
@@ -992,12 +1076,30 @@ namespace SmartAutoTrader.API.Services
                     }
                 }
 
-                // Prepare the request payload including history and model strategy
+                // Enhanced request payload with structured context
                 var requestPayload = new
                 {
                     query = message,
                     forceModel = modelStrategy,
                     conversationHistory = formattedHistory,
+                    lastQuestionAskedByAI = context?.LastQuestionAskedByAI,
+                    confirmedContext = context != null ? new
+                    {
+                        confirmedMakes = context.ConfirmedMakes,
+                        confirmedVehicleTypes = context.ConfirmedVehicleTypes.Select(t => t.ToString()),
+                        confirmedFuelTypes = context.ConfirmedFuelTypes.Select(f => f.ToString()),
+                        confirmedMinPrice = context.ConfirmedMinPrice,
+                        confirmedMaxPrice = context.ConfirmedMaxPrice,
+                        confirmedMinYear = context.ConfirmedMinYear,
+                        confirmedMaxYear = context.ConfirmedMaxYear,
+                        confirmedMaxMileage = context.ConfirmedMaxMileage
+                    } : null,
+                    rejectedContext = context != null ? new
+                    {
+                        rejectedMakes = context.RejectedMakes,
+                        rejectedVehicleTypes = context.RejectedVehicleTypes.Select(t => t.ToString()),
+                        rejectedFuelTypes = context.RejectedFuelTypes.Select(f => f.ToString())
+                    } : null
                 };
 
                 this.logger.LogInformation(
@@ -1189,6 +1291,280 @@ namespace SmartAutoTrader.API.Services
                     MaxResults = 10, // CHANGED FROM 5 TO 10
                     Intent = "new_query",
                 };
+            }
+        }
+
+        private async Task UpdateStructuredContextFromParametersAsync(
+            RecommendationParameters parameters,
+            ConversationContext context,
+            string userMessage)
+        {
+            // Update confirmed parameters with new values from extracted parameters
+            if (parameters.MinPrice.HasValue)
+                context.ConfirmedMinPrice = parameters.MinPrice;
+
+            if (parameters.MaxPrice.HasValue)
+                context.ConfirmedMaxPrice = parameters.MaxPrice;
+
+            if (parameters.MinYear.HasValue)
+                context.ConfirmedMinYear = parameters.MinYear;
+
+            if (parameters.MaxYear.HasValue)
+                context.ConfirmedMaxYear = parameters.MaxYear;
+
+            if (parameters.MaxMileage.HasValue)
+                context.ConfirmedMaxMileage = parameters.MaxMileage;
+
+            // Detect explicit negatives and positives for makes/models/types
+            string lowerMessage = userMessage.ToLower(CultureInfo.CurrentCulture);
+
+            // Handle makes (e.g., "I want a BMW" vs "No BMWs")
+            if (parameters.PreferredMakes?.Any() == true)
+            {
+                foreach (var make in parameters.PreferredMakes)
+                {
+                    // If make was previously rejected but now explicitly requested, remove from rejected
+                    if (context.RejectedMakes.Contains(make))
+                        context.RejectedMakes.Remove(make);
+
+                    // Add to confirmed makes if not already there
+                    if (!context.ConfirmedMakes.Contains(make))
+                        context.ConfirmedMakes.Add(make);
+                }
+            }
+
+            // Similar logic for vehicle types
+            if (parameters.PreferredVehicleTypes?.Any() == true)
+            {
+                foreach (var type in parameters.PreferredVehicleTypes)
+                {
+                    if (context.RejectedVehicleTypes.Contains(type))
+                        context.RejectedVehicleTypes.Remove(type);
+
+                    if (!context.ConfirmedVehicleTypes.Contains(type))
+                        context.ConfirmedVehicleTypes.Add(type);
+                }
+            }
+
+            // Similar logic for fuel types
+            if (parameters.PreferredFuelTypes?.Any() == true)
+            {
+                foreach (var fuel in parameters.PreferredFuelTypes)
+                {
+                    if (context.RejectedFuelTypes.Contains(fuel))
+                        context.RejectedFuelTypes.Remove(fuel);
+
+                    if (!context.ConfirmedFuelTypes.Contains(fuel))
+                        context.ConfirmedFuelTypes.Add(fuel);
+                }
+            }
+
+            // Add features
+            if (parameters.DesiredFeatures?.Any() == true)
+            {
+                foreach (var feature in parameters.DesiredFeatures)
+                {
+                    if (context.RejectedFeatures.Contains(feature))
+                        context.RejectedFeatures.Remove(feature);
+
+                    if (!context.ConfirmedFeatures.Contains(feature))
+                        context.ConfirmedFeatures.Add(feature);
+                }
+            }
+
+            // Process negative statements to populate rejected collections
+            ProcessNegativePreferences(lowerMessage, context, parameters.Intent);
+
+            // Update the current parameters in context to reflect confirmed/rejected preferences
+            SynchronizeCurrentParametersWithConfirmedValues(context);
+        }
+
+        private void ProcessNegativePreferences(string lowerMessage, ConversationContext context, string? intent = null)
+        {
+            // Be more careful with negation detection in clarification responses
+            bool isClarification = intent?.Equals("clarify", StringComparison.OrdinalIgnoreCase) == true;
+
+            // Only process negations if this isn't a direct clarification response
+            // or if the message explicitly contains negation markers
+            bool shouldProcessNegations = !isClarification ||
+                                          (lowerMessage.Contains("not ") ||
+                                           lowerMessage.Contains("don't want") ||
+                                           lowerMessage.Contains("no "));
+
+            if (shouldProcessNegations &&
+                (lowerMessage.Contains("not ") || lowerMessage.Contains("don't want") ||
+                 lowerMessage.Contains("no ") || lowerMessage.Contains("except") ||
+                 lowerMessage.Contains("avoid")))
+            {
+                // === PROCESS NEGATED MAKES ===
+                string[] commonMakes = ["bmw", "audi", "ford", "toyota", "honda", "volkswagen",
+                                      "mercedes", "volvo", "nissan", "hyundai", "kia", "mazda"];
+
+                foreach (string make in commonMakes)
+                {
+                    if ((lowerMessage.Contains($"not {make}") || lowerMessage.Contains($"no {make}") ||
+                        lowerMessage.Contains($"don't want {make}") || lowerMessage.Contains($"except {make}")))
+                    {
+                        // Only add to rejected if not already confirmed
+                        if (!context.ConfirmedMakes.Contains(make, StringComparer.OrdinalIgnoreCase) &&
+                            !context.RejectedMakes.Contains(make, StringComparer.OrdinalIgnoreCase))
+                        {
+                            context.RejectedMakes.Add(make);
+                        }
+                    }
+                }
+
+                // === PROCESS NEGATED MODELS ===
+                string[] commonModels = ["camry", "civic", "f-150", "golf", "3 series", "model 3", "rav4", "mustang"];
+
+                foreach (string model in commonModels)
+                {
+                    if ((lowerMessage.Contains($"not {model}") || lowerMessage.Contains($"no {model}") ||
+                        lowerMessage.Contains($"don't want {model}") || lowerMessage.Contains($"except {model}")))
+                    {
+                        if (!context.ConfirmedModels.Contains(model, StringComparer.OrdinalIgnoreCase) &&
+                            !context.RejectedModels.Contains(model, StringComparer.OrdinalIgnoreCase))
+                        {
+                            context.RejectedModels.Add(model);
+                        }
+                    }
+                }
+
+                // === PROCESS NEGATED VEHICLE TYPES ===
+                Dictionary<string, VehicleType> vehicleTypeMap = new()
+                {
+                    {"suv", VehicleType.SUV},
+                    {"sedan", VehicleType.Sedan},
+                    {"hatchback", VehicleType.Hatchback},
+                    {"convertible", VehicleType.Convertible},
+                    {"pickup", VehicleType.Pickup},
+                    {"coupe", VehicleType.Coupe},
+                    {"van", VehicleType.Van},
+                    {"estate", VehicleType.Estate},
+                    {"wagon", VehicleType.Estate}
+                };
+
+                foreach (var pair in vehicleTypeMap)
+                {
+                    if (lowerMessage.Contains($"not {pair.Key}") || lowerMessage.Contains($"no {pair.Key}") ||
+                        lowerMessage.Contains($"don't want {pair.Key}") || lowerMessage.Contains($"except {pair.Key}"))
+                    {
+                        if (!context.ConfirmedVehicleTypes.Contains(pair.Value) &&
+                            !context.RejectedVehicleTypes.Contains(pair.Value))
+                        {
+                            context.RejectedVehicleTypes.Add(pair.Value);
+                        }
+                    }
+                }
+
+                // === PROCESS NEGATED FUEL TYPES ===
+                Dictionary<string, FuelType> fuelTypeMap = new()
+                {
+                    {"petrol", FuelType.Petrol},
+                    {"gas", FuelType.Petrol},
+                    {"gasoline", FuelType.Petrol},
+                    {"diesel", FuelType.Diesel},
+                    {"electric", FuelType.Electric},
+                    {"ev", FuelType.Electric},
+                    {"hybrid", FuelType.Hybrid},
+                    {"plugin", FuelType.Plugin},
+                    {"plug-in", FuelType.Plugin}
+                };
+
+                foreach (var pair in fuelTypeMap)
+                {
+                    if (lowerMessage.Contains($"not {pair.Key}") || lowerMessage.Contains($"no {pair.Key}") ||
+                        lowerMessage.Contains($"don't want {pair.Key}") || lowerMessage.Contains($"except {pair.Key}"))
+                    {
+                        if (!context.ConfirmedFuelTypes.Contains(pair.Value) &&
+                            !context.RejectedFuelTypes.Contains(pair.Value))
+                        {
+                            context.RejectedFuelTypes.Add(pair.Value);
+                        }
+                    }
+                }
+
+                // === PROCESS NEGATED TRANSMISSION ===
+                if (lowerMessage.Contains("not automatic") || lowerMessage.Contains("no automatic") ||
+                    lowerMessage.Contains("don't want automatic"))
+                {
+                    if (context.ConfirmedTransmission != TransmissionType.Automatic)
+                        context.RejectedTransmission = TransmissionType.Automatic;
+                }
+                else if (lowerMessage.Contains("not manual") || lowerMessage.Contains("no manual") ||
+                         lowerMessage.Contains("don't want manual") || lowerMessage.Contains("not stick shift"))
+                {
+                    if (context.ConfirmedTransmission != TransmissionType.Manual)
+                        context.RejectedTransmission = TransmissionType.Manual;
+                }
+
+                // === PROCESS NEGATED FEATURES ===
+                string[] featureKeywords = [
+                    "bluetooth", "navigation", "leather", "sunroof", "camera",
+                    "cruise control", "parking sensors", "heated seats", "air conditioning",
+                    "apple carplay", "android auto", "third row", "tow"
+                ];
+
+                foreach (string feature in featureKeywords)
+                {
+                    if ((lowerMessage.Contains($"not {feature}") || lowerMessage.Contains($"no {feature}") ||
+                         lowerMessage.Contains($"don't need {feature}") || lowerMessage.Contains($"don't want {feature}")))
+                    {
+                        if (!context.ConfirmedFeatures.Contains(feature) &&
+                            !context.RejectedFeatures.Contains(feature))
+                        {
+                            context.RejectedFeatures.Add(feature);
+                        }
+                    }
+                }
+            }
+
+            // Update ExplicitlyRejectedOptions for backward compatibility
+            foreach (var make in context.RejectedMakes)
+            {
+                if (!context.ExplicitlyRejectedOptions.Contains(make))
+                    context.ExplicitlyRejectedOptions.Add(make);
+            }
+        }
+
+        private void SynchronizeCurrentParametersWithConfirmedValues(ConversationContext context)
+        {
+            // Make sure CurrentParameters is initialized
+            if (context.CurrentParameters == null)
+                context.CurrentParameters = new RecommendationParameters();
+                
+            // Sync all numeric parameters
+            context.CurrentParameters.MinPrice = context.ConfirmedMinPrice;
+            context.CurrentParameters.MaxPrice = context.ConfirmedMaxPrice;
+            context.CurrentParameters.MinYear = context.ConfirmedMinYear;
+            context.CurrentParameters.MaxYear = context.ConfirmedMaxYear;
+            context.CurrentParameters.MaxMileage = context.ConfirmedMaxMileage;
+            
+            // Sync makes, excluding rejected ones
+            context.CurrentParameters.PreferredMakes = context.ConfirmedMakes
+                .Where(m => !context.RejectedMakes.Contains(m, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+                
+            // Sync vehicle types, excluding rejected ones
+            context.CurrentParameters.PreferredVehicleTypes = context.ConfirmedVehicleTypes
+                .Where(t => !context.RejectedVehicleTypes.Contains(t))
+                .ToList();
+                
+            // Sync fuel types, excluding rejected ones
+            context.CurrentParameters.PreferredFuelTypes = context.ConfirmedFuelTypes
+                .Where(f => !context.RejectedFuelTypes.Contains(f))
+                .ToList();
+                
+            // Sync features, excluding rejected ones
+            context.CurrentParameters.DesiredFeatures = context.ConfirmedFeatures
+                .Where(f => !context.RejectedFeatures.Contains(f, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+            
+            // Update MentionedVehicleFeatures for backward compatibility
+            foreach (var feature in context.ConfirmedFeatures)
+            {
+                if (!context.MentionedVehicleFeatures.Contains(feature))
+                    context.MentionedVehicleFeatures.Add(feature);
             }
         }
     }
