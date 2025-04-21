@@ -24,7 +24,7 @@ export interface Vehicle {
   images?: VehicleImage[] | ReferenceWrapper<VehicleImage>;
 }
 
-// Add the RecommendationParameters interface here
+// Updated RecommendationParameters interface with negated criteria
 export interface RecommendationParameters {
   minPrice?: number;
   maxPrice?: number;
@@ -36,6 +36,48 @@ export interface RecommendationParameters {
   preferredFuelTypes?: string[] | number[];
   desiredFeatures?: string[];
   matchedCategory?: string;
+
+  // Added negated criteria fields from backend
+  explicitlyNegatedMakes?: string[]; // Matches C# naming
+  explicitlyNegatedVehicleTypes?: string[] | number[]; // Matches C# naming
+  explicitlyNegatedFuelTypes?: string[] | number[]; // Matches C# naming
+
+  // Additional negated fields that might come from the backend
+  rejectedMakes?: string[];
+  rejectedVehicleTypes?: string[] | number[];
+  rejectedFuelTypes?: string[] | number[];
+  rejectedFeatures?: string[];
+  rejectedTransmission?: string | number;
+
+  // For clarification flow
+  intent?: string;
+  clarificationNeeded?: boolean;
+  clarificationNeededFor?: string[];
+}
+
+// Add/update FilterState interface for components that need it
+export interface FilterState {
+  make?: string;
+  model?: string;
+  minYear?: number;
+  maxYear?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  fuelType?: string;
+  transmission?: string;
+  vehicleType?: string;
+  minEngineSize?: number;
+  maxEngineSize?: number;
+  minHorsepower?: number;
+  maxHorsepower?: number;
+  sortBy: string;
+  ascending: boolean;
+
+  // Add negated criteria fields for filtering UI
+  rejectedMakes?: string[];
+  rejectedVehicleTypes?: string[];
+  rejectedFuelTypes?: string[];
+  rejectedFeatures?: string[];
 }
 
 // Interface for component props

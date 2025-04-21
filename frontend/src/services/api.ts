@@ -16,7 +16,10 @@ export interface Vehicle {
 }
 
 // Simple params type for filtering
-type VehicleParams = Record<string, string | number | boolean | undefined>;
+type VehicleParams = Record<
+  string,
+  string | number | boolean | undefined | string[]
+>;
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 

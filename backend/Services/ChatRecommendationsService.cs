@@ -129,81 +129,137 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // --- Context Update ---
-                // Update the structured context based on the *newly extracted* parameters
+                // Always update the structured context based on the extracted parameters
                 await this.UpdateStructuredContextFromParametersAsync(
                     extractedParameters,
                     conversationContext,
                     message.Content);
 
                 // --- Parameter Synchronization ---
-                // Create the final set of parameters to use for searching, reflecting all confirmed/rejected items
+                // Always create the final set of parameters to use for searching
                 this.SynchronizeCurrentParametersWithConfirmedValues(conversationContext);
                 RecommendationParameters finalParametersForSearch = conversationContext.CurrentParameters;
 
-                // --- Clarification Check ---
-                 // Check if clarification is needed based on the *updated context*
-                bool needsClarification = NeedsClarification(finalParametersForSearch, message.Content, conversationContext) ||
-                                          extractedParameters.Intent?.Equals("clarify", StringComparison.OrdinalIgnoreCase) == true;
+                // --- REFACTORED CONTROL FLOW ---
+                // Check if the Python service explicitly indicated clarification is NOT needed
+                bool pythonServiceSaysClarificationNotNeeded = 
+                    extractedParameters.ClarificationNeededFor == null || 
+                    !extractedParameters.ClarificationNeededFor.Any();
 
-
-                if (needsClarification)
+                if (pythonServiceSaysClarificationNotNeeded)
                 {
-                    string clarificationMessage = GenerateClarificationMessage(finalParametersForSearch, message.Content, conversationContext);
-                    this.logger.LogInformation("Clarification needed. Generated message: {ClarificationMessage}", clarificationMessage);
+                    // Log that we're bypassing clarification check based on Python's decision
+                    this.logger.LogInformation("Python extraction service explicitly indicated NO clarification needed - bypassing C# clarification check");
+                    
+                    // Skip to recommendation fetching directly
+                    this.logger.LogInformation("Proceeding directly to recommendations using parameters: {@Parameters}", finalParametersForSearch);
 
-                    await this.SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
+                    sw.Restart();
+                    IEnumerable<Vehicle> recommendations =
+                        await this.recommendationService.GetRecommendationsAsync(userId, finalParametersForSearch);
+                    sw.Stop();
+                    this.logger.LogInformation("⏱️ Recommendation fetching took {ElapsedMs}ms", sw.ElapsedMilliseconds);
+
+                    // Track shown vehicles
+                    List<int> vehicleIds = recommendations.Select(v => v.Id).ToList();
+                    foreach (int id in vehicleIds)
+                    {
+                        if (!conversationContext.ShownVehicleIds.Contains(id))
+                        {
+                            conversationContext.ShownVehicleIds.Add(id);
+                        }
+                    }
+
+                    // Save the updated context
+                    await this.contextService.UpdateContextAsync(userId, conversationContext);
+
+                    // --- Response Generation ---
+                    string responseMessage = GenerateResponseMessage(
+                        finalParametersForSearch,
+                        recommendations.Count(),
+                        conversationContext);
+
+                    // Save final AI response
+                    await this.SaveChatHistoryAsync(userId, message, responseMessage, conversationSessionId);
 
                     return new ChatResponse
                     {
-                        Message = clarificationMessage,
-                        ClarificationNeeded = true,
-                        OriginalUserInput = message.Content, // Keep original input for context
+                        Message = responseMessage,
+                        RecommendedVehicles = recommendations.ToList(),
+                        UpdatedParameters = finalParametersForSearch,
+                        ClarificationNeeded = false,
                         ConversationId = message.ConversationId,
-                        UpdatedParameters = finalParametersForSearch // Return the current state
                     };
                 }
-
-
-                // --- Recommendation Fetching ---
-                this.logger.LogInformation("Proceeding with recommendations using parameters: {@Parameters}", finalParametersForSearch);
-
-                sw.Restart();
-                IEnumerable<Vehicle> recommendations =
-                    await this.recommendationService.GetRecommendationsAsync(userId, finalParametersForSearch);
-                sw.Stop();
-                this.logger.LogInformation("⏱️ Recommendation fetching took {ElapsedMs}ms", sw.ElapsedMilliseconds);
-
-
-                // Track shown vehicles
-                List<int> vehicleIds = recommendations.Select(v => v.Id).ToList();
-                foreach (int id in vehicleIds)
+                else
                 {
-                    if (!conversationContext.ShownVehicleIds.Contains(id))
+                    // Allow existing clarification logic to run
+                    this.logger.LogInformation("Python extraction service did not explicity indicate NO clarification - proceeding with C# clarification check");
+                    
+                    // --- Clarification Check ---
+                    // Check if clarification is needed based on the *updated context*
+                    bool needsClarification = NeedsClarification(finalParametersForSearch, message.Content, conversationContext) ||
+                                              extractedParameters.Intent?.Equals("clarify", StringComparison.OrdinalIgnoreCase) == true;
+
+                    if (needsClarification)
                     {
-                        conversationContext.ShownVehicleIds.Add(id);
+                        string clarificationMessage = GenerateClarificationMessage(finalParametersForSearch, message.Content, conversationContext);
+                        this.logger.LogInformation("Clarification needed. Generated message: {ClarificationMessage}", clarificationMessage);
+
+                        await this.SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
+
+                        return new ChatResponse
+                        {
+                            Message = clarificationMessage,
+                            ClarificationNeeded = true,
+                            OriginalUserInput = message.Content, // Keep original input for context
+                            ConversationId = message.ConversationId,
+                            UpdatedParameters = finalParametersForSearch // Return the current state
+                        };
                     }
+
+                    // --- Recommendation Fetching ---
+                    this.logger.LogInformation("Proceeding with recommendations using parameters: {@Parameters}", finalParametersForSearch);
+                    
+                    // Continue with the rest of the existing recommendation logic
+                    // (Note: The rest of the code matches what's in the "true" branch above, for consistency)
+                    sw.Restart();
+                    IEnumerable<Vehicle> recommendations =
+                        await this.recommendationService.GetRecommendationsAsync(userId, finalParametersForSearch);
+                    sw.Stop();
+                    this.logger.LogInformation("⏱️ Recommendation fetching took {ElapsedMs}ms", sw.ElapsedMilliseconds);
+
+                    // Track shown vehicles
+                    List<int> vehicleIds = recommendations.Select(v => v.Id).ToList();
+                    foreach (int id in vehicleIds)
+                    {
+                        if (!conversationContext.ShownVehicleIds.Contains(id))
+                        {
+                            conversationContext.ShownVehicleIds.Add(id);
+                        }
+                    }
+
+                    // Save the updated context
+                    await this.contextService.UpdateContextAsync(userId, conversationContext);
+
+                    // --- Response Generation ---
+                    string responseMessage = GenerateResponseMessage(
+                        finalParametersForSearch,
+                        recommendations.Count(),
+                        conversationContext);
+
+                    // Save final AI response
+                    await this.SaveChatHistoryAsync(userId, message, responseMessage, conversationSessionId);
+
+                    return new ChatResponse
+                    {
+                        Message = responseMessage,
+                        RecommendedVehicles = recommendations.ToList(),
+                        UpdatedParameters = finalParametersForSearch,
+                        ClarificationNeeded = false,
+                        ConversationId = message.ConversationId,
+                    };
                 }
-
-                // Save the updated context
-                await this.contextService.UpdateContextAsync(userId, conversationContext);
-
-                // --- Response Generation ---
-                string responseMessage = GenerateResponseMessage(
-                    finalParametersForSearch,
-                    recommendations.Count(),
-                    conversationContext);
-
-                // Save final AI response
-                await this.SaveChatHistoryAsync(userId, message, responseMessage, conversationSessionId);
-
-                return new ChatResponse
-                {
-                    Message = responseMessage,
-                    RecommendedVehicles = recommendations.ToList(),
-                    UpdatedParameters = finalParametersForSearch, // Return the parameters used for the search
-                    ClarificationNeeded = false,
-                    ConversationId = message.ConversationId,
-                };
             }
             catch (Exception ex)
             {
@@ -1201,149 +1257,126 @@ namespace SmartAutoTrader.API.Services
                 context.ConfirmedMaxMileage = parameters.MaxMileage;
 
             // Update confirmed makes, removing from rejected if necessary
-            if (parameters.PreferredMakes?.Any() == true) // Check if there are any preferred makes
+            if (parameters.PreferredMakes?.Any() == true)
             {
-                foreach (var make in parameters.PreferredMakes) // Loop through each newly preferred make
+                foreach (var make in parameters.PreferredMakes)
                 {
-                    // Check if this make was previously rejected (case-insensitive)
-                    // Using LINQ Any() with the correct string comparison
-                    bool wasRejected = context.RejectedMakes.Any(rejectedMake =>
-                        rejectedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-
-                    if (wasRejected)
-                    {
-                        // Remove all matching entries from the rejected list (case-insensitive)
-                        // Fix: Use the correct Equals overload within the lambda
-                        context.RejectedMakes.RemoveAll(rejectedMake =>
-                            rejectedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-                    }
-
-                    // Check if this make is already confirmed (case-insensitive)
-                    // Using LINQ Any() with the correct string comparison
-                    bool alreadyConfirmed = context.ConfirmedMakes.Any(confirmedMake =>
-                        confirmedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-
+                    // Remove from rejected list if present (case-insensitive)
+                    context.RejectedMakes.RemoveAll(m => 
+                        string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
+                    
+                    // Add to confirmed list if not already present (case-insensitive)
+                    bool alreadyConfirmed = context.ConfirmedMakes.Any(m => 
+                        string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
+                        
                     if (!alreadyConfirmed)
-                    {
-                        // Add the make to the confirmed list if it's not already there
                         context.ConfirmedMakes.Add(make);
-                    }
                 }
             }
 
-            // Similar logic for vehicle types
+            // Update confirmed vehicle types, removing from rejected if necessary
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
                 foreach (var type in parameters.PreferredVehicleTypes)
                 {
+                    // Remove this type from rejected using direct enum equality
                     if (context.RejectedVehicleTypes.Contains(type))
                         context.RejectedVehicleTypes.Remove(type);
+                        
+                    // Add to confirmed using direct enum equality
                     if (!context.ConfirmedVehicleTypes.Contains(type))
                         context.ConfirmedVehicleTypes.Add(type);
                 }
             }
 
-            // Similar logic for fuel types
+            // Update confirmed fuel types, removing from rejected if necessary
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
                 foreach (var fuel in parameters.PreferredFuelTypes)
                 {
+                    // Remove this fuel type from rejected using direct enum equality
                     if (context.RejectedFuelTypes.Contains(fuel))
                         context.RejectedFuelTypes.Remove(fuel);
+                        
+                    // Add to confirmed using direct enum equality
                     if (!context.ConfirmedFuelTypes.Contains(fuel))
                         context.ConfirmedFuelTypes.Add(fuel);
                 }
             }
 
-            // Add features, removing from rejected if necessary
+            // Update confirmed features, removing from rejected if necessary
             if (parameters.DesiredFeatures?.Any() == true)
             {
                 foreach (var feature in parameters.DesiredFeatures)
                 {
-                    // Check if this feature was previously rejected (case-insensitive)
-                    bool wasRejected = context.RejectedFeatures.Any(rejectedFeature =>
-                        rejectedFeature.Equals(feature, StringComparison.OrdinalIgnoreCase));
-
-                    if (wasRejected)
-                    {
-                        // Remove all matching entries from the rejected list (case-insensitive)
-                        context.RejectedFeatures.RemoveAll(rejectedFeature =>
-                            rejectedFeature.Equals(feature, StringComparison.OrdinalIgnoreCase));
-                    }
-
-                    // Check if this feature is already confirmed (case-insensitive)
-                    bool alreadyConfirmed = context.ConfirmedFeatures.Any(confirmedFeature =>
-                        confirmedFeature.Equals(feature, StringComparison.OrdinalIgnoreCase));
-
+                    // Remove from rejected features if present (case-insensitive)
+                    context.RejectedFeatures.RemoveAll(f => 
+                        string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
+                    
+                    // Add to confirmed features if not already present (case-insensitive)
+                    bool alreadyConfirmed = context.ConfirmedFeatures.Any(f => 
+                        string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
+                        
                     if (!alreadyConfirmed)
-                    {
-                        // Add the feature to the confirmed list if it's not already there
                         context.ConfirmedFeatures.Add(feature);
-                    }
                 }
             }
 
             // Update transmission preference
             if (parameters.Transmission.HasValue)
             {
+                // Only remove from rejected if it matches exactly
                 if (context.RejectedTransmission == parameters.Transmission.Value)
                     context.RejectedTransmission = null;
+                    
                 context.ConfirmedTransmission = parameters.Transmission.Value;
             }
 
             // Update engine size range
             if (parameters.MinEngineSize.HasValue)
                 context.ConfirmedMinEngineSize = parameters.MinEngineSize;
+                
             if (parameters.MaxEngineSize.HasValue)
                 context.ConfirmedMaxEngineSize = parameters.MaxEngineSize;
 
             // Update horsepower range
             if (parameters.MinHorsePower.HasValue)
                 context.ConfirmedMinHorsePower = parameters.MinHorsePower;
+                
             if (parameters.MaxHorsePower.HasValue)
                 context.ConfirmedMaxHorsePower = parameters.MaxHorsePower;
 
-
-            // Merge explicitly negated items from parameters into context's rejected lists
+            // Process explicitly negated makes
             if (parameters.ExplicitlyNegatedMakes?.Any() == true)
             {
                 foreach (var make in parameters.ExplicitlyNegatedMakes)
                 {
-                    // Check if this explicitly negated make was previously confirmed (case-insensitive)
-                    bool wasConfirmed = context.ConfirmedMakes.Any(confirmedMake =>
-                        confirmedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-
-                    if (wasConfirmed)
-                    {
-                        // Remove all matching entries from the confirmed list (case-insensitive)
-                        context.ConfirmedMakes.RemoveAll(confirmedMake =>
-                            confirmedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-                    }
-
-                    // Check if this explicitly negated make is already in the rejected list (case-insensitive)
-                    bool alreadyRejected = context.RejectedMakes.Any(rejectedMake =>
-                        rejectedMake.Equals(make, StringComparison.OrdinalIgnoreCase));
-
+                    // Remove from confirmed makes if present (case-insensitive)
+                    context.ConfirmedMakes.RemoveAll(m => 
+                        string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
+                    
+                    // Add to rejected makes if not already present (case-insensitive)
+                    bool alreadyRejected = context.RejectedMakes.Any(m => 
+                        string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
+                        
                     if (!alreadyRejected)
                     {
-                        // Add the make to the rejected list if it's not already there
                         context.RejectedMakes.Add(make);
-                        // Assuming 'logger' is available and configured correctly
                         logger.LogDebug("Added explicitly negated make '{Make}' to rejected context.", make);
                     }
                 }
             }
 
+            // Process explicitly negated vehicle types - ensure proper enum parsing and usage
             if (parameters.ExplicitlyNegatedVehicleTypes?.Any() == true)
             {
                 foreach (var type in parameters.ExplicitlyNegatedVehicleTypes)
                 {
-                    // Remove from confirmed if present
+                    // Remove from confirmed if present (direct enum equality)
                     if (context.ConfirmedVehicleTypes.Contains(type))
-                    {
                         context.ConfirmedVehicleTypes.Remove(type);
-                    }
-                    // Add to rejected if not already present
+                        
+                    // Add to rejected if not already present (direct enum equality)
                     if (!context.RejectedVehicleTypes.Contains(type))
                     {
                         context.RejectedVehicleTypes.Add(type);
@@ -1352,16 +1385,16 @@ namespace SmartAutoTrader.API.Services
                 }
             }
 
+            // Process explicitly negated fuel types - ensure proper enum parsing and usage
             if (parameters.ExplicitlyNegatedFuelTypes?.Any() == true)
             {
                 foreach (var fuel in parameters.ExplicitlyNegatedFuelTypes)
                 {
-                    // Remove from confirmed if present
+                    // Remove from confirmed if present (direct enum equality)
                     if (context.ConfirmedFuelTypes.Contains(fuel))
-                    {
                         context.ConfirmedFuelTypes.Remove(fuel);
-                    }
-                    // Add to rejected if not already present
+                        
+                    // Add to rejected if not already present (direct enum equality)
                     if (!context.RejectedFuelTypes.Contains(fuel))
                     {
                         context.RejectedFuelTypes.Add(fuel);
@@ -1369,14 +1402,6 @@ namespace SmartAutoTrader.API.Services
                     }
                 }
             }
-
-            // Process negative statements found via keywords (existing logic - consider simplifying/removing if redundant)
-            // string lowerMessage = userMessage.ToLower(CultureInfo.CurrentCulture);
-            // ProcessNegativePreferences(lowerMessage, context, parameters.Intent);
-
-            // Update the current parameters in context to reflect confirmed/rejected preferences
-            // This is now done *after* context update in ProcessMessageAsync
-            // SynchronizeCurrentParametersWithConfirmedValues(context);
         }
 
         private void SynchronizeCurrentParametersWithConfirmedValues(ConversationContext context)
@@ -1399,12 +1424,12 @@ namespace SmartAutoTrader.API.Services
                 .Where(m => !context.RejectedMakes.Contains(m, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
-            // Sync vehicle types, excluding rejected ones
+            // Sync vehicle types, excluding rejected ones using direct enum equality
             context.CurrentParameters.PreferredVehicleTypes = context.ConfirmedVehicleTypes
                 .Where(t => !context.RejectedVehicleTypes.Contains(t))
                 .ToList();
 
-            // Sync fuel types, excluding rejected ones
+            // Sync fuel types, excluding rejected ones using direct enum equality
             context.CurrentParameters.PreferredFuelTypes = context.ConfirmedFuelTypes
                 .Where(f => !context.RejectedFuelTypes.Contains(f))
                 .ToList();
@@ -1489,6 +1514,7 @@ namespace SmartAutoTrader.API.Services
                 expression = CombineExpressions(expression, v => !parameters.RejectedMakes.Contains(v.Make));
             }
 
+            // Correct enum comparisons for vehicle types
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
                 expression = CombineExpressions(expression, v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
@@ -1499,6 +1525,7 @@ namespace SmartAutoTrader.API.Services
                 expression = CombineExpressions(expression, v => !parameters.RejectedVehicleTypes.Contains(v.VehicleType));
             }
 
+            // Correct enum comparisons for fuel types
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
                 expression = CombineExpressions(expression, v => parameters.PreferredFuelTypes.Contains(v.FuelType));

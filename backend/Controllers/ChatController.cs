@@ -80,22 +80,51 @@ namespace SmartAutoTrader.API.Controllers
                     ClarificationNeeded = response.ClarificationNeeded,
                     OriginalUserInput = response.OriginalUserInput,
                     ConversationId = response.ConversationId,
+                    MatchedCategory = response.MatchedCategory,
                     Parameters = response.UpdatedParameters is not null
                         ? new RecommendationParametersDto
                         {
+                            // Basic scalar parameters
                             MinPrice = response.UpdatedParameters.MinPrice,
                             MaxPrice = response.UpdatedParameters.MaxPrice,
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            PreferredMakes = response.UpdatedParameters.PreferredMakes ?? [],
+                            
+                            // List parameters - preferred items
+                            PreferredMakes = response.UpdatedParameters.PreferredMakes?.ToList() ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
                                 .Select(t => t.ToString())
                                 .ToList() ?? [],
                             PreferredFuelTypes = response.UpdatedParameters.PreferredFuelTypes?
                                 .Select(f => f.ToString())
                                 .ToList() ?? [],
-                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures ?? [],
+                            DesiredFeatures = response.UpdatedParameters.DesiredFeatures?.ToList() ?? [],
+                            
+                            // List parameters - rejected/negated items
+                            RejectedMakes = response.UpdatedParameters.RejectedMakes?.ToList() ?? 
+                                           response.UpdatedParameters.ExplicitlyNegatedMakes?.ToList() ?? [],
+                            RejectedVehicleTypes = response.UpdatedParameters.RejectedVehicleTypes?
+                                .Select(t => t.ToString())
+                                .ToList() ?? 
+                                response.UpdatedParameters.ExplicitlyNegatedVehicleTypes?
+                                .Select(t => t.ToString())
+                                .ToList() ?? [],
+                            RejectedFuelTypes = response.UpdatedParameters.RejectedFuelTypes?
+                                .Select(f => f.ToString())
+                                .ToList() ?? 
+                                response.UpdatedParameters.ExplicitlyNegatedFuelTypes?
+                                .Select(f => f.ToString())
+                                .ToList() ?? [],
+                            RejectedFeatures = response.UpdatedParameters.RejectedFeatures?.ToList() ?? [],
+                            
+                            // Additional parameters
+                            Transmission = response.UpdatedParameters.Transmission?.ToString(),
+                            MinEngineSize = response.UpdatedParameters.MinEngineSize,
+                            MaxEngineSize = response.UpdatedParameters.MaxEngineSize,
+                            MinHorsePower = response.UpdatedParameters.MinHorsePower,
+                            MaxHorsePower = response.UpdatedParameters.MaxHorsePower,
+                            Intent = response.UpdatedParameters.Intent
                         }
                         : null,
                 };

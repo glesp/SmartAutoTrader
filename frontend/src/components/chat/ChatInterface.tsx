@@ -384,6 +384,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             // Show updating indicator
             setUpdatingRecommendations(true);
 
+            // Add this console log to inspect parameters
+            console.log(
+              'Parameters received from backend before calling onRecommendationsUpdated:',
+              JSON.stringify(responseData.parameters, null, 2)
+            );
+
             // Update recommendations
             onRecommendationsUpdated(
               responseData.recommendedVehicles,

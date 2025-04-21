@@ -22,24 +22,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { vehicleService } from '../../services/api';
-
-interface FilterState {
-  make?: string;
-  model?: string;
-  minYear?: number;
-  maxYear?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  fuelType?: string;
-  transmission?: string;
-  vehicleType?: string;
-  minEngineSize?: number;
-  maxEngineSize?: number;
-  minHorsepower?: number;
-  maxHorsepower?: number;
-  sortBy: string;
-  ascending: boolean;
-}
+import { FilterState } from '../../types/models';
 
 interface VehicleFiltersProps {
   filters: FilterState;

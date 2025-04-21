@@ -61,6 +61,8 @@ const RecommendationsPage = () => {
     newParams: RecommendationParameters
   ) => {
     console.log('Received recommendations:', vehicles.length, 'vehicles');
+    console.log('Received parameters:', newParams);
+
     setRecommendedVehicles(vehicles);
     setParameters(newParams);
 

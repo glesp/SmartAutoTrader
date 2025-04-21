@@ -4,6 +4,7 @@ import { vehicleService } from '../services/api';
 import VehicleCard from '../components/vehicles/VehicleCard';
 import VehicleFilters from '../components/vehicles/VehicleFilters';
 import { Vehicle } from '../types/models';
+import { FilterState } from '../types/models';
 import {
   Grid,
   Box,
@@ -14,24 +15,6 @@ import {
   CircularProgress,
   Divider,
 } from '@mui/material';
-
-interface FilterState {
-  make?: string;
-  model?: string;
-  minYear?: number;
-  maxYear?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  fuelType?: string;
-  transmission?: string;
-  vehicleType?: string;
-  minEngineSize?: number;
-  maxEngineSize?: number;
-  minHorsepower?: number;
-  maxHorsepower?: number;
-  sortBy: string;
-  ascending: boolean;
-}
 
 const VehicleListingPage = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
