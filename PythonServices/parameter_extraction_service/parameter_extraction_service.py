@@ -65,6 +65,9 @@ FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 REFINE_MODEL = "google/gemma-3-27b-it:free"
 CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
 
+# Define thresholds for confidence levels
+LOW_CONFIDENCE_THRESHOLD = 0.4
+
 CONFUSED_FALLBACK_PROMPT = "Sorry, I seem to have gotten a bit confused. Could you please restate your main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
 
 # Define intent labels for Zero-Shot Classification
@@ -1324,7 +1327,7 @@ def extract_parameters():
                     create_default_parameters(
                         intent="off_topic",
                         is_off_topic=True,
-                        offTopicResponse="I specialize in vehicles. How can I help with your car search?",
+                        off_topic_response="I specialize in vehicles. How can I help with your car search?",
                     )
                 ),
                 200,
@@ -1437,7 +1440,17 @@ def extract_parameters():
                 match_cat, score = find_best_match(query_fragment)
                 logger.info(f"RAG result: Category='{match_cat}', Score={score:.2f}")
                 
-                if score < 0.6: # Threshold for weak RAG match
+                # Check if the score is extremely low - indicates very low confidence
+                if score < LOW_CONFIDENCE_THRESHOLD:
+                    logger.warning(f"Intent was VAGUE and RAG score ({score:.2f}) is below confidence threshold ({LOW_CONFIDENCE_THRESHOLD}). Triggering CONFUSED_FALLBACK.")
+                    final_response = create_default_parameters(
+                        intent='CONFUSED_FALLBACK',
+                        clarification_needed=True,
+                        clarification_needed_for=['reset'],
+                        retriever_suggestion=CONFUSED_FALLBACK_PROMPT
+                    )
+                # Original check for weak RAG match, now as elif
+                elif score < 0.6: # Threshold for weak RAG match
                     logger.info("RAG score too low. Requesting general clarification.")
                     final_response = create_default_parameters(
                         intent="clarify",

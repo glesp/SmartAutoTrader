@@ -225,6 +225,29 @@ namespace SmartAutoTrader.API.Services
                         string clarificationMessage = GenerateClarificationMessage(finalParametersForSearch, message.Content, conversationContext);
                         this.logger.LogInformation("Clarification needed. Generated message: {ClarificationMessage}", clarificationMessage);
 
+                        // Check for a clarification loop - compare with the previous question
+                        if (!string.IsNullOrEmpty(conversationContext.LastQuestionAskedByAI) &&
+                            string.Equals(clarificationMessage, conversationContext.LastQuestionAskedByAI, StringComparison.Ordinal))
+                        {
+                            // Loop detected - provide a fallback response
+                            string fallbackMessage = "Sorry, I seem to be stuck. Could you try rephrasing your request clearly? Please provide specific details about the vehicle you're looking for.";
+                            this.logger.LogWarning("Loop detected: Same clarification question generated consecutively. Providing fallback response.");
+                            
+                            // Save the fallback response to chat history
+                            await this.SaveChatHistoryAsync(userId, message, fallbackMessage, conversationSessionId);
+
+                            // Return a fallback response
+                            return new ChatResponse
+                            {
+                                Message = fallbackMessage,
+                                ClarificationNeeded = true,
+                                OriginalUserInput = message.Content,
+                                ConversationId = message.ConversationId,
+                                // Keep RecommendedVehicles and UpdatedParameters null/empty
+                            };
+                        }
+
+                        // Normal flow (no loop detected) - proceed with clarification
                         await this.SaveChatHistoryAsync(userId, message, clarificationMessage, conversationSessionId);
 
                         return new ChatResponse

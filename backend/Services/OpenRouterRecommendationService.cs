@@ -256,18 +256,31 @@ namespace SmartAutoTrader.API.Services
                     string.Join(", ", parameters.PreferredMakes));
             }
 
+            // Add rejected makes filter 
+            if (parameters.RejectedMakes?.Any() == true)
+            {
+                foreach (string rejectedMake in parameters.RejectedMakes)
+                {
+                    // For each rejected make, create a NOT condition
+                    expression = CombineExpressions(
+                        expression,
+                        v => !v.Make.Contains(rejectedMake) && !rejectedMake.Contains(v.Make));
+                }
+                
+                this.logger.LogInformation(
+                    "Excluding manufacturers: {RejectedManufacturers}",
+                    string.Join(", ", parameters.RejectedMakes));
+            }
+
             return expression;
         }
 
         // Helper method for case-insensitive make matching that's compatible with EF Core
         private static Expression<Func<Vehicle, bool>> BuildMakeMatchExpression(string make)
         {
-            // Simply check for exact match, as database collation should handle case-insensitivity
-            // Or we could use EF.Functions.Collate if we need to enforce case-insensitivity
             return v => v.Make == make ||
-                        v.Make.Equals(make, StringComparison.Ordinal) ||
-                        v.Make.Contains(make) || // Matching parts of make names
-                        make.Contains(v.Make);    // Substrings like "BMW" in "BMW X5"
+                        v.Make.Contains(make) || 
+                        make.Contains(v.Make);
         }
 
         // Helper method to combine two expressions with OR operator
