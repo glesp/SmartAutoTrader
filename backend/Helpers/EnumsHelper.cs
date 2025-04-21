@@ -121,6 +121,56 @@ namespace SmartAutoTrader.API.Helpers
             }
         }
 
+        public static bool TryParseTransmissionType(string value, out TransmissionType result)
+        {
+            result = default;
+
+            if (string.IsNullOrEmpty(value))
+            {
+                return false;
+            }
+
+            // Try standard parsing first (case-insensitive)
+            if (Enum.TryParse(value, true, out result))
+            {
+                return true;
+            }
+
+            // Additional fuzzy matching for common terms
+            switch (value.ToLower(CultureInfo.CurrentCulture).Trim())
+            {
+                case "auto":
+                case "self-shifting":
+                case "automat":
+                case "automatic transmission":
+                case "auto trans":
+                    result = TransmissionType.Automatic;
+                    return true;
+
+                case "manual transmission":
+                case "stick":
+                case "stick shift":
+                case "standard":
+                case "manuel":
+                    result = TransmissionType.Manual;
+                    return true;
+
+                case "semi":
+                case "semi auto":
+                case "semi-auto":
+                case "paddle":
+                case "paddle shift":
+                case "dual clutch":
+                case "dct":
+                case "semi-automatic":
+                    result = TransmissionType.SemiAutomatic;
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
         public static List<FuelType> ParseFuelTypeList(IEnumerable<string> values)
         {
             List<FuelType> result = [];

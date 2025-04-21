@@ -522,7 +522,7 @@ namespace SmartAutoTrader.API.Services
             ConversationContext? context = null) // Add context parameter
         {
             // First, filter out any rejected makes from newParams
-            if (context != null && newParams.PreferredMakes?.Any() == true)
+            if (context != null && newParams.PreferredMakes.Any() == true)
             {
                 newParams.PreferredMakes = newParams.PreferredMakes
                     .Where(m => !context.RejectedMakes.Contains(m, StringComparer.OrdinalIgnoreCase))
@@ -530,7 +530,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Filter out rejected vehicle types
-            if (context != null && newParams.PreferredVehicleTypes?.Any() == true)
+            if (context != null && newParams.PreferredVehicleTypes.Any() == true)
             {
                 newParams.PreferredVehicleTypes = newParams.PreferredVehicleTypes
                     .Where(t => !context.RejectedVehicleTypes.Contains(t))
@@ -538,7 +538,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Filter out rejected fuel types 
-            if (context != null && newParams.PreferredFuelTypes?.Any() == true)
+            if (context != null && newParams.PreferredFuelTypes.Any() == true)
             {
                 newParams.PreferredFuelTypes = newParams.PreferredFuelTypes
                     .Where(f => !context.RejectedFuelTypes.Contains(f))
@@ -546,7 +546,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Filter out rejected features
-            if (context != null && newParams.DesiredFeatures?.Any() == true)
+            if (context != null && newParams.DesiredFeatures.Any() == true)
             {
                 newParams.DesiredFeatures = newParams.DesiredFeatures
                     .Where(f => !context.RejectedFeatures.Contains(f, StringComparer.OrdinalIgnoreCase))
@@ -568,6 +568,11 @@ namespace SmartAutoTrader.API.Services
                         PreferredFuelTypes = existingParams.PreferredFuelTypes.ToList(),
                         PreferredVehicleTypes = existingParams.PreferredVehicleTypes.ToList(),
                         DesiredFeatures = existingParams.DesiredFeatures.ToList(),
+                        Transmission = existingParams.Transmission,
+                        MinEngineSize = existingParams.MinEngineSize,
+                        MaxEngineSize = existingParams.MaxEngineSize,
+                        MinHorsePower = existingParams.MinHorsePower,
+                        MaxHorsePower = existingParams.MaxHorsePower,
                         TextPrompt = newParams.TextPrompt, // Use the new text prompt
                         MaxResults = existingParams.MaxResults,
                         RetrieverSuggestion = newParams.RetrieverSuggestion,
@@ -610,27 +615,65 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // For list parameters, only overwrite if non-empty in new params
-                if (newParams.PreferredMakes?.Any() == true)
+                if (newParams.PreferredMakes.Any() == true)
                 {
                     mergedParams.PreferredMakes = newParams.PreferredMakes;
                 }
 
-                if (newParams.PreferredFuelTypes?.Any() == true)
+                if (newParams.PreferredFuelTypes.Any() == true)
                 {
                     mergedParams.PreferredFuelTypes = newParams.PreferredFuelTypes;
                 }
 
-                if (newParams.PreferredVehicleTypes?.Any() == true)
+                if (newParams.PreferredVehicleTypes.Any() == true)
                 {
                     mergedParams.PreferredVehicleTypes = newParams.PreferredVehicleTypes;
                 }
 
-                if (newParams.DesiredFeatures?.Any() == true)
+                // Fix for null issue in the DesiredFeatures section
+                if ((newParams.DesiredFeatures?.Any() == true) || (existingParams.DesiredFeatures?.Any() == true))
                 {
-                    // For features, we might want to combine old and new
-                    mergedParams.DesiredFeatures = (existingParams.DesiredFeatures ?? new List<string>())
-                        .Union(newParams.DesiredFeatures)
-                        .ToList();
+                    // Use null coalescing operators to ensure we never work with null collections
+                    List<string> newFeatures = newParams.DesiredFeatures ?? new List<string>();
+                    List<string> existingFeatures = existingParams.DesiredFeatures ?? new List<string>();
+                    
+                    mergedParams.DesiredFeatures = newFeatures.Union(existingFeatures).ToList();
+                }
+                else
+                {
+                    mergedParams.DesiredFeatures = new List<string>();
+                }
+
+                // NEW: Transmission
+                if (newParams.Transmission.HasValue)
+                {
+                    // Only apply if it doesn't match a rejected transmission
+                    if (context == null || newParams.Transmission != context.RejectedTransmission)
+                    {
+                        mergedParams.Transmission = newParams.Transmission;
+                    }
+                }
+
+                // NEW: Engine size range
+                if (newParams.MinEngineSize.HasValue)
+                {
+                    mergedParams.MinEngineSize = newParams.MinEngineSize;
+                }
+
+                if (newParams.MaxEngineSize.HasValue)
+                {
+                    mergedParams.MaxEngineSize = newParams.MaxEngineSize;
+                }
+
+                // NEW: Horsepower range
+                if (newParams.MinHorsePower.HasValue)
+                {
+                    mergedParams.MinHorsePower = newParams.MinHorsePower;
+                }
+
+                if (newParams.MaxHorsePower.HasValue)
+                {
+                    mergedParams.MaxHorsePower = newParams.MaxHorsePower;
                 }
             }
             else if (userIntent?.Equals("add_criteria", StringComparison.OrdinalIgnoreCase) == true)
@@ -638,7 +681,7 @@ namespace SmartAutoTrader.API.Services
                 // Handle additive intent - specifically union lists rather than replace
 
                 // For makes
-                if (newParams.PreferredMakes?.Any() == true && existingParams.PreferredMakes?.Any() == true)
+                if (newParams.PreferredMakes.Any() == true && existingParams.PreferredMakes.Any() == true)
                 {
                     mergedParams.PreferredMakes = newParams.PreferredMakes
                         .Union(existingParams.PreferredMakes)
@@ -646,7 +689,7 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // For fuel types
-                if (newParams.PreferredFuelTypes?.Any() == true && existingParams.PreferredFuelTypes?.Any() == true)
+                if (newParams.PreferredFuelTypes.Any() == true && existingParams.PreferredFuelTypes.Any() == true)
                 {
                     mergedParams.PreferredFuelTypes = newParams.PreferredFuelTypes
                         .Union(existingParams.PreferredFuelTypes)
@@ -654,8 +697,8 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // For vehicle types
-                if (newParams.PreferredVehicleTypes?.Any() == true &&
-                    existingParams.PreferredVehicleTypes?.Any() == true)
+                if (newParams.PreferredVehicleTypes.Any() == true &&
+                    existingParams.PreferredVehicleTypes.Any() == true)
                 {
                     mergedParams.PreferredVehicleTypes = newParams.PreferredVehicleTypes
                         .Union(existingParams.PreferredVehicleTypes)
@@ -663,11 +706,42 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // Features are always additive
-                if (newParams.DesiredFeatures != null && existingParams.DesiredFeatures != null)
+                if (newParams.DesiredFeatures.Any() == true || existingParams.DesiredFeatures.Any() == true)
                 {
-                    mergedParams.DesiredFeatures = newParams.DesiredFeatures
+                    mergedParams.DesiredFeatures = (newParams.DesiredFeatures)
                         .Union(existingParams.DesiredFeatures)
                         .ToList();
+                }
+                else
+                {
+                    mergedParams.DesiredFeatures = new List<string>();
+                }
+
+                // For transmission, engine size, and horsepower, we use the latest value rather than merging
+                // since these are not list types that can be unioned
+                if (newParams.Transmission.HasValue)
+                {
+                    mergedParams.Transmission = newParams.Transmission;
+                }
+
+                if (newParams.MinEngineSize.HasValue)
+                {
+                    mergedParams.MinEngineSize = newParams.MinEngineSize;
+                }
+
+                if (newParams.MaxEngineSize.HasValue)
+                {
+                    mergedParams.MaxEngineSize = newParams.MaxEngineSize;
+                }
+
+                if (newParams.MinHorsePower.HasValue)
+                {
+                    mergedParams.MinHorsePower = newParams.MinHorsePower;
+                }
+
+                if (newParams.MaxHorsePower.HasValue)
+                {
+                    mergedParams.MaxHorsePower = newParams.MaxHorsePower;
                 }
             }
 
@@ -696,7 +770,7 @@ namespace SmartAutoTrader.API.Services
             }
             
             // Count missing parameter types
-            int missingParameterTypes = 0;
+            double missingParameterTypes = 0;
             
             if (!hasPrice) missingParameterTypes++;
             if (!hasVehicleType) missingParameterTypes++;
@@ -705,6 +779,11 @@ namespace SmartAutoTrader.API.Services
             if (!context.ConfirmedMaxMileage.HasValue) missingParameterTypes++;
             if (!context.ConfirmedFuelTypes.Any()) missingParameterTypes++;
             
+            // NEW: Count transmission, engine size, and horsepower as optional parameters
+            // that don't necessarily trigger clarification if they're the only ones missing
+            if (!context.ConfirmedTransmission.HasValue) missingParameterTypes += 0.5;
+            if (!context.ConfirmedMinEngineSize.HasValue && !context.ConfirmedMaxEngineSize.HasValue) missingParameterTypes += 0.5;
+            if (!context.ConfirmedMinHorsePower.HasValue && !context.ConfirmedMaxHorsePower.HasValue) missingParameterTypes += 0.5;
             return missingParameterTypes >= 3;
         }
 
@@ -725,9 +804,9 @@ namespace SmartAutoTrader.API.Services
             List<string> questions = new();
 
             // PRIORITIZED QUESTION LOGIC
-            bool hasVehicleType = parameters.PreferredVehicleTypes?.Any() == true;
+            bool hasVehicleType = parameters.PreferredVehicleTypes.Any() == true;
             bool hasPrice = parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue;
-            bool hasMakes = parameters.PreferredMakes?.Any() == true;
+            bool hasMakes = parameters.PreferredMakes.Any() == true;
 
             // Priority 1: VehicleType
             if (!hasVehicleType)
@@ -789,10 +868,43 @@ namespace SmartAutoTrader.API.Services
                         : "What's your budget for this vehicle?";
                     questions.Add(priceQuestion);
                 }
+
+                // NEW: Transmission - only ask if we have some vehicle preferences established
+                bool hasVehiclePreference = parameters.PreferredVehicleTypes.Any() == true || 
+                                           parameters.PreferredMakes.Any() == true;
+                                           
+                if (parameters.Transmission == null && hasVehiclePreference && 
+                    context.RejectedTransmission == null && questions.Count < 2)
+                {
+                    questions.Add("Do you prefer automatic or manual transmission?");
+                }
+                
+                // NEW: Engine size - only ask if we have some performance or vehicle type context
+                bool mightCareAboutEngineSize = (parameters.PreferredVehicleTypes.Any() == true && 
+                                               parameters.PreferredVehicleTypes.Any(t => 
+                                                   t == VehicleType.SUV || t == VehicleType.Pickup)) ||
+                                               context.TopicContext.ContainsKey("discussing_performance");
+                                               
+                if (!parameters.MinEngineSize.HasValue && !parameters.MaxEngineSize.HasValue && 
+                    mightCareAboutEngineSize && questions.Count < 2)
+                {
+                    questions.Add("Any preferences about engine size (e.g., 2.0L or smaller, larger than 3.0L)?");
+                }
+                
+                // NEW: Horsepower - only ask if we have sports car or performance context
+                bool mightCareAboutHorsepower = context.TopicContext.ContainsKey("discussing_performance") || 
+                                              (parameters.PreferredVehicleTypes.Any() == true && 
+                                               parameters.PreferredVehicleTypes.Contains(VehicleType.Coupe));
+                                               
+                if (!parameters.MinHorsePower.HasValue && !parameters.MaxHorsePower.HasValue && 
+                    mightCareAboutHorsepower && questions.Count < 2)
+                {
+                    questions.Add("Any minimum horsepower requirement for the vehicle?");
+                }
             }
 
             // Use clarificationNeededFor if provided and we haven't built our own questions
-            if (questions.Count == 0 && parameters.ClarificationNeededFor?.Any() == true)
+            if (questions.Count == 0 && parameters.ClarificationNeededFor.Any() == true)
             {
                 foreach (string reason in parameters.ClarificationNeededFor)
                 {
@@ -828,6 +940,17 @@ namespace SmartAutoTrader.API.Services
                             break;
                         case "ambiguous":
                             questions.Add("Could you provide more specific details about what you're looking for?");
+                            break;
+                        case "transmission":
+                            questions.Add("Do you prefer automatic or manual transmission?");
+                            break;
+                        case "engine_size":
+                        case "enginesize":
+                            questions.Add("Any preferences regarding engine size (e.g., 2.0L, 3.0L)?");
+                            break;
+                        case "horsepower":
+                        case "power":
+                            questions.Add("Are you looking for a specific level of horsepower or performance?");
                             break;
                         default:
                             break;
@@ -883,13 +1006,13 @@ namespace SmartAutoTrader.API.Services
                 // Build a clear list of the specific search criteria
                 List<string> criteriaDetails = [];
 
-                if (parameters.PreferredVehicleTypes?.Any() == true)
+                if (parameters.PreferredVehicleTypes.Any() == true)
                     criteriaDetails.Add($"{string.Join("/", parameters.PreferredVehicleTypes)} type");
                     
-                if (parameters.PreferredMakes?.Any() == true)
+                if (parameters.PreferredMakes.Any() == true)
                     criteriaDetails.Add($"{string.Join("/", parameters.PreferredMakes)} make");
                     
-                if (parameters.PreferredFuelTypes?.Any() == true)
+                if (parameters.PreferredFuelTypes.Any() == true)
                     criteriaDetails.Add($"{string.Join("/", parameters.PreferredFuelTypes)} fuel");
                     
                 if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
@@ -921,6 +1044,38 @@ namespace SmartAutoTrader.API.Services
                 if (parameters.MaxMileage.HasValue)
                     criteriaDetails.Add($"under {parameters.MaxMileage:N0}km mileage");
 
+                // NEW: Add transmission if specified
+                if (parameters.Transmission.HasValue)
+                    criteriaDetails.Add($"{parameters.Transmission.Value} transmission");
+                    
+                // NEW: Add engine size range if specified
+                if (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue)
+                {
+                    string engineSizeRange = "engine size ";
+                    if (parameters.MinEngineSize.HasValue && parameters.MaxEngineSize.HasValue)
+                        engineSizeRange += $"{parameters.MinEngineSize.Value:F1}L-{parameters.MaxEngineSize.Value:F1}L";
+                    else if (parameters.MaxEngineSize.HasValue)
+                        engineSizeRange += $"under {parameters.MaxEngineSize.Value:F1}L";
+                    else
+                        engineSizeRange += $"over {parameters.MinEngineSize.Value:F1}L";
+                        
+                    criteriaDetails.Add(engineSizeRange);
+                }
+                
+                // NEW: Add horsepower range if specified
+                if (parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue)
+                {
+                    string horsepowerRange = "horsepower ";
+                    if (parameters.MinHorsePower.HasValue && parameters.MaxHorsePower.HasValue)
+                        horsepowerRange += $"{parameters.MinHorsePower.Value}-{parameters.MaxHorsePower.Value}hp";
+                    else if (parameters.MaxHorsePower.HasValue)
+                        horsepowerRange += $"under {parameters.MaxHorsePower.Value}hp";
+                    else
+                        horsepowerRange += $"over {parameters.MinHorsePower.Value}hp";
+                        
+                    criteriaDetails.Add(horsepowerRange);
+                }
+
                 // Add the criteria explanation to the response
                 if (criteriaDetails.Count > 0)
                 {
@@ -938,7 +1093,7 @@ namespace SmartAutoTrader.API.Services
                 if (parameters.PreferredMakes?.Count == 1)
                     suggestions.Add($"including other makes besides {parameters.PreferredMakes[0]}");
                 
-                if (parameters.PreferredVehicleTypes?.Count == 1)
+                if (parameters.PreferredVehicleTypes.Count == 1)
                     suggestions.Add($"different vehicle types than {parameters.PreferredVehicleTypes[0]}");
                 
                 if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue && 
@@ -969,13 +1124,13 @@ namespace SmartAutoTrader.API.Services
                 // Build summary of key search criteria
                 List<string> criteria = [];
                 
-                if (parameters.PreferredVehicleTypes?.Any() == true)
+                if (parameters.PreferredVehicleTypes.Any() == true)
                     criteria.Add(string.Join("/", parameters.PreferredVehicleTypes));
                 
-                if (parameters.PreferredMakes?.Any() == true)
+                if (parameters.PreferredMakes.Any() == true)
                     criteria.Add(string.Join("/", parameters.PreferredMakes));
                 
-                if (parameters.PreferredFuelTypes?.Any() == true)
+                if (parameters.PreferredFuelTypes.Any() == true)
                 {
                     string fuelDesc = string.Join("/", parameters.PreferredFuelTypes);
                     criteria.Add(fuelDesc.EndsWith("ic") ? $"{fuelDesc}" : $"{fuelDesc}");
@@ -997,6 +1152,10 @@ namespace SmartAutoTrader.API.Services
                         criteria.Add($"pre-{parameters.MaxYear.Value}");
                 }
 
+                // NEW: Add transmission if specified
+                if (parameters.Transmission.HasValue)
+                    criteria.Add(parameters.Transmission.Value.ToString());
+                    
                 // Structure the main response text
                 _ = response.Append($"I found {recommendationCount} ");
                 
@@ -1023,6 +1182,39 @@ namespace SmartAutoTrader.API.Services
                 
                 _ = response.Append(" matching your criteria.");
 
+                // Add additional details like engine size and horsepower if they were specified
+                if (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue ||
+                    parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue)
+                {
+                    _ = response.Append(" I've focused on vehicles with");
+                    
+                    if (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue)
+                    {
+                        if (parameters.MinEngineSize.HasValue && parameters.MaxEngineSize.HasValue)
+                            _ = response.Append($" {parameters.MinEngineSize.Value:F1}L-{parameters.MaxEngineSize.Value:F1}L engines");
+                        else if (parameters.MaxEngineSize.HasValue)
+                            _ = response.Append($" engines under {parameters.MaxEngineSize.Value:F1}L");
+                        else
+                            _ = response.Append($" engines over {parameters.MinEngineSize.Value:F1}L");
+                    }
+                    
+                    if ((parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue) &&
+                        (parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue))
+                        _ = response.Append(" and");
+                        
+                    if (parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue)
+                    {
+                        if (parameters.MinHorsePower.HasValue && parameters.MaxHorsePower.HasValue)
+                            _ = response.Append($" {parameters.MinHorsePower.Value}-{parameters.MaxHorsePower.Value}hp");
+                        else if (parameters.MaxHorsePower.HasValue)
+                            _ = response.Append($" under {parameters.MaxHorsePower.Value}hp");
+                        else
+                            _ = response.Append($" over {parameters.MinHorsePower.Value}hp");
+                    }
+                    
+                    _ = response.Append(".");
+                }
+
                 // Add personalized context-based details
                 if (context.TopicContext.ContainsKey("discussing_family_needs"))
                     _ = response.Append(" These options provide good space and safety features for family needs.");
@@ -1030,7 +1222,7 @@ namespace SmartAutoTrader.API.Services
                 if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
                     _ = response.Append(" I've prioritized vehicles with good fuel efficiency.");
 
-                if (parameters.DesiredFeatures?.Any() == true)
+                if (parameters.DesiredFeatures.Any() == true)
                     _ = response.Append($" These vehicles include features like {string.Join(", ", parameters.DesiredFeatures)}.");
 
                 // Add helpful follow-up prompt
@@ -1082,7 +1274,7 @@ namespace SmartAutoTrader.API.Services
                     query = message,
                     forceModel = modelStrategy,
                     conversationHistory = formattedHistory,
-                    lastQuestionAskedByAI = context?.LastQuestionAskedByAI,
+                    lastQuestionAskedByAI = context.LastQuestionAskedByAI,
                     confirmedContext = context != null ? new
                     {
                         confirmedMakes = context.ConfirmedMakes,
@@ -1092,13 +1284,19 @@ namespace SmartAutoTrader.API.Services
                         confirmedMaxPrice = context.ConfirmedMaxPrice,
                         confirmedMinYear = context.ConfirmedMinYear,
                         confirmedMaxYear = context.ConfirmedMaxYear,
-                        confirmedMaxMileage = context.ConfirmedMaxMileage
+                        confirmedMaxMileage = context.ConfirmedMaxMileage,
+                        confirmedTransmission = context.ConfirmedTransmission?.ToString(),
+                        confirmedMinEngineSize = context.ConfirmedMinEngineSize,
+                        confirmedMaxEngineSize = context.ConfirmedMaxEngineSize,
+                        confirmedMinHorsePower = context.ConfirmedMinHorsePower,
+                        confirmedMaxHorsePower = context.ConfirmedMaxHorsePower
                     } : null,
                     rejectedContext = context != null ? new
                     {
                         rejectedMakes = context.RejectedMakes,
                         rejectedVehicleTypes = context.RejectedVehicleTypes.Select(t => t.ToString()),
-                        rejectedFuelTypes = context.RejectedFuelTypes.Select(f => f.ToString())
+                        rejectedFuelTypes = context.RejectedFuelTypes.Select(f => f.ToString()),
+                        rejectedTransmission = context.RejectedTransmission?.ToString()
                     } : null
                 };
 
@@ -1232,6 +1430,38 @@ namespace SmartAutoTrader.API.Services
                     // Parse the off-topic flags
                     IsOffTopic = jsonDoc.RootElement.TryGetProperty("isOffTopic", out JsonElement isOffTopicElement)
                                  && isOffTopicElement.ValueKind == JsonValueKind.True,
+
+                    // NEW: Parse transmission type
+                    Transmission = jsonDoc.RootElement.TryGetProperty("transmission", out JsonElement transmissionElement) &&
+                                 transmissionElement.ValueKind == JsonValueKind.String
+                        ? EnumHelpers.TryParseTransmissionType(
+                            transmissionElement.GetString() ?? string.Empty,
+                            out TransmissionType transmission)
+                            ? transmission
+                            : null
+                        : null,
+                        
+                    // NEW: Parse engine size range
+                    MinEngineSize = jsonDoc.RootElement.TryGetProperty("minEngineSize", out JsonElement minEngineSizeElement) &&
+                                  minEngineSizeElement.ValueKind == JsonValueKind.Number
+                        ? minEngineSizeElement.GetDouble()
+                        : null,
+                        
+                    MaxEngineSize = jsonDoc.RootElement.TryGetProperty("maxEngineSize", out JsonElement maxEngineSizeElement) &&
+                                  maxEngineSizeElement.ValueKind == JsonValueKind.Number
+                        ? maxEngineSizeElement.GetDouble()
+                        : null,
+                        
+                    // NEW: Parse horsepower range
+                    MinHorsePower = jsonDoc.RootElement.TryGetProperty("minHorsepower", out JsonElement minHorsepowerElement) &&
+                                  minHorsepowerElement.ValueKind == JsonValueKind.Number
+                        ? (int?)Convert.ToInt32(minHorsepowerElement.GetDouble())
+                        : null,
+                        
+                    MaxHorsePower = jsonDoc.RootElement.TryGetProperty("maxHorsepower", out JsonElement maxHorsepowerElement) &&
+                                  maxHorsepowerElement.ValueKind == JsonValueKind.Number
+                        ? (int?)Convert.ToInt32(maxHorsepowerElement.GetDouble())
+                        : null,
                 };
 
                 if (parameters.IsOffTopic && jsonDoc.RootElement.TryGetProperty(
@@ -1360,7 +1590,7 @@ namespace SmartAutoTrader.API.Services
             }
 
             // Add features
-            if (parameters.DesiredFeatures?.Any() == true)
+            if (parameters.DesiredFeatures.Any() == true)
             {
                 foreach (var feature in parameters.DesiredFeatures)
                 {
@@ -1371,6 +1601,30 @@ namespace SmartAutoTrader.API.Services
                         context.ConfirmedFeatures.Add(feature);
                 }
             }
+
+            // NEW: Update transmission preference
+            if (parameters.Transmission.HasValue)
+            {
+                // If a transmission type was previously rejected but now explicitly requested, remove from rejected
+                if (context.RejectedTransmission == parameters.Transmission.Value)
+                    context.RejectedTransmission = null;
+                    
+                context.ConfirmedTransmission = parameters.Transmission.Value;
+            }
+            
+            // NEW: Update engine size range
+            if (parameters.MinEngineSize.HasValue)
+                context.ConfirmedMinEngineSize = parameters.MinEngineSize;
+                
+            if (parameters.MaxEngineSize.HasValue)
+                context.ConfirmedMaxEngineSize = parameters.MaxEngineSize;
+                
+            // NEW: Update horsepower range
+            if (parameters.MinHorsePower.HasValue)
+                context.ConfirmedMinHorsePower = parameters.MinHorsePower;
+                
+            if (parameters.MaxHorsePower.HasValue)
+                context.ConfirmedMaxHorsePower = parameters.MaxHorsePower;
 
             // Process negative statements to populate rejected collections
             ProcessNegativePreferences(lowerMessage, context, parameters.Intent);
@@ -1484,15 +1738,17 @@ namespace SmartAutoTrader.API.Services
                     }
                 }
 
-                // === PROCESS NEGATED TRANSMISSION ===
+                // === PROCESS NEGATED TRANSMISSION === (Update with more comprehensive detection)
                 if (lowerMessage.Contains("not automatic") || lowerMessage.Contains("no automatic") ||
-                    lowerMessage.Contains("don't want automatic"))
+                    lowerMessage.Contains("don't want automatic") || lowerMessage.Contains("hate automatic") ||
+                    lowerMessage.Contains("dislike automatic"))
                 {
                     if (context.ConfirmedTransmission != TransmissionType.Automatic)
                         context.RejectedTransmission = TransmissionType.Automatic;
                 }
                 else if (lowerMessage.Contains("not manual") || lowerMessage.Contains("no manual") ||
-                         lowerMessage.Contains("don't want manual") || lowerMessage.Contains("not stick shift"))
+                         lowerMessage.Contains("don't want manual") || lowerMessage.Contains("hate manual") ||
+                         lowerMessage.Contains("dislike manual") || lowerMessage.Contains("not stick shift"))
                 {
                     if (context.ConfirmedTransmission != TransmissionType.Manual)
                         context.RejectedTransmission = TransmissionType.Manual;
@@ -1529,8 +1785,6 @@ namespace SmartAutoTrader.API.Services
 
         private void SynchronizeCurrentParametersWithConfirmedValues(ConversationContext context)
         {
-            // Make sure CurrentParameters is initialized
-            if (context.CurrentParameters == null)
                 context.CurrentParameters = new RecommendationParameters();
                 
             // Sync all numeric parameters
@@ -1559,6 +1813,25 @@ namespace SmartAutoTrader.API.Services
             context.CurrentParameters.DesiredFeatures = context.ConfirmedFeatures
                 .Where(f => !context.RejectedFeatures.Contains(f, StringComparer.OrdinalIgnoreCase))
                 .ToList();
+            
+            // Sync transmission preference
+            if (context.ConfirmedTransmission.HasValue && 
+                context.ConfirmedTransmission != context.RejectedTransmission)
+            {
+                context.CurrentParameters.Transmission = context.ConfirmedTransmission;
+            }
+            else
+            {
+                context.CurrentParameters.Transmission = null;
+            }
+            
+            // Sync engine size range
+            context.CurrentParameters.MinEngineSize = context.ConfirmedMinEngineSize;
+            context.CurrentParameters.MaxEngineSize = context.ConfirmedMaxEngineSize;
+            
+            // Sync horsepower range
+            context.CurrentParameters.MinHorsePower = context.ConfirmedMinHorsePower;
+            context.CurrentParameters.MaxHorsePower = context.ConfirmedMaxHorsePower;
             
             // Update MentionedVehicleFeatures for backward compatibility
             foreach (var feature in context.ConfirmedFeatures)

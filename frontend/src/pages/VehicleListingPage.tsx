@@ -25,6 +25,10 @@ interface FilterState {
   fuelType?: string;
   transmission?: string;
   vehicleType?: string;
+  minEngineSize?: number;
+  maxEngineSize?: number;
+  minHorsepower?: number;
+  maxHorsepower?: number;
   sortBy: string;
   ascending: boolean;
 }

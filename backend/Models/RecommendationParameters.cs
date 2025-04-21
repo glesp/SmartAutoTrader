@@ -27,6 +27,19 @@ namespace SmartAutoTrader.API.Models
 
         public List<string> DesiredFeatures { get; set; } = [];
 
+        // Transmission preference
+        public TransmissionType? Transmission { get; set; }
+
+        // Engine size range in liters
+        public double? MinEngineSize { get; set; }
+        
+        public double? MaxEngineSize { get; set; }
+
+        // Horsepower range
+        public int? MinHorsePower { get; set; }
+        
+        public int? MaxHorsePower { get; set; }
+
         public string? TextPrompt { get; set; }
 
         public int? MaxResults { get; set; } = 5;

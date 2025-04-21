@@ -39,11 +39,18 @@ namespace SmartAutoTrader.API.Services
 
                 // Log the important parameter values we'll be filtering on
                 this.logger.LogInformation(
-                    "Key filter values: Makes={Makes}, FuelTypes={FuelTypes}, VehicleTypes={VehicleTypes}",
+                    "Key filter values: Makes={Makes}, FuelTypes={FuelTypes}, VehicleTypes={VehicleTypes}, Transmission={Transmission}, EngineSize={EngineSize}, HorsePower={HorsePower}",
                     parameters.PreferredMakes != null ? string.Join(", ", parameters.PreferredMakes) : "null",
                     parameters.PreferredFuelTypes != null ? string.Join(", ", parameters.PreferredFuelTypes) : "null",
                     parameters.PreferredVehicleTypes != null
                         ? string.Join(", ", parameters.PreferredVehicleTypes)
+                        : "null",
+                    parameters.Transmission.HasValue ? parameters.Transmission.Value.ToString() : "null",
+                    (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue) 
+                        ? $"{parameters.MinEngineSize?.ToString() ?? "min"}-{parameters.MaxEngineSize?.ToString() ?? "max"}"
+                        : "null",
+                    (parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue)
+                        ? $"{parameters.MinHorsePower?.ToString() ?? "min"}-{parameters.MaxHorsePower?.ToString() ?? "max"}"
                         : "null");
 
                 List<Vehicle> filteredVehicles = await this.GetFilteredVehiclesAsync(parameters);
@@ -172,6 +179,44 @@ namespace SmartAutoTrader.API.Services
                 expression = CombineExpressions(
                     expression,
                     v => parameters.PreferredVehicleTypes.Contains(v.VehicleType));
+            }
+
+            // Add transmission filter
+            if (parameters.Transmission.HasValue)
+            {
+                expression = CombineExpressions(
+                    expression,
+                    v => v.Transmission == parameters.Transmission.Value);
+            }
+
+            // Add engine size range filters
+            if (parameters.MinEngineSize.HasValue)
+            {
+                expression = CombineExpressions(
+                    expression,
+                    v => v.EngineSize >= parameters.MinEngineSize.Value);
+            }
+
+            if (parameters.MaxEngineSize.HasValue)
+            {
+                expression = CombineExpressions(
+                    expression,
+                    v => v.EngineSize <= parameters.MaxEngineSize.Value);
+            }
+
+            // Add horsepower range filters
+            if (parameters.MinHorsePower.HasValue)
+            {
+                expression = CombineExpressions(
+                    expression,
+                    v => v.HorsePower >= parameters.MinHorsePower.Value);
+            }
+
+            if (parameters.MaxHorsePower.HasValue)
+            {
+                expression = CombineExpressions(
+                    expression,
+                    v => v.HorsePower <= parameters.MaxHorsePower.Value);
             }
 
             // Add make filter - FIXED: Use EF Core's EF.Functions.Like for case-insensitive comparison

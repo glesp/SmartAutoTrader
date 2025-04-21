@@ -116,6 +116,26 @@ export const vehicleService = {
       return { min: 1990, max: new Date().getFullYear() };
     }
   },
+
+  getEngineSizeRange: async (): Promise<{ min: number; max: number }> => {
+    try {
+      const response = await api.get('/vehicles/engine-size-range');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching engine size range:', error);
+      return { min: 0, max: 8 }; // Default fallback values
+    }
+  },
+
+  getHorsepowerRange: async (): Promise<{ min: number; max: number }> => {
+    try {
+      const response = await api.get('/vehicles/horsepower-range');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching horsepower range:', error);
+      return { min: 0, max: 800 }; // Default fallback values
+    }
+  },
 };
 
 // Favorites service
@@ -143,6 +163,10 @@ export const favoriteService = {
 };
 
 // Inquiry service
+interface InquiryReplyData {
+  response: string;
+}
+
 export const inquiryService = {
   getInquiries: async () => {
     const response = await api.get('/inquiries');
@@ -169,10 +193,10 @@ export const inquiryService = {
     );
     return response.data;
   },
-  markInquiryAsRead: async (id) => {
+  markInquiryAsRead: async (id: number) => {
     await api.put(`/inquiries/${id}/MarkAsRead`);
   },
-  replyToInquiry: async (id, replyData) => {
+  replyToInquiry: async (id: number, replyData: InquiryReplyData) => {
     await api.put(`/inquiries/${id}/Reply`, replyData);
   },
 };

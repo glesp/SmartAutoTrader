@@ -39,6 +39,11 @@ public class ConversationContext
     public List<FuelType> ConfirmedFuelTypes { get; set; } = [];
     public TransmissionType? ConfirmedTransmission { get; set; }
     public List<string> ConfirmedFeatures { get; set; } = [];
+    // Added engine size and horsepower confirmed criteria
+    public double? ConfirmedMinEngineSize { get; set; }
+    public double? ConfirmedMaxEngineSize { get; set; }
+    public int? ConfirmedMinHorsePower { get; set; }
+    public int? ConfirmedMaxHorsePower { get; set; }
 
     // Rejected criteria  
     public List<string> RejectedMakes { get; set; } = [];

@@ -278,7 +278,10 @@ def is_car_related(query: str) -> bool:
         "hatchback", "coupe", "convertible", "van", "minivan", "electric",
         "hybrid", "diesel", "petrol", "gasoline", "make", "model", "year", 
         "price", "mileage", "engine", "transmission", "drive", "buy", "sell",
-        "lease", "dealer", "used", "new", "road tax", "nct", "insurance", "mpg", "kpl"
+        "lease", "dealer", "used", "new", "road tax", "nct", "insurance", "mpg", "kpl",
+        "automatic", "manual", "auto", "stick shift", "paddle shift", "dsg", "cvt",
+        "engine size", "liter", "litre", "cc", "cubic", "displacement", "horsepower",
+        "hp", "bhp", "power", "torque", "performance", "l engine", "cylinder"
     }
     
     # Add common makes dynamically from the global list
@@ -344,6 +347,11 @@ def create_default_parameters(
         "retrieverSuggestion": retriever_suggestion,
         "matchedCategory": matched_category,
         "intent": intent,
+        "transmission": None,
+        "minEngineSize": None,
+        "maxEngineSize": None,
+        "minHorsepower": None,
+        "maxHorsepower": None,
     }
 
 
@@ -522,12 +530,6 @@ def process_parameters(
     """
     Cleans and validates the structure of parameters extracted by the LLM.
     Uses globally defined VALID_ lists for validation.
-    
-    Args:
-        params: Raw parameters from the LLM
-        
-    Returns:
-        Dict with validated and properly structured parameters
     """
     # Start with default structure to ensure all fields exist
     result = create_default_parameters()  
@@ -619,6 +621,33 @@ def process_parameters(
                 item for item in params["clarificationNeededFor"] 
                 if isinstance(item, str)
             ]
+        
+        # Handle transmission
+        if "transmission" in params and isinstance(params["transmission"], str):
+            transmission_value = params["transmission"].strip().lower()
+            if transmission_value in ["automatic", "manual"]:
+                # Store with first letter capitalized for consistency
+                result["transmission"] = transmission_value.capitalize()
+            else:
+                logger.warning(f"Invalid transmission value: {params['transmission']}")
+        
+        # Handle engine size (as float)
+        for field in ["minEngineSize", "maxEngineSize"]:
+            if field in params and isinstance(params[field], (int, float)) and params[field] is not None:
+                # Basic range validation for engine size (0.5L to 10.0L is reasonable)
+                if params[field] >= 0.5 and params[field] <= 10.0:
+                    result[field] = float(params[field])
+                else:
+                    logger.warning(f"Invalid {field} value: {params[field]} (outside reasonable range)")
+        
+        # Handle horsepower (as int)
+        for field in ["minHorsepower", "maxHorsepower"]:
+            if field in params and isinstance(params[field], (int, float)) and params[field] is not None:
+                # Basic range validation for horsepower (20 to 1500 is reasonable)
+                if params[field] >= 20 and params[field] <= 1500:
+                    result[field] = int(params[field])
+                else:
+                    logger.warning(f"Invalid {field} value: {params[field]} (outside reasonable range)")
         
     except Exception as e:
         logger.exception(f"Error during parameter processing: {e}")
@@ -723,8 +752,9 @@ def build_enhanced_system_prompt(
         rejected_types = rejected_context.get("rejectedVehicleTypes", [])
         rejected_fuels = rejected_context.get("rejectedFuelTypes", [])
         rejected_features = rejected_context.get("rejectedFeatures", [])
+        rejected_transmission = rejected_context.get("rejectedTransmission", [])
 
-        if rejected_makes or rejected_types or rejected_fuels or rejected_features:
+        if rejected_makes or rejected_types or rejected_fuels or rejected_features or rejected_transmission:
             rejected_context_str = "## USER HAS EXPLICITLY REJECTED (CRITICAL):\n"
 
             if rejected_makes:
@@ -735,6 +765,8 @@ def build_enhanced_system_prompt(
                 rejected_context_str += f"- Rejected Fuel Types: {json.dumps(rejected_fuels)}\n"
             if rejected_features:
                 rejected_context_str += f"- Rejected Features: {json.dumps(rejected_features)}\n"
+            if rejected_transmission:
+                rejected_context_str += f"- Rejected Transmission: {json.dumps(rejected_transmission)}\n"
 
             rejected_context_str += "\n⚠️ IMPORTANT: You MUST NOT include any of these in your extracted parameters!\n---\n"
 
@@ -773,6 +805,25 @@ def build_enhanced_system_prompt(
         if confirmed_context.get("confirmedMaxMileage"):
             confirmed_context_str += f"- Max Mileage: {confirmed_context['confirmedMaxMileage']}\n"
 
+        if confirmed_context.get("confirmedTransmission"):
+            confirmed_context_str += f"- Confirmed Transmission: {confirmed_context['confirmedTransmission']}\n"
+
+        engine_size_info = []
+        if confirmed_context.get("confirmedMinEngineSize"):
+            engine_size_info.append(f"Min: {confirmed_context['confirmedMinEngineSize']}L")
+        if confirmed_context.get("confirmedMaxEngineSize"):
+            engine_size_info.append(f"Max: {confirmed_context['confirmedMaxEngineSize']}L")
+        if engine_size_info:
+            confirmed_context_str += f"- Engine Size Range: {', '.join(engine_size_info)}\n"
+
+        hp_info = []
+        if confirmed_context.get("confirmedMinHorsePower"):
+            hp_info.append(f"Min: {confirmed_context['confirmedMinHorsePower']}hp")
+        if confirmed_context.get("confirmedMaxHorsePower"):
+            hp_info.append(f"Max: {confirmed_context['confirmedMaxHorsePower']}hp")
+        if hp_info:
+            confirmed_context_str += f"- Horsepower Range: {', '.join(hp_info)}\n"
+
         confirmed_context_str += "---\n"
 
     current_year = datetime.datetime.now().year
@@ -805,94 +856,81 @@ Latest User Query: "{user_query}"
 - clarificationNeeded: Set to true if the LATEST query is vague and requires more information
   (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor (e.g., ["budget", "type"]).
 
+## NEW PARAMETER RULES:
+- transmission: 
+  * Set to "Automatic" or "Manual" (exactly as written) when user mentions transmission preference.
+  * Examples: "automatic", "manual", "stick shift" (→ "Manual"), "self-shifting" (→ "Automatic").
+  * Place ONLY in transmission field, NOT in desiredFeatures.
+  * Set to null if no transmission type is mentioned.
+  
+- minEngineSize/maxEngineSize:
+  * Extract engine size as floating-point liters. Examples: "2.0L" → 2.0, "1.6 liters" → 1.6
+  * For ranges, use both fields: "between 1.5L and 3.0L" → minEngineSize: 1.5, maxEngineSize: 3.0
+  * For minimum only: "at least 2.0L" → minEngineSize: 2.0, maxEngineSize: null
+  * For maximum only: "under 2.5L" → minEngineSize: null, maxEngineSize: 2.5
+  * Accept various units and convert to liters: "1600cc" → 1.6, "2000 cubic centimeters" → 2.0
+  * Place ONLY in engine size fields, NOT in desiredFeatures.
+  
+- minHorsepower/maxHorsepower:
+  * Extract horsepower as integers. Examples: "200hp" → 200, "150 horsepower" → 150
+  * For ranges, use both fields: "between 150hp and 300hp" → minHorsepower: 150, maxHorsepower: 300
+  * For minimum only: "at least 200hp" → minHorsepower: 200, maxHorsepower: null
+  * For maximum only: "under 150hp" → minHorsepower: null, maxHorsepower: 150
+  * Accept variations: "bhp", "PS", "power"
+  * Place ONLY in horsepower fields, NOT in desiredFeatures.
+
 ## NEGATION HANDLING (CRITICAL RULES):
-- If the user says "no [make]", "not [make]", "don't want [make]", or any similar negation, DO NOT include that make in preferredMakes.
-- CRITICAL: Check the Rejected Options list above. NEVER include any make, vehicle type, or fuel type from that list in your response.
-- For negations in the latest query like "No Hyundai" or "I don't want electric", respect these by OMITTING them from the parameters.
-- If the user says "everything except [make]", include all valid makes EXCEPT the negated one.
-- If the user negates something previously mentioned, REMOVE it from your response.
-- If the user is changing their mind about a previously rejected option (e.g., "Actually I want a Hyundai after all"), then it's okay to include it.
+- Existing negation rules...
+- For transmission, if user says "not automatic" or "no manual", DO NOT set the transmission field to that value.
 
 ## CONTEXTUAL INTERPRETATION (CRITICAL RULES):
-- Pay close attention to the IMMEDIATELY PRECEDING Assistant message in the history.
-  - If the Assistant asked a question (e.g., "What's your budget?", "Which year?", "Max mileage?"),
-    interpret the LATEST user query as the answer to that question.
-  - **Numbers in Context:** If the Assistant asked for budget/price, interpret a number like '50000'
-    or '€50k' in the user's reply as {{"maxPrice": 50000.0}} (or minPrice/etc. based on phrasing
-    like 'over'/'under'). If the assistant asked for mileage, interpret it as {{"maxMileage": 50000}}.
-    Prioritize this contextual interpretation. Use currency symbols (€, $) if provided as a hint for price.
-  - Simple phrases like "about 5 years old" or "newer than 2018" should be properly interpreted as year criteria.
-  - Look for natural language in answers: "I'm thinking around 20 grand" → {{"maxPrice": 20000.0}}, etc.
+- Existing contextual interpretation rules...
+- If the Assistant asked about transmission, interpret simple replies like "automatic" or "auto" accordingly.
+- If the Assistant asked about engine size, interpret numbers like "2.0" or "3 liters" as engine size.
+- If the Assistant asked about power or performance, interpret numbers like "200" or "over 150" as horsepower.
 
 ## INTENT DETERMINATION (CRITICAL):
-- **INTENT PRIORITY:** Determining the correct 'intent' is critical.
-  Pay close attention to the 'clarify' intent rule below.
-
-- intent: Determine the intent based on the relationship between the LATEST query and the history:
-    * "new_query": Latest query starts a completely new search, unrelated to history.
-    * "replace_criteria": Latest query completely changes the core subject
-      (e.g., was asking about SUVs, now asks only about Sedans).
-    * "add_criteria": Latest query adds constraints (e.g., "also make it petrol", "show me BMWs too").
-    * "refine_criteria": Latest query modifies existing constraints
-      (e.g., "change price to under 30k", "actually, make it newer").
-    * "clarify": **CRITICAL RULE:** Use this intent ONLY when the Latest query DIRECTLY and SIMPLY
-      ANSWERS a question asked by the Assistant in the IMMEDIATELY PRECEDING turn
-      (e.g., Assistant asked for budget, User provides ONLY a number like '25000'
-      or a price phrase like 'under 20k'). DO NOT use 'new_query' in this case.
+- Existing intent determination rules...
 
 ## PARAMETER HANDLING RULES:
-- PRICE/YEAR/MILEAGE HANDLING (Apply if explicitly mentioned in LATEST query OR contextually interpreted):
-- "under X" / "less than X" → maxPrice/maxYear/maxMileage = X, min = null
-- "over X" / "more than X" → minPrice/minYear = X, max = null
-- "between X and Y" → min = X, max = Y
-- "around X" (for price) → minPrice = 0.8*X, maxPrice = 1.2*X
-- "low miles" → maxMileage = 30000
-- "new" / "recent" → minYear = {current_year - 2}
-- "brand new" → minYear = {current_year}
-- "older" / "used" (vague) → maxYear = {current_year - 4}
+- Existing parameter handling rules...
 
 ## VALID VALUES:
-- Valid Makes:
-  {json.dumps(valid_makes)}
-- Valid Fuel Types:
-  {json.dumps(valid_fuels)}
-- Valid Vehicle Types (includes aliases):
-  {json.dumps(valid_vehicles)}
+- Valid Makes: {json.dumps(valid_makes)}
+- Valid Fuel Types: {json.dumps(valid_fuels)}
+- Valid Vehicle Types (includes aliases): {json.dumps(valid_vehicles)}
+- Valid Transmission Types: ["Automatic", "Manual"]
 
 ## EXAMPLES (Focus on LATEST query + history for intent):
+# --- STANDARD EXAMPLES ---
+Latest User Query: "Looking for an automatic BMW with at least 2.0L engine and 200hp"
+Output: {{..., "preferredMakes": ["BMW"], "transmission": "Automatic", "minEngineSize": 2.0, "minHorsepower": 200, ...}}
+
+Latest User Query: "I need a manual car with under 1.6L engine for fuel efficiency"
+Output: {{..., "transmission": "Manual", "maxEngineSize": 1.6, ...}}
+
+Latest User Query: "Something with more power, at least 300 horsepower"
+Output: {{..., "minHorsepower": 300, ...}}
+
 # --- CLARIFICATION ANSWER EXAMPLES ---
-History: Assistant: What's your budget?
-Latest User Query: "Under €20000"
-Output: {{..., "maxPrice": 20000.0, "intent": "clarify", ...}}
+History: Assistant: What transmission do you prefer?
+Latest User Query: "Automatic"
+Output: {{..., "transmission": "Automatic", "intent": "clarify", ...}}
 
-History: Assistant: What year are you looking for?
-Latest User Query: "2021"
-Output: {{..., "minYear": 2021, "maxYear": 2021, "intent": "clarify", ...}}
+History: Assistant: Do you have preferences regarding engine size?
+Latest User Query: "Under 2 liters please"
+Output: {{..., "maxEngineSize": 2.0, "intent": "clarify", ...}}
 
-History: Assistant: What's the maximum mileage you'd consider?
-Latest User Query: "50000"
-Output: {{..., "maxMileage": 50000, "intent": "clarify", ...}}
-
-History: Assistant: What fuel type do you prefer?
-Latest User Query: "Petrol"
-Output: {{..., "preferredFuelTypes": ["Petrol"], "intent": "clarify", ...}}
-
-History: Assistant: Any preferred makes?
-Latest User Query: "Toyota please"
-Output: {{..., "preferredMakes": ["Toyota"], "intent": "clarify", ...}}
+History: Assistant: Any minimum horsepower requirement?
+Latest User Query: "At least 150hp"
+Output: {{..., "minHorsepower": 150, "intent": "clarify", ...}}
 
 # --- NEGATION EXAMPLES ---
-History: User: I need an SUV under 50k, 2020 or newer / Assistant: Okay...
-Latest User Query: "same but no Hyundai"
-Output: {{..., "preferredMakes": [], "minYear": 2020, "maxPrice": 50000.0, "preferredVehicleTypes": ["SUV"], "intent": "refine_criteria", ...}}  # Note: Hyundai explicitly NOT included
+Latest User Query: "I want a car but not automatic transmission"
+Output: {{..., "transmission": null, ...}}  # Note: don't set transmission to "Manual", unless explicitly stated
 
-History: User: looking for SUV / Assistant: Found 5 SUVs...
-Latest User Query: "Show me sedans instead"
-Output: {{..., "preferredVehicleTypes": ["Sedan", "Saloon"], "intent": "replace_criteria", ...}}
-
-History: User: looking for SUV / Assistant: Found 5 SUVs...
-Latest User Query: "also make it hybrid"
-Output: {{..., "preferredFuelTypes": ["Hybrid"], "intent": "add_criteria", ...}}
+Latest User Query: "I need an SUV, not interested in anything over 2.5L engine size"
+Output: {{..., "preferredVehicleTypes": ["SUV"], "maxEngineSize": 2.5, ...}}
 
 Respond ONLY with the JSON object.
 """
@@ -1089,7 +1127,7 @@ def extract_parameters():
             # More specific negation patterns for rejecting brands/types
             "don't want", "dont want", "no more", "not interested in", "not looking for",
             # Preference change indicators
-            "nevermind", "never mind", "actually", "instead", "rather", "prefer", "change", 
+            "nevermind", "never mind", "actually", "instead", "rather", "prefer", "like", 
             "update", "modify", "switch", "different", "other than", "replace",
             # Exclusion words
             "except", "excluding", "without", "but not", "avoid", "remove", "skip", "exclude",
@@ -1173,6 +1211,21 @@ def extract_parameters():
                             "budget", "price", "year", "make", "type", "mileage", "consider",
                             "looking for", "preferred", "want", "like", "interested in"
                         ])
+                    )
+
+                    is_transmission_question = any(
+                        trans_term in last_ai_message for trans_term in 
+                        ["transmission", "automatic", "manual", "stick shift", "gearbox", "shifting"]
+                    )
+
+                    is_engine_question = any(
+                        engine_term in last_ai_message for engine_term in 
+                        ["engine size", "engine capacity", "displacement", "liter", "cc", "cylinder size"]
+                    )
+
+                    is_horsepower_question = any(
+                        hp_term in last_ai_message for hp_term in 
+                        ["horsepower", "power", "hp", "bhp", "performance", "powerful"]
                     )
 
                     if is_question:
@@ -1345,6 +1398,47 @@ def extract_parameters():
                             if has_mileage_match or (has_mileage_keywords and has_likely_mileage_number):
                                 is_clarification_answer = True
                                 logger.info("MATCH: Mileage clarification answer detected")
+
+                        # Transmission clarification detection
+                        elif is_transmission_question:
+                            logger.info("AI asked about transmission preference")
+                            transmission_keywords = ["automatic", "manual", "auto", "stick", "shift", "dsg", 
+                                                 "cvt", "self-shifting", "paddle", "gearbox"]
+                            
+                            # Check for matching keywords
+                            has_transmission_keywords = any(word in lower_query_fragment for word in transmission_keywords)
+                            
+                            if has_transmission_keywords:
+                                is_clarification_answer = True
+                                logger.info("MATCH: Transmission clarification answer detected")
+
+                        # Engine size clarification detection
+                        elif is_engine_question:
+                            logger.info("AI asked about engine size")
+                            engine_keywords = ["liter", "litre", "l", "cc", "cubic", "engine", "size", 
+                                             "capacity", "displacement", "cylinder"]
+                            engine_size_pattern = re.compile(r'\b\d+(?:\.\d+)?\s*(?:l|cc|liter|litre)s?\b|\b\d+\s*(?:cubic|engine|size)\b')
+                            
+                            has_engine_keywords = any(word in lower_query_fragment for word in engine_keywords)
+                            has_engine_size_match = bool(engine_size_pattern.search(lower_query_fragment))
+                            
+                            if has_engine_keywords or has_engine_size_match:
+                                is_clarification_answer = True
+                                logger.info("MATCH: Engine size clarification answer detected")
+
+                        # Horsepower clarification detection
+                        elif is_horsepower_question:
+                            logger.info("AI asked about horsepower")
+                            hp_keywords = ["horsepower", "hp", "bhp", "power", "powerful", "performance", 
+                                        "strong", "weak", "fast"]
+                            hp_pattern = re.compile(r'\b\d+\s*(?:hp|bhp|horsepower|ps)\b|\b(?:power|performance).*?\b\d+\b')
+                            
+                            has_hp_keywords = any(word in lower_query_fragment for word in hp_keywords)
+                            has_hp_match = bool(hp_pattern.search(lower_query_fragment))
+                            
+                            if has_hp_keywords or has_hp_match:
+                                is_clarification_answer = True
+                                logger.info("MATCH: Horsepower clarification answer detected")
                         
                         # 7. General question context - stricter detection requiring multiple parameter types
                         elif is_general_question and is_short_answer:

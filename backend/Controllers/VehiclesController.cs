@@ -33,6 +33,10 @@ namespace SmartAutoTrader.API.Controllers
             [FromQuery] VehicleType? vehicleType = null,
             [FromQuery] int? minMileage = null,
             [FromQuery] int? maxMileage = null,
+            [FromQuery] double? minEngineSize = null,
+            [FromQuery] double? maxEngineSize = null,
+            [FromQuery] int? minHorsepower = null,
+            [FromQuery] int? maxHorsepower = null,
             [FromQuery] string sortBy = "DateListed",
             [FromQuery] bool ascending = false,
             [FromQuery] int pageNumber = 1,
@@ -97,6 +101,26 @@ namespace SmartAutoTrader.API.Controllers
             if (maxMileage.HasValue)
             {
                 query = query.Where(v => v.Mileage <= maxMileage.Value);
+            }
+
+            if (minEngineSize.HasValue)
+            {
+                query = query.Where(v => v.EngineSize >= minEngineSize.Value);
+            }
+
+            if (maxEngineSize.HasValue)
+            {
+                query = query.Where(v => v.EngineSize <= maxEngineSize.Value);
+            }
+
+            if (minHorsepower.HasValue)
+            {
+                query = query.Where(v => v.HorsePower >= minHorsepower.Value);
+            }
+
+            if (maxHorsepower.HasValue)
+            {
+                query = query.Where(v => v.HorsePower <= maxHorsepower.Value);
             }
 
             // Apply sorting
@@ -251,6 +275,24 @@ namespace SmartAutoTrader.API.Controllers
             int maxYear = this.context.Vehicles.Max(v => v.Year);
 
             return this.Ok(new { min = minYear, max = maxYear });
+        }
+
+        [HttpGet("engine-size-range")]
+        public IActionResult GetEngineSizeRange()
+        {
+            double minEngineSize = this.context.Vehicles.Min(v => v.EngineSize);
+            double maxEngineSize = this.context.Vehicles.Max(v => v.EngineSize);
+
+            return this.Ok(new { min = minEngineSize, max = maxEngineSize });
+        }
+
+        [HttpGet("horsepower-range")]
+        public IActionResult GetHorsepowerRange()
+        {
+            int minHorsepower = this.context.Vehicles.Min(v => v.HorsePower);
+            int maxHorsepower = this.context.Vehicles.Max(v => v.HorsePower);
+
+            return this.Ok(new { min = minHorsepower, max = maxHorsepower });
         }
     }
 }

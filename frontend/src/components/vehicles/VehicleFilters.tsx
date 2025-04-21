@@ -33,6 +33,10 @@ interface FilterState {
   fuelType?: string;
   transmission?: string;
   vehicleType?: string;
+  minEngineSize?: number;
+  maxEngineSize?: number;
+  minHorsepower?: number;
+  maxHorsepower?: number;
   sortBy: string;
   ascending: boolean;
 }
@@ -64,6 +68,12 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     1990,
     new Date().getFullYear(),
   ]);
+  const [engineSizeRange, setEngineSizeRange] = useState<[number, number]>([
+    0, 8,
+  ]);
+  const [horsepowerRange, setHorsepowerRange] = useState<[number, number]>([
+    0, 800,
+  ]);
 
   // Fetch available makes when component mounts
   useEffect(() => {
@@ -84,8 +94,35 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         ) {
           setYearRange([yearRangeResponse.min, yearRangeResponse.max]);
         }
+
+        // Add these API calls to fetch engine size and horsepower ranges
+        const engineSizeRangeResponse =
+          await vehicleService.getEngineSizeRange();
+        if (
+          engineSizeRangeResponse &&
+          engineSizeRangeResponse.min !== undefined &&
+          engineSizeRangeResponse.max !== undefined
+        ) {
+          setEngineSizeRange([
+            engineSizeRangeResponse.min,
+            engineSizeRangeResponse.max,
+          ]);
+        }
+
+        const horsepowerRangeResponse =
+          await vehicleService.getHorsepowerRange();
+        if (
+          horsepowerRangeResponse &&
+          horsepowerRangeResponse.min !== undefined &&
+          horsepowerRangeResponse.max !== undefined
+        ) {
+          setHorsepowerRange([
+            horsepowerRangeResponse.min,
+            horsepowerRangeResponse.max,
+          ]);
+        }
       } catch (error) {
-        console.error('Error fetching makes or years:', error);
+        console.error('Error fetching vehicle specifications:', error);
       }
     };
 
@@ -125,6 +162,32 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     }
   };
 
+  // Handle engine size range changes
+  const handleEngineSizeRangeChange = (
+    event: Event,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue)) {
+      onFilterChange({
+        minEngineSize: newValue[0],
+        maxEngineSize: newValue[1],
+      });
+    }
+  };
+
+  // Handle horsepower range changes
+  const handleHorsepowerRangeChange = (
+    event: Event,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue)) {
+      onFilterChange({
+        minHorsepower: newValue[0],
+        maxHorsepower: newValue[1],
+      });
+    }
+  };
+
   // Reset all filters
   const handleResetFilters = () => {
     onFilterChange({
@@ -137,6 +200,10 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
       fuelType: undefined,
       transmission: undefined,
       vehicleType: undefined,
+      minEngineSize: undefined,
+      maxEngineSize: undefined,
+      minHorsepower: undefined,
+      maxHorsepower: undefined,
       sortBy: 'DateListed',
       ascending: false,
     });
@@ -355,6 +422,66 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
               ))}
             </Select>
           </FormControl>
+
+          {/* Engine Size Range slider */}
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography gutterBottom>Engine Size (L)</Typography>
+            <Slider
+              value={[
+                typeof filters.minEngineSize === 'number'
+                  ? filters.minEngineSize
+                  : engineSizeRange[0],
+                typeof filters.maxEngineSize === 'number'
+                  ? filters.maxEngineSize
+                  : engineSizeRange[1],
+              ]}
+              onChange={handleEngineSizeRangeChange}
+              valueLabelDisplay="auto"
+              min={engineSizeRange[0]}
+              max={engineSizeRange[1]}
+              step={0.1}
+              marks={[
+                {
+                  value: engineSizeRange[0],
+                  label: engineSizeRange[0].toFixed(1),
+                },
+                {
+                  value: engineSizeRange[1],
+                  label: engineSizeRange[1].toFixed(1),
+                },
+              ]}
+            />
+          </Box>
+
+          {/* Horsepower Range slider */}
+          <Box sx={{ mt: 3, mb: 2 }}>
+            <Typography gutterBottom>Horsepower (HP)</Typography>
+            <Slider
+              value={[
+                typeof filters.minHorsepower === 'number'
+                  ? filters.minHorsepower
+                  : horsepowerRange[0],
+                typeof filters.maxHorsepower === 'number'
+                  ? filters.maxHorsepower
+                  : horsepowerRange[1],
+              ]}
+              onChange={handleHorsepowerRangeChange}
+              valueLabelDisplay="auto"
+              min={horsepowerRange[0]}
+              max={horsepowerRange[1]}
+              step={10}
+              marks={[
+                {
+                  value: horsepowerRange[0],
+                  label: horsepowerRange[0].toString(),
+                },
+                {
+                  value: horsepowerRange[1],
+                  label: horsepowerRange[1].toString(),
+                },
+              ]}
+            />
+          </Box>
         </AccordionDetails>
       </Accordion>
 
