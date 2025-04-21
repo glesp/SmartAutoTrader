@@ -55,5 +55,11 @@ namespace SmartAutoTrader.API.Models
         public string? Intent { get; set; }
 
         public List<string> ClarificationNeededFor { get; set; } = [];
+
+        public List<string> ExplicitlyNegatedMakes { get; set; } = new List<string>();
+
+        public List<VehicleType> ExplicitlyNegatedVehicleTypes { get; set; } = new List<VehicleType>();
+
+        public List<FuelType> ExplicitlyNegatedFuelTypes { get; set; } = new List<FuelType>();
     }
 }
