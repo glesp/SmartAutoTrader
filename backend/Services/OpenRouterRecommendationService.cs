@@ -4,9 +4,18 @@
 
 namespace SmartAutoTrader.API.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Linq.Expressions;
+    using System.Net.Http;
     using System.Text.Json;
+    using System.Threading.Tasks;
+    using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using SmartAutoTrader.API.Enums;
+    using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 

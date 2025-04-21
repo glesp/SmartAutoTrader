@@ -61,5 +61,12 @@ namespace SmartAutoTrader.API.Models
         public List<VehicleType> ExplicitlyNegatedVehicleTypes { get; set; } = new List<VehicleType>();
 
         public List<FuelType> ExplicitlyNegatedFuelTypes { get; set; } = new List<FuelType>();
+
+        // Properties to hold rejected items for filtering
+        public List<string> RejectedMakes { get; set; } = new List<string>();
+        public List<VehicleType> RejectedVehicleTypes { get; set; } = new List<VehicleType>();
+        public List<FuelType> RejectedFuelTypes { get; set; } = new List<FuelType>();
+        public List<string> RejectedFeatures { get; set; } = new List<string>();
+        public TransmissionType? RejectedTransmission { get; set; }
     }
 }
