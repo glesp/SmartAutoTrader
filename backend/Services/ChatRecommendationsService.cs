@@ -121,6 +121,25 @@ namespace SmartAutoTrader.API.Services
                     return new ChatResponse { Message = "Sorry, I couldn't understand your request.", ConversationId = message.ConversationId };
                 }
 
+                // Check for CONFUSED_FALLBACK state from Python service
+                if (extractedParameters.Intent?.Equals("CONFUSED_FALLBACK", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    this.logger.LogWarning("Python service indicated confusion. Returning fallback prompt.");
+                    string fallbackMessage = extractedParameters.RetrieverSuggestion ?? "Sorry, I'm having trouble understanding. Could you please rephrase simply?";
+
+                    // Save history with the fallback message as AI response
+                    await this.SaveChatHistoryAsync(userId, message, fallbackMessage, conversationSessionId);
+
+                    // Return a specific response for the confused state
+                    return new ChatResponse
+                    {
+                        Message = fallbackMessage,
+                        ClarificationNeeded = true, // Still requires user input
+                        ConversationId = message.ConversationId
+                        // Keep RecommendedVehicles and UpdatedParameters null/empty
+                    };
+                }
+
                 // Handle Off-Topic directly
                 if (extractedParameters.IsOffTopic && !string.IsNullOrEmpty(extractedParameters.OffTopicResponse))
                 {
@@ -1130,7 +1149,34 @@ namespace SmartAutoTrader.API.Services
                                   maxHorsepowerElement.ValueKind == JsonValueKind.Number
                         ? (int?)Convert.ToInt32(maxHorsepowerElement.GetDouble())
                         : null,
+
+                    Intent = jsonDoc.RootElement.TryGetProperty("intent", out JsonElement intentElement) && intentElement.ValueKind == JsonValueKind.String
+                             ? intentElement.GetString()
+                             : "new_query", // Default intent
+
+                    RetrieverSuggestion = jsonDoc.RootElement.TryGetProperty("retrieverSuggestion", out JsonElement retrieverSuggestionElement) && retrieverSuggestionElement.ValueKind == JsonValueKind.String
+                                          ? retrieverSuggestionElement.GetString()
+                                          : null,
+
+                    // Initialize ClarificationNeeded in the constructor
+                    ClarificationNeeded = jsonDoc.RootElement.TryGetProperty("clarificationNeeded", out JsonElement clarificationNeededElement) && 
+                                          clarificationNeededElement.ValueKind == JsonValueKind.True,
+
+                    // Initialize ClarificationNeededFor as empty list
+                    ClarificationNeededFor = new List<string>(),
                 };
+
+                // Parse the clarificationNeededFor array properly
+                if (jsonDoc.RootElement.TryGetProperty("clarificationNeededFor", out JsonElement cnForElement) &&
+                    cnForElement.ValueKind == JsonValueKind.Array)
+                {
+                    parameters.ClarificationNeededFor = cnForElement.EnumerateArray()
+                        .Where(e => e.ValueKind == JsonValueKind.String)
+                        .Select(e => e.GetString())
+                        .Where(s => s != null)
+                        .Select(s => s!)
+                        .ToList();
+                }
 
                 if (jsonDoc.RootElement.TryGetProperty("explicitly_negated_makes", out JsonElement negatedMakesElement) &&
                     negatedMakesElement.ValueKind == JsonValueKind.Array)
@@ -1183,38 +1229,13 @@ namespace SmartAutoTrader.API.Services
                     parameters.OffTopicResponse = responseElement.GetString();
                 }
 
-                // Parse retriever suggestion
+                // Parse retriever suggestion - use a different variable name to avoid duplication
                 if (jsonDoc.RootElement.TryGetProperty(
-                    "retrieverSuggestion",
-                    out JsonElement retrieverSuggestionElement) &&
-                    retrieverSuggestionElement.ValueKind == JsonValueKind.String)
+                    "retrieverSuggestion", 
+                    out JsonElement suggestionElement) &&
+                    suggestionElement.ValueKind == JsonValueKind.String)
                 {
-                    parameters.RetrieverSuggestion = retrieverSuggestionElement.GetString();
-                }
-
-                // NEW: Parse user intent
-                if (jsonDoc.RootElement.TryGetProperty("intent", out JsonElement intentElement) &&
-                    intentElement.ValueKind == JsonValueKind.String)
-                {
-                    parameters.Intent = intentElement.GetString();
-                }
-                else
-                {
-                    parameters.Intent = "new_query"; // Default intent
-                }
-
-                // NEW: Parse clarificationNeededFor
-                if (jsonDoc.RootElement.TryGetProperty(
-                    "clarificationNeededFor",
-                    out JsonElement clarificationNeededForElement) &&
-                    clarificationNeededForElement.ValueKind == JsonValueKind.Array)
-                {
-                    parameters.ClarificationNeededFor = clarificationNeededForElement.EnumerateArray()
-                        .Where(e => e.ValueKind == JsonValueKind.String)
-                        .Select(e => e.GetString())
-                        .Where(s => s != null)
-                        .Select(s => s!)
-                        .ToList();
+                    parameters.RetrieverSuggestion = suggestionElement.GetString();
                 }
 
                 this.logger.LogInformation(

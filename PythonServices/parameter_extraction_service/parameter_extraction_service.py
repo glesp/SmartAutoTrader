@@ -65,6 +65,8 @@ FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 REFINE_MODEL = "google/gemma-3-27b-it:free"
 CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
 
+CONFUSED_FALLBACK_PROMPT = "Sorry, I seem to have gotten a bit confused. Could you please restate your main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
+
 # Define intent labels for Zero-Shot Classification
 INTENT_LABELS = {
     "SPECIFIC_SEARCH": "Search query containing specific vehicle parameters like make "
@@ -999,6 +1001,9 @@ def run_llm_with_history(
     Tries multiple models in order of preference.
     Includes REVISED post-processing for negations and hallucinations.
     """
+    # Define confused fallback prompt
+    CONFUSED_FALLBACK_PROMPT = "Sorry, I seem to have gotten a bit confused. Could you please restate your main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
+    
     FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
     REFINE_MODEL = "google/gemma-3-27b-it:free"
     CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
@@ -1246,8 +1251,14 @@ def run_llm_with_history(
     if extracted_params:
         logger.info(f"Successful extraction with final parameters: {extracted_params}")
     else:
-        logger.warning("All LLM extraction attempts failed or resulted in invalid parameters after post-processing!")
-        extracted_params = create_default_parameters(intent="error")
+        logger.warning("All LLM extraction attempts failed or resulted in invalid parameters after post-processing! Triggering CONFUSED_FALLBACK.")
+        # Use create_default_parameters ensure all keys exist
+        extracted_params = create_default_parameters(
+            intent='CONFUSED_FALLBACK',
+            clarification_needed=True, # Signal that user input is needed
+            clarification_needed_for=['reset'], # Custom flag indicating reset
+            retriever_suggestion=CONFUSED_FALLBACK_PROMPT
+        )
 
     return extracted_params
 
@@ -1313,7 +1324,7 @@ def extract_parameters():
                     create_default_parameters(
                         intent="off_topic",
                         is_off_topic=True,
-                        off_topic_response="I specialize in vehicles. How can I help with your car search?",
+                        offTopicResponse="I specialize in vehicles. How can I help with your car search?",
                     )
                 ),
                 200,

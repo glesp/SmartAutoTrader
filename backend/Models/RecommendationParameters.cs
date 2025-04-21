@@ -54,6 +54,9 @@ namespace SmartAutoTrader.API.Models
 
         public string? Intent { get; set; }
 
+        // Add the ClarificationNeeded property
+        public bool ClarificationNeeded { get; set; }
+
         public List<string> ClarificationNeededFor { get; set; } = [];
 
         public List<string> ExplicitlyNegatedMakes { get; set; } = new List<string>();

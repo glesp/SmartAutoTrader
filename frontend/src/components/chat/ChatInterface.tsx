@@ -340,16 +340,32 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
       if (response.data) {
         const responseData: ChatResponseDTO = response.data;
 
-        // Create AI message with response data
+        // Check if the backend signaled a confused state
+        const isConfused =
+          responseData.parameters?.intent === 'CONFUSED_FALLBACK'; // Adjust if DTO uses a different flag
+
+        // Use a specific fallback message if confused, otherwise use the normal message
+        const messageContent = isConfused
+          ? responseData.message // Should contain the fallback prompt
+          : responseData.message;
+
+        // Log if confused state detected
+        if (isConfused) {
+          console.log(
+            'CONFUSED_FALLBACK detected, displaying fallback message.'
+          );
+        }
+
+        // Now create the aiMessage using messageContent
         const aiMessage: Message = {
           id: `ai-${Date.now()}`,
-          content: responseData.message,
+          content: messageContent, // Use the potentially modified content
           sender: 'ai',
           timestamp: new Date(),
-          vehicles: responseData.recommendedVehicles,
-          parameters: responseData.parameters,
+          // Only include vehicles/params if NOT confused
+          vehicles: !isConfused ? responseData.recommendedVehicles : undefined,
+          parameters: !isConfused ? responseData.parameters : undefined,
           clarificationNeeded: responseData.clarificationNeeded,
-          // Use the conversation ID from the response for the AI message
           conversationId: responseData.conversationId || messageConversationId,
         };
 
@@ -364,43 +380,44 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           loadConversations(); // Refresh the list
         }
 
-        // If clarification is needed, update the clarification state
-        if (responseData.clarificationNeeded) {
+        // Reset clarification state if confused or if clarification is no longer needed
+        if (isConfused || !responseData.clarificationNeeded) {
+          setClarificationState({ awaiting: false, originalUserInput: '' });
+        } else {
+          // Existing logic to set clarificationState if responseData.clarificationNeeded is true
           setClarificationState({
             awaiting: true,
             originalUserInput: clarificationState.awaiting
               ? clarificationState.originalUserInput
               : messageText,
           });
-        } else {
-          // If we get a final answer, reset clarification state
-          setClarificationState({
-            awaiting: false,
-            originalUserInput: '',
-          });
+        }
 
-          // Update recommendations in parent component if available
-          if (onRecommendationsUpdated && responseData.recommendedVehicles) {
-            // Show updating indicator
-            setUpdatingRecommendations(true);
+        // Prevent recommendations update if confused
+        if (
+          !isConfused &&
+          onRecommendationsUpdated &&
+          responseData.recommendedVehicles
+        ) {
+          // Show updating indicator
+          setUpdatingRecommendations(true);
 
-            // Add this console log to inspect parameters
-            console.log(
-              'Parameters received from backend before calling onRecommendationsUpdated:',
-              JSON.stringify(responseData.parameters, null, 2)
-            );
+          // Add this console log to inspect parameters
+          console.log(
+            'Parameters received from backend before calling onRecommendationsUpdated:',
+            JSON.stringify(responseData.parameters, null, 2)
+          );
 
-            // Update recommendations
-            onRecommendationsUpdated(
-              responseData.recommendedVehicles,
-              responseData.parameters || {}
-            );
+          // Update recommendations
+          onRecommendationsUpdated(
+            responseData.recommendedVehicles,
+            responseData.parameters || {}
+          );
 
-            // Hide indicator after a delay
-            setTimeout(() => {
-              setUpdatingRecommendations(false);
-            }, 1500);
-          }
+          // Hide indicator after a delay
+          setTimeout(() => {
+            setUpdatingRecommendations(false);
+          }, 1500);
         }
       }
     } catch (error) {
