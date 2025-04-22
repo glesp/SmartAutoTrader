@@ -29,9 +29,7 @@ namespace SmartAutoTrader.API.Repositories
         {
             this.context = context;
         }
-
-        /// <inheritdoc/>
-        public Task AddChatHistoryAsync(ChatHistory chatHistory)
+public Task AddChatHistoryAsync(ChatHistory chatHistory)
         {
             _ = this.context.ChatHistory.Add(chatHistory);
             return Task.CompletedTask;

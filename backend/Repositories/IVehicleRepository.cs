@@ -23,9 +23,7 @@ namespace SmartAutoTrader.API.Repositories
     public class VehicleRepository(ApplicationDbContext context) : IVehicleRepository
     {
         private readonly ApplicationDbContext context = context;
-
-        /// <inheritdoc/>
-        public Task<Vehicle?> GetByIdAsync(int id)
+public Task<Vehicle?> GetByIdAsync(int id)
         {
             return this.context.Vehicles
                 .Include(v => v.Images)

@@ -42,9 +42,7 @@ namespace SmartAutoTrader.API.Services
             this.roleRepo = roleRepo;
             this.configuration = configuration;
         }
-
-        /// <inheritdoc/>
-        public async Task<User> RegisterAsync(
+public async Task<User> RegisterAsync(
             string username,
             string email,
             string password,

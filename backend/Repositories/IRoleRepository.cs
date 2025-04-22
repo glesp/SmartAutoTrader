@@ -29,9 +29,7 @@ namespace SmartAutoTrader.API.Repositories
         {
             this.context = context;
         }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<string>> GetUserRolesAsync(int userId)
+public async Task<IEnumerable<string>> GetUserRolesAsync(int userId)
         {
             return await this.context.UserRoles
                 .Where(ur => ur.UserId == userId)

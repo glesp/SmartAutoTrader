@@ -45,9 +45,7 @@ namespace SmartAutoTrader.API.Services
             this.logger.LogInformation("Determined model strategy: {Strategy} for message count {Count}", selectedStrategy, context.MessageCount);
             return selectedStrategy;
         }
-
-        /// <inheritdoc/>
-        public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
+public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
         {
             Stopwatch sw = Stopwatch.StartNew();
             this.logger.LogInformation("Processing message for user ID {UserId}: {MessageContent}", userId, message.Content);
