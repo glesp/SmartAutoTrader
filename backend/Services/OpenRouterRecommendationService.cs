@@ -31,7 +31,8 @@ namespace SmartAutoTrader.API.Services
         private readonly HttpClient httpClient = httpClient;
         private readonly ILogger<OpenRouterRecommendationService> logger = logger;
         private readonly IVehicleRepository vehicleRepo = vehicleRepo;
-public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
+
+        public async Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters)
         {
             try
             {

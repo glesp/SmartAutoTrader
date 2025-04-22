@@ -76,6 +76,10 @@ dotnet_diagnostic.SA1600.severity = suggestion  # Elements documented
 dotnet_diagnostic.SA1601.severity = suggestion  # Partial elements documented
 dotnet_diagnostic.SA1602.severity = suggestion  # Enum items documented
 dotnet_diagnostic.SA1633.severity = none        # File header (Often disabled if not standard practice)
+dotnet_diagnostic.SA1611.severity = none
+dotnet_diagnostic.SA1616.severity = none
+dotnet_diagnostic.SA1618.severity = none
+dotnet_diagnostic.SA1648.severity = none
 
 # File Naming / Structure Rules
 dotnet_diagnostic.SA1649.severity = suggestion  # File name should match type

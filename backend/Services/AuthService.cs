@@ -42,13 +42,14 @@ namespace SmartAutoTrader.API.Services
             this.roleRepo = roleRepo;
             this.configuration = configuration;
         }
-public async Task<User> RegisterAsync(
-            string username,
-            string email,
-            string password,
-            string firstName,
-            string lastName,
-            string phoneNumber)
+
+        public async Task<User> RegisterAsync(
+                    string username,
+                    string email,
+                    string password,
+                    string firstName,
+                    string lastName,
+                    string phoneNumber)
         {
             // Check if user already exists
             if (await this.userRepo.ExistsAsync(email, username))

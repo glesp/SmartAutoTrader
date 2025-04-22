@@ -22,7 +22,8 @@ namespace SmartAutoTrader.API.Services
             this.chatRepo = chatRepo;
             this.logger = logger;
         }
-public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
+
+        public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
         {
             try
             {

@@ -26,7 +26,8 @@ namespace SmartAutoTrader.API.Repositories
     public class UserRepository(ApplicationDbContext context) : IUserRepository
     {
         private readonly ApplicationDbContext context = context;
-public Task<User?> GetByEmailAsync(string email)
+
+        public Task<User?> GetByEmailAsync(string email)
         {
             return this.context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
