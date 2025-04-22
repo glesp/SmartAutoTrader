@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 # Standard library imports first
+import datetime
 import json
 import logging
-import re
 import os
+import re
 import sys
-import datetime
-from typing import Dict, List, Optional, Any, Tuple, Set
+from typing import Any, Dict, List, Optional, Set
 
-# Third-party imports
-from flask import Flask, request, jsonify
+import numpy as np
 import requests
 from dotenv import load_dotenv
-import numpy as np
+
+# Third-party imports
+from flask import Flask, jsonify, request
 
 # Local application imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from retriever.retriever import (
-        initialize_retriever,
-        get_query_embedding,  # Assumes this function exists in retriever.py now
-        cosine_sim,  # Assumes this function exists in retriever.py
-        find_best_match,
-    )
+        cosine_sim,
+    )  # Assumes this function exists in retriever.py
+    from retriever.retriever import (
+        get_query_embedding,
+    )  # Assumes this function exists in retriever.py now
+    from retriever.retriever import find_best_match, initialize_retriever
 except ImportError as ie:
     logging.error(
         f"Could not import from retriever package: {ie}. "
@@ -68,7 +70,10 @@ CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
 # Define thresholds for confidence levels
 LOW_CONFIDENCE_THRESHOLD = 0.4
 
-CONFUSED_FALLBACK_PROMPT = "Sorry, I seem to have gotten a bit confused. Could you please restate your main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
+CONFUSED_FALLBACK_PROMPT = (
+    "Sorry, I seem to have gotten a bit confused. Could you please restate your main "
+    "vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
+)
 
 # Define intent labels for Zero-Shot Classification
 INTENT_LABELS = {
@@ -130,9 +135,22 @@ VALID_VEHICLE_TYPES = [
 ]
 
 negation_triggers = [
-    "no ", "not ", "don't want ", "dont want ", "don't like ", "dont like ",
-    "except ", "excluding ", "anything but ", "anything except ", "avoid ",
-    "hate ", "dislike ", "other than ", "besides ", "apart from "
+    "no ",
+    "not ",
+    "don't want ",
+    "dont want ",
+    "don't like ",
+    "dont like ",
+    "except ",
+    "excluding ",
+    "anything but ",
+    "anything except ",
+    "avoid ",
+    "hate ",
+    "dislike ",
+    "other than ",
+    "besides ",
+    "apart from ",
 ]
 
 conjunctions = [" or ", " and ", ", "]
@@ -280,19 +298,68 @@ def is_car_related(query: str) -> bool:
     if not query:
         return False
     query_lower = query.lower()
-    
+
     # Combine keywords for better readability
     car_keywords = {
-        "car", "vehicle", "auto", "automobile", "sedan", "suv", "truck",
-        "hatchback", "coupe", "convertible", "van", "minivan", "electric",
-        "hybrid", "diesel", "petrol", "gasoline", "make", "model", "year", 
-        "price", "mileage", "engine", "transmission", "drive", "buy", "sell",
-        "lease", "dealer", "used", "new", "road tax", "nct", "insurance", "mpg", "kpl",
-        "automatic", "manual", "auto", "stick shift", "paddle shift", "dsg", "cvt",
-        "engine size", "liter", "litre", "cc", "cubic", "displacement", "horsepower",
-        "hp", "bhp", "power", "torque", "performance", "l engine", "cylinder"
+        "car",
+        "vehicle",
+        "auto",
+        "automobile",
+        "sedan",
+        "suv",
+        "truck",
+        "hatchback",
+        "coupe",
+        "convertible",
+        "van",
+        "minivan",
+        "electric",
+        "hybrid",
+        "diesel",
+        "petrol",
+        "gasoline",
+        "make",
+        "model",
+        "year",
+        "price",
+        "mileage",
+        "engine",
+        "transmission",
+        "drive",
+        "buy",
+        "sell",
+        "lease",
+        "dealer",
+        "used",
+        "new",
+        "road tax",
+        "nct",
+        "insurance",
+        "mpg",
+        "kpl",
+        "automatic",
+        "manual",
+        "auto",
+        "stick shift",
+        "paddle shift",
+        "dsg",
+        "cvt",
+        "engine size",
+        "liter",
+        "litre",
+        "cc",
+        "cubic",
+        "displacement",
+        "horsepower",
+        "hp",
+        "bhp",
+        "power",
+        "torque",
+        "performance",
+        "l engine",
+        "cylinder",
     }
-    
+
     # Add common makes dynamically from the global list
     car_keywords.update(make.lower() for make in VALID_MANUFACTURERS)
 
@@ -302,15 +369,27 @@ def is_car_related(query: str) -> bool:
 
     # Enhanced off-topic detection - include more greetings
     off_topic_starts = (
-        "hi", "hello", "how are you", "who is", "tell me a joke", 
-        "hey", "hey there", "yo", "sup", "what's up", "hiya", "howdy", 
-        "good morning", "good afternoon", "good evening"
+        "hi",
+        "hello",
+        "how are you",
+        "who is",
+        "tell me a joke",
+        "hey",
+        "hey there",
+        "yo",
+        "sup",
+        "what's up",
+        "hiya",
+        "howdy",
+        "good morning",
+        "good afternoon",
+        "good evening",
     )
-    
+
     # Improved check: either starts with or equals one of these phrases
     if query_lower.startswith(off_topic_starts) or query_lower in off_topic_starts:
         return False
-        
+
     # Check for questions that are unlikely car related unless containing keywords
     if query_lower.startswith(("what is", "what are", "where is")) and not any(
         kw in query_lower for kw in ["car", "vehicle", "suv", "sedan"]
@@ -385,17 +464,17 @@ def build_enhanced_system_prompt(
     history_context = ""
     if conversation_history:
         history_context = "## CONVERSATION HISTORY:\n"
-        for i, turn in enumerate(conversation_history[-5:]): # Last 5 turns max
+        for i, turn in enumerate(conversation_history[-5:]):  # Last 5 turns max
             # Handle different possible keys for role and content
             role = turn.get("role")
             content = turn.get("content")
             if not role:
-                 if "user" in turn:
-                     role = "user"
-                     content = turn.get("user")
-                 elif "ai" in turn:
-                     role = "assistant"
-                     content = turn.get("ai")
+                if "user" in turn:
+                    role = "user"
+                    content = turn.get("user")
+                elif "ai" in turn:
+                    role = "assistant"
+                    content = turn.get("ai")
 
             if role == "user" and content:
                 history_context += f"User: {content}\n"
@@ -409,12 +488,20 @@ def build_enhanced_system_prompt(
 
     # Format confirmed context if available
     confirmed_context_str = ""
-    if confirmed_context and any(v for v in confirmed_context.values() if v is not None and (not isinstance(v, list) or len(v) > 0)):
-        confirmed_context_str = "\n## CONFIRMED PREFERENCES (Do not contradict these):\n"
+    if confirmed_context and any(
+        v
+        for v in confirmed_context.values()
+        if v is not None and (not isinstance(v, list) or len(v) > 0)
+    ):
+        confirmed_context_str = (
+            "\n## CONFIRMED PREFERENCES (Do not contradict these):\n"
+        )
 
         # Add confirmed makes
         if confirmed_context.get("confirmedMakes"):
-            confirmed_context_str += f"- Preferred Makes: {', '.join(confirmed_context['confirmedMakes'])}\n"
+            confirmed_context_str += (
+                f"- Preferred Makes: {', '.join(confirmed_context['confirmedMakes'])}\n"
+            )
 
         # Add confirmed price range
         price_info = []
@@ -436,7 +523,9 @@ def build_enhanced_system_prompt(
 
         # Add confirmed mileage
         if confirmed_context.get("confirmedMaxMileage") is not None:
-            confirmed_context_str += f"- Max Mileage: {confirmed_context['confirmedMaxMileage']}\n"
+            confirmed_context_str += (
+                f"- Max Mileage: {confirmed_context['confirmedMaxMileage']}\n"
+            )
 
         # Add confirmed fuel types
         if confirmed_context.get("confirmedFuelTypes"):
@@ -444,20 +533,31 @@ def build_enhanced_system_prompt(
 
         # Add confirmed vehicle types
         if confirmed_context.get("confirmedVehicleTypes"):
-            confirmed_context_str += f"- Preferred Vehicle Types: {', '.join(confirmed_context['confirmedVehicleTypes'])}\n"
+            confirmed_context_str += (
+                f"- Preferred Vehicle Types: "
+                f"{', '.join(confirmed_context['confirmedVehicleTypes'])}\n"
+            )
 
         # Add confirmed transmission
         if confirmed_context.get("confirmedTransmission"):
-            confirmed_context_str += f"- Transmission: {confirmed_context['confirmedTransmission']}\n"
+            confirmed_context_str += (
+                f"- Transmission: {confirmed_context['confirmedTransmission']}\n"
+            )
 
         # Add confirmed engine size
         engine_size_info = []
         if confirmed_context.get("confirmedMinEngineSize") is not None:
-            engine_size_info.append(f"Min: {confirmed_context['confirmedMinEngineSize']}L")
+            engine_size_info.append(
+                f"Min: {confirmed_context['confirmedMinEngineSize']}L"
+            )
         if confirmed_context.get("confirmedMaxEngineSize") is not None:
-            engine_size_info.append(f"Max: {confirmed_context['confirmedMaxEngineSize']}L")
+            engine_size_info.append(
+                f"Max: {confirmed_context['confirmedMaxEngineSize']}L"
+            )
         if engine_size_info:
-            confirmed_context_str += f"- Engine Size Range: {', '.join(engine_size_info)}\n"
+            confirmed_context_str += (
+                f"- Engine Size Range: {', '.join(engine_size_info)}\n"
+            )
 
         # Add confirmed horsepower
         hp_info = []
@@ -470,12 +570,20 @@ def build_enhanced_system_prompt(
 
     # Format rejected context if available
     rejected_context_str = ""
-    if rejected_context and any(v for v in rejected_context.values() if v is not None and (not isinstance(v, list) or len(v) > 0)):
-        rejected_context_str = "\n## REJECTED PREFERENCES (User has explicitly rejected these):\n"
+    if rejected_context and any(
+        v
+        for v in rejected_context.values()
+        if v is not None and (not isinstance(v, list) or len(v) > 0)
+    ):
+        rejected_context_str = (
+            "\n## REJECTED PREFERENCES (User has explicitly rejected these):\n"
+        )
 
         # Add rejected makes
         if rejected_context.get("rejectedMakes"):
-            rejected_context_str += f"- Rejected Makes: {', '.join(rejected_context['rejectedMakes'])}\n"
+            rejected_context_str += (
+                f"- Rejected Makes: {', '.join(rejected_context['rejectedMakes'])}\n"
+            )
 
         # Add rejected vehicle types
         if rejected_context.get("rejectedVehicleTypes"):
@@ -487,36 +595,50 @@ def build_enhanced_system_prompt(
 
         # Add rejected transmission if present
         if rejected_context.get("rejectedTransmission"):
-            rejected_context_str += f"- Rejected Transmission: {rejected_context['rejectedTransmission']}\n"
+            rejected_context_str += (
+                f"- Rejected Transmission: {rejected_context['rejectedTransmission']}\n"
+            )
 
     # Create example format for JSON output
     # Use create_default_parameters to ensure all keys are present
     default_params_example = create_default_parameters()
     # Populate with example values for clarity in the prompt
-    default_params_example.update({
-        "minPrice": 15000, "maxPrice": 25000, "minYear": 2018, "maxYear": 2022,
-        "maxMileage": 50000, "preferredMakes": ["Toyota", "Honda"],
-        "preferredFuelTypes": ["Petrol"], "preferredVehicleTypes": ["SUV"],
-        "desiredFeatures": ["Bluetooth", "Backup Camera"], "intent": "new_query",
-        "transmission": "Automatic", "minEngineSize": 2.0, "maxEngineSize": 3.5,
-        "minHorsepower": 150, "maxHorsepower": 300
-    })
+    default_params_example.update(
+        {
+            "minPrice": 15000,
+            "maxPrice": 25000,
+            "minYear": 2018,
+            "maxYear": 2022,
+            "maxMileage": 50000,
+            "preferredMakes": ["Toyota", "Honda"],
+            "preferredFuelTypes": ["Petrol"],
+            "preferredVehicleTypes": ["SUV"],
+            "desiredFeatures": ["Bluetooth", "Backup Camera"],
+            "intent": "new_query",
+            "transmission": "Automatic",
+            "minEngineSize": 2.0,
+            "maxEngineSize": 3.5,
+            "minHorsepower": 150,
+            "maxHorsepower": 300,
+        }
+    )
     # Ensure explicitly_negated lists are included in the example structure
     default_params_example["explicitly_negated_makes"] = []
     default_params_example["explicitly_negated_vehicle_types"] = []
     default_params_example["explicitly_negated_fuel_types"] = []
     json_format_example = json.dumps(default_params_example, indent=2)
 
-
     # Build the full prompt
     # Added more specific instructions based on previous issues
     return f"""
 You are an advanced automotive parameter extraction assistant for Smart Auto Trader.
 Analyze the LATEST user query ONLY to extract explicitly mentioned parameters.
-Use conversation history and context PRIMARILY to determine the 'intent' and understand implicit references (like 'it' or 'that one').
-DO NOT infer parameters from history if they are not mentioned in the LATEST query, especially for preferredMakes, preferredFuelTypes, and preferredVehicleTypes during refinements.
-
-YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT containing the following keys: {list(create_default_parameters().keys())}.
+Use conversation history and context PRIMARILY to determine the 'intent' and understand implicit
+references (like 'it' or 'that one').
+DO NOT infer parameters from history if they are not mentioned in the LATEST query, especially for preferredMakes,
+preferredFuelTypes, and preferredVehicleTypes during refinements.
+YOUR RESPONSE MUST BE ONLY A SINGLE VALID JSON OBJECT containing the following keys:
+{list(create_default_parameters().keys())}.
 Use this exact format, filling values based ONLY on the LATEST query and context:
 {json_format_example}
 
@@ -534,20 +656,30 @@ Latest User Query: "{user_query}"
 - Extract makes/fuels/types ONLY if explicitly mentioned in the LATEST query AND they appear in the Valid lists below.
 - desiredFeatures: Extract features mentioned in the LATEST query.
 - isOffTopic: Set to true ONLY if the LATEST query is clearly NOT about vehicles. If true, set offTopicResponse.
-- clarificationNeeded: Set to true ONLY if the LATEST query is vague AND lacks sufficient detail to proceed (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor (e.g., ["budget", "type"]). DO NOT set to true if the user is just refining or negating criteria.
+- clarificationNeeded: Set to true ONLY if the LATEST query is vague AND lacks sufficient detail
+   -to proceed (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor
+   -(e.g., ["budget", "type"]).
+   - DO NOT set to true if the user is just refining or negating criteria.
 
 ## NEGATION HANDLING (CRITICAL RULES):
-- If the user explicitly rejects a make/type/fuel (e.g., "not Toyota", "no SUVs", "don't want diesel"), DO NOT include it in the corresponding preferred* list. The post-processing step will handle adding it to the 'explicitly_negated_*' list.
+- If the user explicitly rejects a make/type/fuel (e.g., "not Toyota", "no SUVs", "don't want diesel")
+    -DO NOT include it in the corresponding preferred* list. The post-processing step will
+    -handle adding it to the 'explicitly_negated_*' list.
 - For transmission, if user says "not automatic" or "no manual", set the transmission field to null.
 
 ## PARAMETER HANDLING RULES:
 - transmission: Set to "Automatic" or "Manual". Null otherwise.
-- minEngineSize/maxEngineSize: Extract engine size in liters (e.g., "2.0L" -> 2.0). Handle ranges, minimums ("at least 2.0L"), maximums ("under 2.5L"). Convert units like "1600cc" -> 1.6. Null if not mentioned.
-- minHorsepower/maxHorsepower: Extract horsepower as integers (e.g., "200hp" -> 200). Handle ranges, minimums, maximums. Accept "bhp", "PS". Null if not mentioned.
+- minEngineSize/maxEngineSize: Extract engine size in liters (e.g., "2.0L" -> 2.0).
+    -Handle ranges, minimums ("at least 2.0L"), maximums ("under 2.5L").
+    -Convert units like "1600cc" -> 1.6. Null if not mentioned.
+- minHorsepower/maxHorsepower: Extract horsepower as integers (e.g., "200hp" -> 200).
+    -Handle ranges, minimums, maximums. Accept "bhp", "PS". Null if not mentioned.
 
 ## INTENT DETERMINATION (CRITICAL):
 - 'new_query': User starts a completely new search or provides initial criteria.
-- 'refine_criteria': User modifies existing criteria (changes price, adds/removes makes/types/fuels, adds constraints like 'no toyota'). This is the MOST COMMON intent after the first query.
+- 'refine_criteria': User modifies
+    -existing criteria (changes price, adds/removes makes/types/fuels, adds constraints like 'no toyota').
+    -This is the MOST COMMON intent after the first query.
 - 'add_criteria': User adds criteria without contradicting previous ones (less common than refine).
 - 'clarify': User directly answers a specific question asked by the Assistant in the previous turn.
 - 'off_topic': User query is unrelated to vehicles.
@@ -570,13 +702,16 @@ Latest User Query: "I want a Toyota under 20000"
 Output: {{"minPrice": null, "maxPrice": 20000, "preferredMakes": ["Toyota"], "intent": "new_query"...}}
 
 Latest User Query: "Actually, make it a Honda instead"
-Output: {{"preferredMakes": ["Honda"], "intent": "refine_criteria"...}} # Note: Other fields are null/[] as not mentioned in THIS query
+Output: {{"preferredMakes": ["Honda"], "intent": "refine_criteria"...}}
+    -# Note: Other fields are null/[] as not mentioned in THIS query
 
 Latest User Query: "I hate SUVs"
-Output: {{"preferredVehicleTypes": [], "intent": "refine_criteria"...}} # Note: preferredVehicleTypes is empty, post-processing handles the negation list
+Output: {{"preferredVehicleTypes": [], "intent": "refine_criteria"...}}
+    -# Note: preferredVehicleTypes is empty, post-processing handles the negation list
 
 Latest User Query: "What's the weather like today?"
-Output: {{"isOffTopic": true, "offTopicResponse": "I specialize in helping with vehicle searches...", "intent": "off_topic"...}}
+Output: {{"isOffTopic": true, "offTopicResponse":
+    -"I specialize in helping with vehicle searches...", "intent": "off_topic"...}}
 
 Latest User Query: "Under €15000"
 History: Assistant: What's your budget?
@@ -584,7 +719,8 @@ Output: {{"maxPrice": 15000, "intent": "clarify"...}} # Intent is clarify due to
 
 Latest User Query: "Ok, but no toyota"
 History: Assistant: Found 5 Honda SUVs...
-Output: {{"intent": "refine_criteria", "preferredMakes": [] ...}} # Intent is refine, preferredMakes empty, post-processing handles negated list
+Output: {{"intent": "refine_criteria", "preferredMakes": [] ...}}
+    -# Intent is refine, preferredMakes empty, post-processing handles negated list
 
 Respond ONLY with the JSON object.
 """
@@ -601,8 +737,8 @@ def try_extract_with_model(
         headers = {
             "Authorization": f"Bearer {OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://smartautotrader.app",  # Replace with your actual site URL if possible
-            "X-Title": "SmartAutoTraderParameterExtraction",  # Replace with your actual app name if possible
+            "HTTP-Referer": "https://smartautotrader.app",
+            "X-Title": "SmartAutoTraderParameterExtraction",
         }
         payload = {
             "model": model,
@@ -716,33 +852,39 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
 
     # Allow clarification needed responses
     if params.get("clarificationNeeded") is True:
-         return True
+        return True
 
     if params.get("intent") == "refine_criteria":
         has_negations = (
-            len(params.get("explicitly_negated_makes", [])) > 0 or
-            len(params.get("explicitly_negated_vehicle_types", [])) > 0 or
-            len(params.get("explicitly_negated_fuel_types", [])) > 0
+            len(params.get("explicitly_negated_makes", [])) > 0
+            or len(params.get("explicitly_negated_vehicle_types", [])) > 0
+            or len(params.get("explicitly_negated_fuel_types", [])) > 0
         )
         if has_negations:
-             # Allow refinement if only negations were extracted
-             # Check if *other* criteria were also set. If only negations, it's valid.
-             has_other_criteria = (
-                 params.get("minPrice") is not None or params.get("maxPrice") is not None or
-                 params.get("minYear") is not None or params.get("maxYear") is not None or
-                 params.get("maxMileage") is not None or
-                 len(params.get("preferredMakes", [])) > 0 or
-                 len(params.get("preferredFuelTypes", [])) > 0 or
-                 len(params.get("preferredVehicleTypes", [])) > 0 or
-                 len(params.get("desiredFeatures", [])) > 0 or
-                 params.get("transmission") is not None or
-                 params.get("minEngineSize") is not None or params.get("maxEngineSize") is not None or
-                 params.get("minHorsepower") is not None or params.get("maxHorsepower") is not None
-             )
-             if not has_other_criteria:
-                  logger.info("Validation: Allowing refine_criteria intent with only negations.")
-                  return True
-             # If it has negations AND other criteria, fall through to normal checks below
+            # Allow refinement if only negations were extracted
+            # Check if *other* criteria were also set. If only negations, it's valid.
+            has_other_criteria = (
+                params.get("minPrice") is not None
+                or params.get("maxPrice") is not None
+                or params.get("minYear") is not None
+                or params.get("maxYear") is not None
+                or params.get("maxMileage") is not None
+                or len(params.get("preferredMakes", [])) > 0
+                or len(params.get("preferredFuelTypes", [])) > 0
+                or len(params.get("preferredVehicleTypes", [])) > 0
+                or len(params.get("desiredFeatures", [])) > 0
+                or params.get("transmission") is not None
+                or params.get("minEngineSize") is not None
+                or params.get("maxEngineSize") is not None
+                or params.get("minHorsepower") is not None
+                or params.get("maxHorsepower") is not None
+            )
+            if not has_other_criteria:
+                logger.info(
+                    "Validation: Allowing refine_criteria intent with only negations."
+                )
+                return True
+            # If it has negations AND other criteria, fall through to normal checks below
 
     # Check for at least one non-null parameter or non-empty list
     has_price = params.get("minPrice") is not None or params.get("maxPrice") is not None
@@ -753,8 +895,14 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
     has_type = len(params.get("preferredVehicleTypes", [])) > 0
     has_features = len(params.get("desiredFeatures", [])) > 0
     has_transmission = params.get("transmission") is not None
-    has_engine = params.get("minEngineSize") is not None or params.get("maxEngineSize") is not None
-    has_hp = params.get("minHorsepower") is not None or params.get("maxHorsepower") is not None
+    has_engine = (
+        params.get("minEngineSize") is not None
+        or params.get("maxEngineSize") is not None
+    )
+    has_hp = (
+        params.get("minHorsepower") is not None
+        or params.get("maxHorsepower") is not None
+    )
 
     # Consider it valid if at least one criterion is set
     is_sufficient = (
@@ -775,16 +923,16 @@ def is_valid_extraction(params: Dict[str, Any]) -> bool:
     else:
         # Log only if it wasn't already allowed as a refine_criteria with only negations
         # Check the negation lists again to be safe before logging the warning
-        was_negation_only = (params.get("intent") == "refine_criteria" and (
-            len(params.get("explicitly_negated_makes", [])) > 0 or
-            len(params.get("explicitly_negated_vehicle_types", [])) > 0 or
-            len(params.get("explicitly_negated_fuel_types", [])) > 0
-            ))
+        was_negation_only = params.get("intent") == "refine_criteria" and (
+            len(params.get("explicitly_negated_makes", [])) > 0
+            or len(params.get("explicitly_negated_vehicle_types", [])) > 0
+            or len(params.get("explicitly_negated_fuel_types", [])) > 0
+        )
         if not was_negation_only:
-             logger.warning(
-                 f"Extracted parameters deemed invalid (no criteria set and no clarification needed): "
-                 f"{params}"
-             )
+            logger.warning(
+                f"Extracted parameters deemed invalid (no criteria set and no clarification needed): "
+                f"{params}"
+            )
         return False
 
 
@@ -801,64 +949,81 @@ def process_parameters(
     try:
         # Handle numeric fields with proper type validation
         for field in ["minPrice", "maxPrice"]:
-             val = params.get(field)
-             # Check for None explicitly before type check
-             if val is not None and isinstance(val, (int, float)):
-                 if val > 0:
-                     result[field] = float(val)
-                 else:
-                     logger.warning(f"Invalid {field} value: {val} (must be positive)")
+            val = params.get(field)
+            # Check for None explicitly before type check
+            if val is not None and isinstance(val, (int, float)):
+                if val > 0:
+                    result[field] = float(val)
+                else:
+                    logger.warning(f"Invalid {field} value: {val} (must be positive)")
 
         for field in ["minYear", "maxYear", "maxMileage"]:
-             val = params.get(field)
-             if val is not None and isinstance(val, (int, float)):
-                 current_year = datetime.datetime.now().year
-                 if field == "minYear" and val >= 1900 and val <= current_year + 1:
-                     result[field] = int(val)
-                 elif field == "maxYear" and val >= 1900 and val <= current_year + 1:
-                     result[field] = int(val)
-                 elif field == "maxMileage" and val >= 0: # Allow 0 mileage
-                     result[field] = int(val)
-                 else:
-                     logger.warning(f"Invalid {field} value: {val} (out of reasonable range)")
+            val = params.get(field)
+            if val is not None and isinstance(val, (int, float)):
+                current_year = datetime.datetime.now().year
+                if field == "minYear" and val >= 1900 and val <= current_year + 1:
+                    result[field] = int(val)
+                elif field == "maxYear" and val >= 1900 and val <= current_year + 1:
+                    result[field] = int(val)
+                elif field == "maxMileage" and val >= 0:  # Allow 0 mileage
+                    result[field] = int(val)
+                else:
+                    logger.warning(
+                        f"Invalid {field} value: {val} (out of reasonable range)"
+                    )
 
         # Convert valid lists to lowercase sets for case-insensitive matching
         valid_makes_lower = {make.lower() for make in VALID_MANUFACTURERS}
         valid_fuel_types_lower = {fuel.lower() for fuel in VALID_FUEL_TYPES}
-        valid_vehicle_types_lower = {vehicle_type.lower() for vehicle_type in VALID_VEHICLE_TYPES}
+        valid_vehicle_types_lower = {
+            vehicle_type.lower() for vehicle_type in VALID_VEHICLE_TYPES
+        }
 
         # Create lookup maps for preserving original casing
         valid_makes_map = {make.lower(): make for make in VALID_MANUFACTURERS}
         valid_fuel_types_map = {fuel.lower(): fuel for fuel in VALID_FUEL_TYPES}
-        valid_vehicle_types_map = {vehicle_type.lower(): vehicle_type for vehicle_type in VALID_VEHICLE_TYPES}
+        valid_vehicle_types_map = {
+            vehicle_type.lower(): vehicle_type for vehicle_type in VALID_VEHICLE_TYPES
+        }
 
         # Handle array fields with validation against known valid values (case-insensitive)
         if isinstance(params.get("preferredMakes"), list):
             result["preferredMakes"] = [
-                valid_makes_map[m.lower()]  # Use the original casing from the valid list
+                valid_makes_map[
+                    m.lower()
+                ]  # Use the original casing from the valid list
                 for m in params["preferredMakes"]
-                if isinstance(m, str) and m.lower() in valid_makes_lower  # Case-insensitive validation
+                if isinstance(m, str)
+                and m.lower() in valid_makes_lower  # Case-insensitive validation
             ]
 
         if isinstance(params.get("preferredFuelTypes"), list):
             result["preferredFuelTypes"] = [
-                valid_fuel_types_map[f.lower()]  # Use the original casing from the valid list
+                valid_fuel_types_map[
+                    f.lower()
+                ]  # Use the original casing from the valid list
                 for f in params.get("preferredFuelTypes", [])
-                if isinstance(f, str) and f.lower() in valid_fuel_types_lower  # Case-insensitive validation
+                if isinstance(f, str)
+                and f.lower() in valid_fuel_types_lower  # Case-insensitive validation
             ]
 
         if isinstance(params.get("preferredVehicleTypes"), list):
             result["preferredVehicleTypes"] = [
-                valid_vehicle_types_map[v.lower()]  # Use the original casing from the valid list
+                valid_vehicle_types_map[
+                    v.lower()
+                ]  # Use the original casing from the valid list
                 for v in params["preferredVehicleTypes"]
-                if isinstance(v, str) and v.lower() in valid_vehicle_types_lower  # Case-insensitive validation
+                if isinstance(v, str)
+                and v.lower()
+                in valid_vehicle_types_lower  # Case-insensitive validation
             ]
 
         if isinstance(params.get("desiredFeatures"), list):
             result["desiredFeatures"] = [
                 f
                 for f in params["desiredFeatures"]
-                if isinstance(f, str) and f.strip() # Basic validation + remove empty/whitespace-only
+                if isinstance(f, str)
+                and f.strip()  # Basic validation + remove empty/whitespace-only
             ]
 
         # Handle boolean flags
@@ -872,7 +1037,9 @@ def process_parameters(
         if "offTopicResponse" in params and isinstance(params["offTopicResponse"], str):
             result["offTopicResponse"] = params["offTopicResponse"]
 
-        if "retrieverSuggestion" in params and isinstance(params["retrieverSuggestion"], str):
+        if "retrieverSuggestion" in params and isinstance(
+            params["retrieverSuggestion"], str
+        ):
             result["retrieverSuggestion"] = params["retrieverSuggestion"]
 
         if "matchedCategory" in params and isinstance(params["matchedCategory"], str):
@@ -881,7 +1048,16 @@ def process_parameters(
         # Process intent with validation
         if "intent" in params and isinstance(params["intent"], str):
             # Added 'negative_constraint' as potentially valid from LLM
-            valid_intents = ["new_query", "clarify", "refine_criteria", "add_criteria", "replace_criteria", "error", "off_topic", "negative_constraint"]
+            valid_intents = [
+                "new_query",
+                "clarify",
+                "refine_criteria",
+                "add_criteria",
+                "replace_criteria",
+                "error",
+                "off_topic",
+                "negative_constraint",
+            ]
             intent = params["intent"].lower().strip()
             if intent in valid_intents:
                 result["intent"] = intent
@@ -889,12 +1065,13 @@ def process_parameters(
                 logger.warning(f"Unknown intent '{intent}', defaulting to 'new_query'")
                 result["intent"] = "new_query"
         else:
-            result["intent"] = "new_query" # Default if missing
+            result["intent"] = "new_query"  # Default if missing
 
         # Process clarificationNeededFor as array of strings
         if isinstance(params.get("clarificationNeededFor"), list):
             result["clarificationNeededFor"] = [
-                item for item in params["clarificationNeededFor"]
+                item
+                for item in params["clarificationNeededFor"]
                 if isinstance(item, str)
             ]
 
@@ -905,44 +1082,51 @@ def process_parameters(
                 result["transmission"] = transmission_value.capitalize()
             # Allow null transmission from LLM
             elif params["transmission"] is None:
-                 result["transmission"] = None
+                result["transmission"] = None
             else:
                 logger.warning(f"Invalid transmission value: {params['transmission']}")
 
         # Handle engine size (as float)
         for field in ["minEngineSize", "maxEngineSize"]:
-             val = params.get(field)
-             if val is not None and isinstance(val, (int, float)):
-                 if val >= 0.5 and val <= 10.0:
-                     result[field] = float(val)
-                 else:
-                     logger.warning(f"Invalid {field} value: {val} (outside reasonable range)")
+            val = params.get(field)
+            if val is not None and isinstance(val, (int, float)):
+                if val >= 0.5 and val <= 10.0:
+                    result[field] = float(val)
+                else:
+                    logger.warning(
+                        f"Invalid {field} value: {val} (outside reasonable range)"
+                    )
 
         # Handle horsepower (as int)
         for field in ["minHorsepower", "maxHorsepower"]:
-             val = params.get(field)
-             if val is not None and isinstance(val, (int, float)):
-                 if val >= 20 and val <= 1500:
-                     result[field] = int(val)
-                 else:
-                     logger.warning(f"Invalid {field} value: {val} (outside reasonable range)")
+            val = params.get(field)
+            if val is not None and isinstance(val, (int, float)):
+                if val >= 20 and val <= 1500:
+                    result[field] = int(val)
+                else:
+                    logger.warning(
+                        f"Invalid {field} value: {val} (outside reasonable range)"
+                    )
 
-        for key in ["explicitly_negated_makes", "explicitly_negated_vehicle_types", "explicitly_negated_fuel_types"]:
-             if key in params and isinstance(params[key], list):
-                 # Ensure items are strings
-                 result[key] = [item for item in params[key] if isinstance(item, str)]
-
+        for key in [
+            "explicitly_negated_makes",
+            "explicitly_negated_vehicle_types",
+            "explicitly_negated_fuel_types",
+        ]:
+            if key in params and isinstance(params[key], list):
+                # Ensure items are strings
+                result[key] = [item for item in params[key] if isinstance(item, str)]
 
     except Exception as e:
         logger.exception(f"Error during parameter processing: {e}")
         # Return default structure on error
-        return create_default_parameters(intent="error") # Set intent to error
+        return create_default_parameters(intent="error")  # Set intent to error
 
     return result
 
 
 def find_negated_terms(text: str, valid_items: List[str]) -> Set[str]:
-    """ Simpler check for negated items """
+    """Simpler check for negated items"""
     negated = set()
     text_lower = text.lower()
     valid_items_lower_map = {item.lower(): item for item in valid_items}
@@ -954,8 +1138,13 @@ def find_negated_terms(text: str, valid_items: List[str]) -> Set[str]:
             if idx == -1:
                 break
             phrase_start = idx + len(pattern)
-            end_match = re.search(r'[.!?,\n]| but | also | and | with | like | prefer ', text_lower[phrase_start:])
-            phrase_end = phrase_start + end_match.start() if end_match else len(text_lower)
+            end_match = re.search(
+                r"[.!?,\n]| but | also | and | with | like | prefer ",
+                text_lower[phrase_start:],
+            )
+            phrase_end = (
+                phrase_start + end_match.start() if end_match else len(text_lower)
+            )
             phrase = text_lower[phrase_start:phrase_end].strip()
             potential_items_parts = [phrase]
             for conj in conjunctions:
@@ -968,15 +1157,20 @@ def find_negated_terms(text: str, valid_items: List[str]) -> Set[str]:
                 if not potential_item:
                     continue
                 for item_lower, item_original in valid_items_lower_map.items():
-                    if re.search(r'\b' + re.escape(item_lower) + r'\b', potential_item):
-                        logger.debug(f"Negation Match: Found '{item_original}' after '{pattern}' in phrase segment '{potential_item}'")
+                    if re.search(r"\b" + re.escape(item_lower) + r"\b", potential_item):
+                        logger.debug(
+                            f"Negation Match: Found '{item_original}' after '{pattern}' "
+                            f"in phrase segment '{potential_item}'"
+                        )
                         negated.add(item_original)  # Use canonical casing
             start_index = phrase_start
     return negated
 
 
-def find_positive_terms(text: str, valid_items: List[str], negated_terms: Set[str]) -> Set[str]:
-    """ Finds valid items mentioned that are NOT in the negated set """
+def find_positive_terms(
+    text: str, valid_items: List[str], negated_terms: Set[str]
+) -> Set[str]:
+    """Finds valid items mentioned that are NOT in the negated set"""
     positive = set()
     text_lower = text.lower()
     valid_items_lower_map = {item.lower(): item for item in valid_items}
@@ -984,10 +1178,35 @@ def find_positive_terms(text: str, valid_items: List[str], negated_terms: Set[st
     for item_lower, item_original in valid_items_lower_map.items():
         if item_lower in negated_terms_lower:
             continue
-        if re.search(r'\b' + re.escape(item_lower) + r'\b', text_lower):
-            logger.debug(f"Positive Match: Found '{item_original}' (and not identified as negated)")
+        if re.search(r"\b" + re.escape(item_lower) + r"\b", text_lower):
+            logger.debug(
+                f"Positive Match: Found '{item_original}' (and not identified as negated)"
+            )
             positive.add(item_original)  # Use canonical casing
     return positive
+
+
+def merge_list_param_corrected(
+    param_name, context_key, llm_list, positive_set, negated_set, is_simple_negation, confirmed_context
+):
+    """
+    Merges LLM and context lists for a parameter, handling simple negation and robust union logic.
+    - If simple negation applies to this param (negated_set non-empty, positive_set empty), return [].
+    - Otherwise, return union of LLM and context lists, minus any negated items.
+    """
+    if is_simple_negation and negated_set and not positive_set:
+        logger.info(
+            f"Simple negation for {param_name}: clearing list due to explicit negation and no positives."
+        )
+        return []
+
+    context_list = confirmed_context.get(context_key, []) if confirmed_context else []
+    merged = set(llm_list) | set(context_list)
+    merged -= set(negated_set)
+    logger.debug(
+        f"Merged {param_name}: {merged} (llm={llm_list}, context={context_list}, negated={negated_set})"
+    )
+    return list(merged)
 
 
 def run_llm_with_history(
@@ -997,7 +1216,7 @@ def run_llm_with_history(
     force_model: Optional[str] = None,
     confirmed_context: Optional[Dict] = None,
     rejected_context: Optional[Dict] = None,
-    contains_override: bool = False
+    contains_override: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
     Run LLM extraction with conversation history and context.
@@ -1005,22 +1224,31 @@ def run_llm_with_history(
     Includes REVISED post-processing for negations and hallucinations.
     """
     # Define confused fallback prompt
-    CONFUSED_FALLBACK_PROMPT = "Sorry, I seem to have gotten a bit confused. Could you please restate your main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
-    
+    CONFUSED_FALLBACK_PROMPT = (
+        "Sorry, I seem to have gotten a bit confused. Could you please restate your "
+        "main vehicle requirements simply? (e.g., 'SUV under 50k, hybrid or petrol, 2020 or newer')"
+    )
+
     FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
-    REFINE_MODEL = "google/gemma-3-27b-it:free"
-    CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
-    if force_model == "fast": models_to_try = [FAST_MODEL, REFINE_MODEL, CLARIFY_MODEL]
-    elif force_model == "refine": models_to_try = [REFINE_MODEL, CLARIFY_MODEL, FAST_MODEL]
-    elif force_model == "clarify": models_to_try = [CLARIFY_MODEL, REFINE_MODEL, FAST_MODEL]
-    else: models_to_try = [FAST_MODEL, REFINE_MODEL, CLARIFY_MODEL]
-    logger.info(f"Will try models in sequence: {models_to_try}")
+    # REFINE_MODEL = "google/gemma-3-27b-it:free"
+    # CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
+    # if force_model == "fast": models_to_try = [FAST_MODEL, REFINE_MODEL, CLARIFY_MODEL]
+    # elif force_model == "refine": models_to_try = [REFINE_MODEL, CLARIFY_MODEL, FAST_MODEL]
+    # elif force_model == "clarify": models_to_try = [CLARIFY_MODEL, REFINE_MODEL, FAST_MODEL]
+    # else: models_to_try = [FAST_MODEL, REFINE_MODEL, CLARIFY_MODEL]
+    # logger.info(f"Will try models in sequence: {models_to_try}")
+    models_to_try = [FAST_MODEL]
 
     try:
         system_prompt = build_enhanced_system_prompt(
-            user_query, conversation_history, matched_category,
-            VALID_MANUFACTURERS, VALID_FUEL_TYPES, VALID_VEHICLE_TYPES,
-            confirmed_context, rejected_context
+            user_query,
+            conversation_history,
+            matched_category,
+            VALID_MANUFACTURERS,
+            VALID_FUEL_TYPES,
+            VALID_VEHICLE_TYPES,
+            confirmed_context,
+            rejected_context,
         )
     except Exception as e:
         logger.exception(f"Error building system prompt: {e}")
@@ -1034,8 +1262,10 @@ def run_llm_with_history(
         try:
             extracted = try_extract_with_model(model, system_prompt, user_query)
         except Exception as e:
-             logger.exception(f"Error calling try_extract_with_model for model {model}: {e}")
-             continue
+            logger.exception(
+                f"Error calling try_extract_with_model for model {model}: {e}"
+            )
+            continue
 
         if extracted:
             processed = process_parameters(extracted)
@@ -1046,86 +1276,215 @@ def run_llm_with_history(
 
             # --- 1. Determine Context ---
             # First, find negated terms in the query
-            negated_makes_set = find_negated_terms(lower_query_fragment, VALID_MANUFACTURERS)
-            negated_types_set = find_negated_terms(lower_query_fragment, VALID_VEHICLE_TYPES)
-            negated_fuels_set = find_negated_terms(lower_query_fragment, VALID_FUEL_TYPES)
+            negated_makes_set = find_negated_terms(
+                lower_query_fragment, VALID_MANUFACTURERS
+            )
+            negated_types_set = find_negated_terms(
+                lower_query_fragment, VALID_VEHICLE_TYPES
+            )
+            negated_fuels_set = find_negated_terms(
+                lower_query_fragment, VALID_FUEL_TYPES
+            )
 
             # Then find positive mentions, excluding negated terms
-            positive_makes_set = find_positive_terms(lower_query_fragment, VALID_MANUFACTURERS, negated_makes_set)
-            positive_types_set = find_positive_terms(lower_query_fragment, VALID_VEHICLE_TYPES, negated_types_set)
-            positive_fuels_set = find_positive_terms(lower_query_fragment, VALID_FUEL_TYPES, negated_fuels_set)
+            positive_makes_set = find_positive_terms(
+                lower_query_fragment, VALID_MANUFACTURERS, negated_makes_set
+            )
+            positive_types_set = find_positive_terms(
+                lower_query_fragment, VALID_VEHICLE_TYPES, negated_types_set
+            )
+            positive_fuels_set = find_positive_terms(
+                lower_query_fragment, VALID_FUEL_TYPES, negated_fuels_set
+            )
 
             # Determine basic query attributes
-            has_any_positives = bool(positive_makes_set or positive_types_set or positive_fuels_set)
-            has_any_negatives = bool(negated_makes_set or negated_types_set or negated_fuels_set)
+            has_any_positives = bool(
+                positive_makes_set or positive_types_set or positive_fuels_set
+            )
+            has_any_negatives = bool(
+                negated_makes_set or negated_types_set or negated_fuels_set
+            )
             is_simple_negation_query = not has_any_positives and has_any_negatives
 
             # Get intent (might be overridden later in extract_parameters)
             final_intent = processed.get("intent", "new_query")
 
             # Log query analysis
-            logger.info(f"Query analysis: intent={final_intent}, simple_negation={is_simple_negation_query}")
-            logger.info(f"Positive mentions: makes={positive_makes_set}, types={positive_types_set}, fuels={positive_fuels_set}")
-            logger.info(f"Negated terms: makes={negated_makes_set}, types={negated_types_set}, fuels={negated_fuels_set}")
+            logger.info(
+                f"Query analysis: intent={final_intent}, simple_negation={is_simple_negation_query}"
+            )
+            logger.info(
+                f"Positive mentions: makes={positive_makes_set}, types={positive_types_set}, fuels={positive_fuels_set}"
+            )
+            logger.info(
+                f"Negated terms: makes={negated_makes_set}, types={negated_types_set}, fuels={negated_fuels_set}"
+            )
 
             # Override intent for simple negation queries if needed
             if is_simple_negation_query and final_intent != "refine_criteria":
-                logger.info("Setting intent to 'refine_criteria' due to simple negation.")
+                logger.info(
+                    "Setting intent to 'refine_criteria' due to simple negation."
+                )
                 final_intent = "refine_criteria"
-                processed["intent"] = "refine_criteria"  # Update in processed for consistency
+                processed["intent"] = (
+                    "refine_criteria"  # Update in processed for consistency
+                )
 
-            # --- 1a. Define keyword sets for scalar parameter types ---
+            # --- 1a. Define keyw       ord sets for scalar parameter types ---
             # Keywords related to price parameters
             PRICE_KEYWORDS = {
-                'price', 'budget', 'cost', 'euro', 'dollar', 'pound', 'spend', 'pay', 'afford', 
-                '€', '$', '£', 'under', 'over', 'between', 'range', 'cheap', 'expensive', 
-                'pricey', 'costly', 'money', 'funds', 'finances', 'affordable', 'grand', 'k'
+                "price",
+                "budget",
+                "cost",
+                "euro",
+                "dollar",
+                "pound",
+                "spend",
+                "pay",
+                "afford",
+                "€",
+                "$",
+                "£",
+                "under",
+                "over",
+                "between",
+                "range",
+                "cheap",
+                "expensive",
+                "pricey",
+                "costly",
+                "money",
+                "funds",
+                "finances",
+                "affordable",
+                "grand",
+                "k",
             }
 
             # Keywords related to year parameters
             YEAR_KEYWORDS = {
-                'year', 'older', 'newer', 'age', 'recent', 'vintage', 'yr', 'model year', 
-                'registration', 'reg', 'plate', 'built', 'manufactured', 'make', 'made', 
-                'new', 'old', '20', '19', '\'', 'from', 'since', 'before'  # Year indicators like '20xx, '19xx
+                "year",
+                "older",
+                "newer",
+                "age",
+                "recent",
+                "vintage",
+                "yr",
+                "model year",
+                "registration",
+                "reg",
+                "plate",
+                "built",
+                "manufactured",
+                "make",
+                "made",
+                "new",
+                "old",
+                "20",
+                "19",
+                "'",
+                "from",
+                "since",
+                "before",  # Year indicators like '20xx, '19xx
             }
 
             # Keywords related to mileage parameters
             MILEAGE_KEYWORDS = {
-                'mileage', 'miles', 'mile', 'km', 'kilometers', 'kilometre', 'odometer', 'clock', 
-                'driven', 'used', 'low', 'high', 'distance', 'travelled', 'run', 'usage', 'wear'
+                "mileage",
+                "miles",
+                "mile",
+                "km",
+                "kilometers",
+                "kilometre",
+                "odometer",
+                "clock",
+                "driven",
+                "used",
+                "low",
+                "high",
+                "distance",
+                "travelled",
+                "run",
+                "usage",
+                "wear",
             }
 
             # Keywords related to transmission parameters
             TRANSMISSION_KEYWORDS = {
-                'transmission', 'automatic', 'manual', 'gear', 'gearbox', 'auto', 'stick', 'cvt', 
-                'dsg', 'paddle', 'shift', 'clutch', 'self-shifting', 'tiptronic', 'sequential'
+                "transmission",
+                "automatic",
+                "manual",
+                "gear",
+                "gearbox",
+                "auto",
+                "stick",
+                "cvt",
+                "dsg",
+                "paddle",
+                "shift",
+                "clutch",
+                "self-shifting",
+                "tiptronic",
+                "sequential",
             }
 
             # Keywords related to engine size parameters
             ENGINE_KEYWORDS = {
-                'engine', 'size', 'liter', 'litre', 'l engine', 'cc', 'cubic', 'displacement', 
-                'capacity', 'motor', 'cylinder', 'cylinders', 'block', 'tdi', 'tsi', 'tfsi', 
-                'turbo', 'small', 'big', 'large', 'displacement'
+                "engine",
+                "size",
+                "liter",
+                "litre",
+                "l engine",
+                "cc",
+                "cubic",
+                "displacement",
+                "capacity",
+                "motor",
+                "cylinder",
+                "cylinders",
+                "block",
+                "tdi",
+                "tsi",
+                "tfsi",
+                "turbo",
+                "small",
+                "big",
+                "large",
+                "displacement",
             }
 
             # Keywords related to horsepower parameters
             HP_KEYWORDS = {
-                'horsepower', 'hp', 'bhp', 'power', 'ps', 'kw', 'performance', 'fast', 'strong', 
-                'quick', 'powerful', 'output', 'torque', 'acceleration', 'pulling power', 'grunt'
+                "horsepower",
+                "hp",
+                "bhp",
+                "power",
+                "ps",
+                "kw",
+                "performance",
+                "fast",
+                "strong",
+                "quick",
+                "powerful",
+                "output",
+                "torque",
+                "acceleration",
+                "pulling power",
+                "grunt",
             }
 
             # Create parameter-to-keywords mapping
             KEYWORD_SETS = {
-                'minPrice': PRICE_KEYWORDS,
-                'maxPrice': PRICE_KEYWORDS,
-                'minYear': YEAR_KEYWORDS,
-                'maxYear': YEAR_KEYWORDS,
-                'maxMileage': MILEAGE_KEYWORDS,
-                'transmission': TRANSMISSION_KEYWORDS,
-                'minEngineSize': ENGINE_KEYWORDS,
-                'maxEngineSize': ENGINE_KEYWORDS,
-                'minHorsepower': HP_KEYWORDS,
-                'maxHorsepower': HP_KEYWORDS
+                "minPrice": PRICE_KEYWORDS,
+                "maxPrice": PRICE_KEYWORDS,
+                "minYear": YEAR_KEYWORDS,
+                "maxYear": YEAR_KEYWORDS,
+                "maxMileage": MILEAGE_KEYWORDS,
+                "transmission": TRANSMISSION_KEYWORDS,
+                "minEngineSize": ENGINE_KEYWORDS,
+                "maxEngineSize": ENGINE_KEYWORDS,
+                "minHorsepower": HP_KEYWORDS,
+                "maxHorsepower": HP_KEYWORDS,
             }
 
             # --- 2. Initialize Final Parameters ---
@@ -1135,51 +1494,76 @@ def run_llm_with_history(
             # --- 3. Refactored Scalar Parameter Merging Logic ---
             # Define scalar parameters and their corresponding context keys
             scalar_params = {
-                'minPrice': 'confirmedMinPrice', 
-                'maxPrice': 'confirmedMaxPrice',
-                'minYear': 'confirmedMinYear', 
-                'maxYear': 'confirmedMaxYear',
-                'maxMileage': 'confirmedMaxMileage',
-                'transmission': 'confirmedTransmission',
-                'minEngineSize': 'confirmedMinEngineSize', 
-                'maxEngineSize': 'confirmedMaxEngineSize',
-                'minHorsepower': 'confirmedMinHorsePower',  # Note the capital P in HorsePower
-                'maxHorsepower': 'confirmedMaxHorsePower'   # Note the capital P in HorsePower
+                "minPrice": "confirmedMinPrice",
+                "maxPrice": "confirmedMaxPrice",
+                "minYear": "confirmedMinYear",
+                "maxYear": "confirmedMaxYear",
+                "maxMileage": "confirmedMaxMileage",
+                "transmission": "confirmedTransmission",
+                "minEngineSize": "confirmedMinEngineSize",
+                "maxEngineSize": "confirmedMaxEngineSize",
+                "minHorsepower": "confirmedMinHorsePower",  # Note the capital P in HorsePower
+                "maxHorsepower": "confirmedMaxHorsePower",  # Note the capital P in HorsePower
             }
 
             # Process each scalar parameter with improved context-awareness
             for param, context_key in scalar_params.items():
                 llm_value = processed.get(param)
-                context_value = confirmed_context.get(context_key) if confirmed_context else None
+                context_value = (
+                    confirmed_context.get(context_key) if confirmed_context else None
+                )
                 relevant_keywords = KEYWORD_SETS.get(param, set())
-                
+
                 # Check if the current query mentions this parameter type
-                query_mentions_param = any(kw in lower_query_fragment for kw in relevant_keywords)
-                
+                query_mentions_param = any(
+                    kw in lower_query_fragment for kw in relevant_keywords
+                )
+
                 # Apply new logic based on query content and LLM extraction
                 if llm_value is not None and query_mentions_param:
                     # LLM extracted a value AND query mentions this parameter type - use LLM value
                     final_params[param] = llm_value
-                    logger.debug(f"Using explicit {param}={llm_value} from query (keywords present)")
-                elif final_intent in ["refine_criteria", "clarify", "add_criteria"] and context_value is not None:
+                    logger.debug(
+                        f"Using explicit {param}={llm_value} from query (keywords present)"
+                    )
+                elif (
+                    final_intent in ["refine_criteria", "clarify", "add_criteria"]
+                    and context_value is not None
+                ):
                     # Keep context for refinement/clarification if no explicit mention
                     final_params[param] = context_value
                     if query_mentions_param:
-                        logger.debug(f"Query mentions {param} keywords but LLM provided no value, keeping context {param}={context_value}")
+                        logger.debug(
+                            f"Query mentions {param} keywords but LLM provided no value, "
+                            f"keeping context {param}={context_value}"
+                        )
                     else:
-                        logger.debug(f"Carrying over {param}={context_value} from context (no mention in query)")
+                        logger.debug(
+                            f"Carrying over {param}={context_value} from context (no mention in query)"
+                        )
                 else:
                     # Default: leave as None for new queries or when no context exists
                     if llm_value is not None and not query_mentions_param:
-                        logger.info(f"Ignoring potential LLM hallucination: {param}={llm_value} (no keywords in query)")
+                        logger.info(
+                            f"Ignoring potential LLM hallucination: {param}={llm_value} (no keywords in query)"
+                        )
 
             # --- 4. Merge List Parameters ---
             # Helper function to handle list merging logic consistently
-            def merge_list_param(param_name, context_key, positive_set, negated_set, is_simple_negation=False):
+            def merge_list_param(
+                param_name,
+                context_key,
+                positive_set,
+                negated_set,
+                is_simple_negation=False,
+            ):
                 # Start with confirmed values from context if intent suggests we should keep context
-                if final_intent in ["refine_criteria", "clarify", "add_criteria"] and confirmed_context:
+                if (
+                    final_intent in ["refine_criteria", "clarify", "add_criteria"]
+                    and confirmed_context
+                ):
                     result_set = set(confirmed_context.get(context_key, []))
-                    
+
                     # For simple negation, we clear everything if there are negations for this param
                     if is_simple_negation and negated_set:
                         result_set = set()
@@ -1188,37 +1572,69 @@ def run_llm_with_history(
                         # Otherwise add positives and remove negatives
                         if positive_set:
                             result_set = result_set.union(positive_set)
-                            logger.debug(f"Added positives to {param_name}: {positive_set}")
-                        
+                            logger.debug(
+                                f"Added positives to {param_name}: {positive_set}"
+                            )
+
                         # Always remove negated terms
                         if negated_set:
                             result_set = result_set.difference(negated_set)
-                            logger.debug(f"Removed negatives from {param_name}: {negated_set}")
+                            logger.debug(
+                                f"Removed negatives from {param_name}: {negated_set}"
+                            )
                 else:
                     # For new queries or other intents, just use what was explicitly mentioned
                     result_set = set(positive_set)
-                    logger.debug(f"Using only explicit mentions for {param_name}: {result_set}")
-                
+                    logger.debug(
+                        f"Using only explicit mentions for {param_name}: {result_set}"
+                    )
+
                 # Convert back to list
                 return list(result_set)
 
             # Apply the merging logic to each list parameter
-            final_params["preferredMakes"] = merge_list_param(
-                "preferredMakes", "confirmedMakes", positive_makes_set, negated_makes_set, is_simple_negation_query)
+            final_params["preferredMakes"] = merge_list_param_corrected(
+                "preferredMakes",
+                "confirmedMakes",
+                processed.get("preferredMakes", []),
+                positive_makes_set,
+                negated_makes_set,
+                is_simple_negation_query,
+                confirmed_context,
+            )
 
-            final_params["preferredVehicleTypes"] = merge_list_param(
-                "preferredVehicleTypes", "confirmedVehicleTypes", positive_types_set, negated_types_set, is_simple_negation_query)
+            final_params["preferredVehicleTypes"] = merge_list_param_corrected(
+                "preferredVehicleTypes",
+                "confirmedVehicleTypes",
+                processed.get("preferredVehicleTypes", []),
+                positive_types_set,
+                negated_types_set,
+                is_simple_negation_query,
+                confirmed_context,
+            )
 
-            final_params["preferredFuelTypes"] = merge_list_param(
-                "preferredFuelTypes", "confirmedFuelTypes", positive_fuels_set, negated_fuels_set, is_simple_negation_query)
+            final_params["preferredFuelTypes"] = merge_list_param_corrected(
+                "preferredFuelTypes",
+                "confirmedFuelTypes",
+                processed.get("preferredFuelTypes", []),
+                positive_fuels_set,
+                negated_fuels_set,
+                is_simple_negation_query,
+                confirmed_context,
+            )
 
             # Special handling for desiredFeatures - just union with context
-            if final_intent in ["refine_criteria", "clarify", "add_criteria"] and confirmed_context:
+            if (
+                final_intent in ["refine_criteria", "clarify", "add_criteria"]
+                and confirmed_context
+            ):
                 context_features = set(confirmed_context.get("confirmedFeatures", []))
                 new_features = set(processed.get("desiredFeatures", []))
-                
+
                 # Features can't easily be analyzed directly from text, so we just trust what the LLM extracted
-                final_params["desiredFeatures"] = list(context_features.union(new_features))
+                final_params["desiredFeatures"] = list(
+                    context_features.union(new_features)
+                )
             else:
                 final_params["desiredFeatures"] = processed.get("desiredFeatures", [])
 
@@ -1229,8 +1645,14 @@ def run_llm_with_history(
 
             # --- 6. Set Final Intent & Flags ---
             # Copy over other important fields from processed
-            for key in ["isOffTopic", "offTopicResponse", "clarificationNeeded", 
-                       "clarificationNeededFor", "retrieverSuggestion", "matchedCategory"]:
+            for key in [
+                "isOffTopic",
+                "offTopicResponse",
+                "clarificationNeeded",
+                "clarificationNeededFor",
+                "retrieverSuggestion",
+                "matchedCategory",
+            ]:
                 final_params[key] = processed.get(key)
 
             # --- 7. Replace Output Assignment ---
@@ -1242,25 +1664,32 @@ def run_llm_with_history(
                 extracted_params = final_params
                 break
             else:
-                logger.warning(f"Parameters became invalid after merging for model {model}. Discarded. Trying next model.")
+                logger.warning(
+                    f"Parameters became invalid after merging for model {model}. Discarded. Trying next model."
+                )
                 extracted_params = None
                 continue
 
         else:
-            logger.warning(f"Extraction from model {model} returned None or failed parsing.")
+            logger.warning(
+                f"Extraction from model {model} returned None or failed parsing."
+            )
             extracted_params = None
 
     # --- Final Return ---
     if extracted_params:
         logger.info(f"Successful extraction with final parameters: {extracted_params}")
     else:
-        logger.warning("All LLM extraction attempts failed or resulted in invalid parameters after post-processing! Triggering CONFUSED_FALLBACK.")
+        logger.warning(
+            "All LLM extraction attempts failed or resulted in invalid parameters "
+            "after post-processing! Triggering CONFUSED_FALLBACK."
+        )
         # Use create_default_parameters ensure all keys exist
         extracted_params = create_default_parameters(
-            intent='CONFUSED_FALLBACK',
-            clarification_needed=True, # Signal that user input is needed
-            clarification_needed_for=['reset'], # Custom flag indicating reset
-            retriever_suggestion=CONFUSED_FALLBACK_PROMPT
+            intent="CONFUSED_FALLBACK",
+            clarification_needed=True,  # Signal that user input is needed
+            clarification_needed_for=["reset"],  # Custom flag indicating reset
+            retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
         )
 
     return extracted_params
@@ -1295,11 +1724,11 @@ def extract_parameters():
         user_query = data["query"]
         force_model = data.get("forceModel")  # Model strategy from backend
         conversation_history = data.get("conversationHistory", [])
-        
+
         # Safely retrieve context information
         confirmed_context = data.get("confirmedContext", {})
         rejected_context = data.get("rejectedContext", {})
-        
+
         # Extract specific rejection lists for easier access
         rejected_makes = rejected_context.get("rejectedMakes", [])
         rejected_types = rejected_context.get("rejectedVehicleTypes", [])
@@ -1307,10 +1736,14 @@ def extract_parameters():
 
         # Enhanced logging for context
         if rejected_makes or rejected_types or rejected_fuels:
-            logger.info(f"Rejected context: makes={rejected_makes}, types={rejected_types}, fuels={rejected_fuels}")
-        
+            logger.info(
+                f"Rejected context: makes={rejected_makes}, types={rejected_types}, fuels={rejected_fuels}"
+            )
+
         if confirmed_context and any(confirmed_context.values()):
-            logger.info(f"Confirmed context present with {len(confirmed_context)} items")
+            logger.info(
+                f"Confirmed context present with {len(confirmed_context)} items"
+            )
 
         logger.info(
             "Processing query: %s (forceModel=%s) with %d history items",
@@ -1367,7 +1800,7 @@ def extract_parameters():
 
         # Initialize force_llm here, before the keyword checking block
         force_llm = False
-        
+
         # Check for specific make/type/fuel keywords using the now-defined lower_query_fragment
         valid_keywords_lower = set()
         valid_keywords_lower.update(make.lower() for make in VALID_MANUFACTURERS)
@@ -1375,56 +1808,71 @@ def extract_parameters():
         valid_keywords_lower.update(vtype.lower() for vtype in VALID_VEHICLE_TYPES)
 
         # Check if any specific known keyword appears in the query
-        words_in_query = set(re.findall(r'\b(\w+)\b', lower_query_fragment))
+        words_in_query = set(re.findall(r"\b(\w+)\b", lower_query_fragment))
         specific_keywords_found = words_in_query.intersection(valid_keywords_lower)
 
         # If query contains specific keywords and was classified as vague, change to specific
-        if specific_keywords_found and classified_intent == 'VAGUE_INQUIRY' and not force_llm:
-            logger.info(f"Specific keywords found in vague query: {specific_keywords_found}. Forcing SPECIFIC_SEARCH/LLM path.")
-            classified_intent = 'SPECIFIC_SEARCH'
+        if (
+            specific_keywords_found
+            and classified_intent == "VAGUE_INQUIRY"
+            and not force_llm
+        ):
+            logger.info(
+                f"Specific keywords found in vague query: {specific_keywords_found}. Forcing SPECIFIC_SEARCH/LLM path."
+            )
+            classified_intent = "SPECIFIC_SEARCH"
 
         # 4) Initialize routing condition flags
         is_clarification_answer = False
         contains_override = False
         mentions_rejected = False
-        
+
         # 5) Enhanced check for override keywords
         # ... (rest of the code remains unchanged)
 
         # --- Execute based on routing decision ---
         final_response = None
-        if force_llm or classified_intent == 'SPECIFIC_SEARCH':
-            if not force_llm: # Log if it was originally specific
-                logger.info(f"Intent classified as SPECIFIC_SEARCH, proceeding to LLM.")
-            else: # Log details if forced
-                logger.info(f"Routing conditions met (clarify={is_clarification_answer}, "
-                          f"override={contains_override}, mentions_rejected={mentions_rejected}), "
-                          f"proceeding to LLM.")
+        if force_llm or classified_intent == "SPECIFIC_SEARCH":
+            if not force_llm:  # Log if it was originally specific
+                logger.info("Intent classified as SPECIFIC_SEARCH, proceeding to LLM.")
+            else:  # Log details if forced
+                logger.info(
+                    f"Routing conditions met (clarify={is_clarification_answer}, "
+                    f"override={contains_override}, mentions_rejected={mentions_rejected}), proceeding to LLM."
+                )
 
             extracted_params = run_llm_with_history(
-                user_query, 
-                conversation_history, 
-                None, # matched_category
+                user_query,
+                conversation_history,
+                None,  # matched_category
                 force_model,
                 confirmed_context=confirmed_context,
                 rejected_context=rejected_context,
-                contains_override=contains_override
+                contains_override=contains_override,
             )
-            
+
             if extracted_params:
-                # NEW CODE: Prevent clarification loops by forcing clarificationNeeded=False 
+                # NEW CODE: Prevent clarification loops by forcing clarificationNeeded=False
                 # if this is already a clarification answer
                 if is_clarification_answer:
                     if extracted_params.get("clarificationNeeded"):
-                        logger.info("LOOP PREVENTION: Overriding LLM's clarificationNeeded=True because this is already a clarification answer")
+                        logger.info(
+                            "LOOP PREVENTION: Overriding LLM's clarificationNeeded=True because this is already a "
+                            "clarification answer"
+                        )
                         extracted_params["clarificationNeeded"] = False
                         extracted_params["clarificationNeededFor"] = []
-                        
+
                 # Existing code for intent override continues below
-                if is_clarification_answer and extracted_params.get("intent") != "clarify":
-                    logger.info("Overriding LLM intent to 'clarify' based on context detection")
+                if (
+                    is_clarification_answer
+                    and extracted_params.get("intent") != "clarify"
+                ):
+                    logger.info(
+                        "Overriding LLM intent to 'clarify' based on context detection"
+                    )
                     extracted_params["intent"] = "clarify"
-                    
+
                 # Ensure all fields exist using create_default_parameters as base
                 base = create_default_parameters()
                 base.update(extracted_params)  # Overwrite defaults with LLM output
@@ -1432,25 +1880,33 @@ def extract_parameters():
                 logger.info("Final extracted parameters from LLM: %s", final_response)
             else:
                 logger.error("LLM models failed or no valid extraction.")
-                final_response = create_default_parameters(intent="error") # Indicate error
+                final_response = create_default_parameters(
+                    intent="error"
+                )  # Indicate error
 
-        elif classified_intent == 'VAGUE_INQUIRY':
-            logger.info("Intent is VAGUE_INQUIRY and no override/clarification forced LLM, proceeding with RAG.")
+        elif classified_intent == "VAGUE_INQUIRY":
+            logger.info(
+                "Intent is VAGUE_INQUIRY and no override/clarification forced LLM, proceeding with RAG."
+            )
             try:
                 match_cat, score = find_best_match(query_fragment)
                 logger.info(f"RAG result: Category='{match_cat}', Score={score:.2f}")
-                
+
                 # Check if the score is extremely low - indicates very low confidence
                 if score < LOW_CONFIDENCE_THRESHOLD:
-                    logger.warning(f"Intent was VAGUE and RAG score ({score:.2f}) is below confidence threshold ({LOW_CONFIDENCE_THRESHOLD}). Triggering CONFUSED_FALLBACK.")
+                    logger.warning(
+                        f"Intent was VAGUE and RAG score ({score:.2f}) is below "
+                        f"confidence threshold ({LOW_CONFIDENCE_THRESHOLD}). "
+                        f"Triggering CONFUSED_FALLBACK."
+                    )
                     final_response = create_default_parameters(
-                        intent='CONFUSED_FALLBACK',
+                        intent="CONFUSED_FALLBACK",
                         clarification_needed=True,
-                        clarification_needed_for=['reset'],
-                        retriever_suggestion=CONFUSED_FALLBACK_PROMPT
+                        clarification_needed_for=["reset"],
+                        retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
                     )
                 # Original check for weak RAG match, now as elif
-                elif score < 0.6: # Threshold for weak RAG match
+                elif score < 0.6:  # Threshold for weak RAG match
                     logger.info("RAG score too low. Requesting general clarification.")
                     final_response = create_default_parameters(
                         intent="clarify",
@@ -1461,8 +1917,10 @@ def extract_parameters():
                             "type of vehicle you need?"
                         ),
                     )
-                else: # Medium/High RAG score >= 0.6
-                    logger.info("RAG score sufficient. Requesting specific clarification based on matched category.")
+                else:  # Medium/High RAG score >= 0.6
+                    logger.info(
+                        "RAG score sufficient. Requesting specific clarification based on matched category."
+                    )
                     final_response = create_default_parameters(
                         intent="clarify",
                         clarification_needed=True,
@@ -1477,18 +1935,22 @@ def extract_parameters():
                 logger.error(f"Error during RAG processing: {e}", exc_info=True)
                 logger.warning("RAG failed, falling back to generic clarification.")
                 final_response = create_default_parameters(
-                    intent="clarify", 
+                    intent="clarify",
                     clarification_needed=True,
                     clarification_needed_for=["details"],
-                    retriever_suggestion="Could you tell me more about what you're looking for in a vehicle?"
+                    retriever_suggestion="Could you tell me more about what you're looking for in a vehicle?",
                 )
         else:
-            logger.warning(f"Unhandled classified_intent: {classified_intent}. Defaulting to error.")
+            logger.warning(
+                f"Unhandled classified_intent: {classified_intent}. Defaulting to error."
+            )
             final_response = create_default_parameters(intent="error")
 
         # Ensure final_response is always set
         if final_response is None:
-            logger.error("Reached end of processing without setting final_response. Defaulting to error.")
+            logger.error(
+                "Reached end of processing without setting final_response. Defaulting to error."
+            )
             final_response = create_default_parameters(intent="error")
 
         end_time = datetime.datetime.now()

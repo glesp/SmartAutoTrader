@@ -159,7 +159,6 @@ namespace SmartAutoTrader.API.Services
                 this.SynchronizeCurrentParametersWithConfirmedValues(conversationContext);
                 RecommendationParameters finalParametersForSearch = conversationContext.CurrentParameters;
 
-                // --- REFACTORED CONTROL FLOW ---
                 // Check if the Python service explicitly indicated clarification is NOT needed
                 bool pythonServiceSaysClarificationNotNeeded = 
                     extractedParameters.ClarificationNeededFor == null || 
@@ -172,7 +171,7 @@ namespace SmartAutoTrader.API.Services
                     
                     // Skip to recommendation fetching directly
                     this.logger.LogInformation("Proceeding directly to recommendations using parameters: {@Parameters}", finalParametersForSearch);
-
+                    
                     sw.Restart();
                     IEnumerable<Vehicle> recommendations =
                         await this.recommendationService.GetRecommendationsAsync(userId, finalParametersForSearch);
@@ -225,10 +224,26 @@ namespace SmartAutoTrader.API.Services
                         string clarificationMessage = GenerateClarificationMessage(finalParametersForSearch, message.Content, conversationContext);
                         this.logger.LogInformation("Clarification needed. Generated message: {ClarificationMessage}", clarificationMessage);
 
+                        // Enhanced logging for loop detection
+                        this.logger.LogWarning(
+                            "Loop Detection Check - New Question: '{NewQuestion}', Previous Question: '{PreviousQuestion}'", 
+                            clarificationMessage.Substring(0, Math.Min(50, clarificationMessage.Length)),
+                            conversationContext.LastQuestionAskedByAI?.Substring(0, Math.Min(50, conversationContext.LastQuestionAskedByAI?.Length ?? 0)) ?? "null");
+
                         // Check for a clarification loop - compare with the previous question
                         if (!string.IsNullOrEmpty(conversationContext.LastQuestionAskedByAI) &&
                             string.Equals(clarificationMessage, conversationContext.LastQuestionAskedByAI, StringComparison.Ordinal))
                         {
+                            // Log detailed information about the loop
+                            this.logger.LogError(
+                                "CLARIFICATION LOOP DETECTED! Same question generated twice in a row.\n" +
+                                "User message: '{UserMessage}'\n" +
+                                "Parameters: {@Parameters}\n" +
+                                "Context MessageCount: {MessageCount}", 
+                                message.Content,
+                                finalParametersForSearch,
+                                conversationContext.MessageCount);
+
                             // Loop detected - provide a fallback response
                             string fallbackMessage = "Sorry, I seem to be stuck. Could you try rephrasing your request clearly? Please provide specific details about the vehicle you're looking for.";
                             this.logger.LogWarning("Loop detected: Same clarification question generated consecutively. Providing fallback response.");

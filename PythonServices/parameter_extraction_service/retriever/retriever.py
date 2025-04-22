@@ -2,10 +2,12 @@
 # This does offline vector matching for vague queries.
 
 import json
-import numpy as np
-import os
 import logging
+import os
 from typing import Optional
+
+import numpy as np
+
 from .embed_model_loader import load_embedding_model
 
 logger = logging.getLogger(__name__)

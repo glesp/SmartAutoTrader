@@ -21,11 +21,18 @@ namespace SmartAutoTrader.API.Repositories
         Task<List<ConversationTurn>> GetRecentHistoryAsync(int userId, int conversationSessionId, int maxItems = 3);
 
         Task SaveChangesAsync();
+
+        Task<ConversationSession?> GetSessionByIdAsync(int sessionId, int userId);
     }
 
-    public class ChatRepository(ApplicationDbContext context) : IChatRepository
+    public class ChatRepository : IChatRepository
     {
-        private readonly ApplicationDbContext context = context;
+        private readonly ApplicationDbContext context;
+
+        public ChatRepository(ApplicationDbContext context)
+        {
+            this.context = context;
+        }
 
         /// <inheritdoc/>
         public Task AddChatHistoryAsync(ChatHistory chatHistory)
@@ -82,6 +89,13 @@ namespace SmartAutoTrader.API.Repositories
         public Task SaveChangesAsync()
         {
             return this.context.SaveChangesAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<ConversationSession?> GetSessionByIdAsync(int sessionId, int userId)
+        {
+            return await this.context.ConversationSessions
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
         }
     }
 }

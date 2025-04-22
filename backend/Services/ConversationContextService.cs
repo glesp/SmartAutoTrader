@@ -9,16 +9,23 @@ namespace SmartAutoTrader.API.Services
     using SmartAutoTrader.API.Repositories;
 
     // This class represents the state we want to track throughout a conversation
-    public class ConversationContextService(
-        IUserRepository userRepo,
-        IChatRepository chatRepo,
-        ILogger<ConversationContextService> logger) : IConversationContextService
+    public class ConversationContextService : IConversationContextService
     {
         // In-memory cache for active conversations (optional)
-        private readonly Dictionary<int, ConversationContext> activeContexts = [];
-        private readonly IChatRepository chatRepo = chatRepo;
-        private readonly ILogger<ConversationContextService> logger = logger;
-        private readonly IUserRepository userRepo = userRepo;
+        private readonly Dictionary<int, ConversationContext> activeContexts = new();
+        private readonly IChatRepository chatRepo;
+        private readonly ILogger<ConversationContextService> logger;
+        private readonly IUserRepository userRepo;
+
+        public ConversationContextService(
+            IUserRepository userRepo,
+            IChatRepository chatRepo,
+            ILogger<ConversationContextService> logger)
+        {
+            this.userRepo = userRepo;
+            this.chatRepo = chatRepo;
+            this.logger = logger;
+        }
 
         /// <inheritdoc/>
         public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
@@ -72,7 +79,7 @@ namespace SmartAutoTrader.API.Services
 
                 // If we detect it's a brand-new session, pick a model
                 // e.g. rotate among fast/refine/clarify:
-                string[] modelPool = ["fast", "refine", "clarify"];
+                string[] modelPool = { "fast", "refine", "clarify" };
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 
@@ -83,6 +90,62 @@ namespace SmartAutoTrader.API.Services
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error retrieving conversation context for user {UserId}", userId);
+                return new ConversationContext();
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<ConversationContext> GetOrCreateContextAsync(int userId, int conversationId)
+        {
+            try
+            {
+                // Use the specific session ID, not just the most recent one
+                ConversationSession? session = await this.chatRepo.GetSessionByIdAsync(conversationId, userId);
+
+                if (session != null)
+                {
+                    if (this.activeContexts.TryGetValue(conversationId, out ConversationContext? cachedContext))
+                    {
+                        return cachedContext;
+                    }
+
+                    if (!string.IsNullOrEmpty(session.SessionContext))
+                    {
+                        try
+                        {
+                            ConversationContext? context =
+                                JsonSerializer.Deserialize<ConversationContext>(session.SessionContext);
+                            if (context != null)
+                            {
+                                this.activeContexts[conversationId] = context;
+                                return context;
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                            this.logger.LogError(ex, "Error deserializing conversation context for user {UserId}, session {SessionId}", userId, conversationId);
+                        }
+                    }
+                }
+
+                // Create a new context if not found
+                ConversationContext newContext = new()
+                {
+                    LastInteraction = DateTime.UtcNow,
+                };
+
+                // Optionally, start a new session if session == null
+                if (session == null)
+                {
+                    _ = await this.StartNewSessionAsync(userId);
+                }
+
+                this.activeContexts[conversationId] = newContext;
+                return newContext;
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error retrieving conversation context for user {UserId}, session {SessionId}", userId, conversationId);
                 return new ConversationContext();
             }
         }
