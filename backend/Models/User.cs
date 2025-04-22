@@ -1,7 +1,3 @@
-// <copyright file="User.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Models
 {
     using System.ComponentModel.DataAnnotations;

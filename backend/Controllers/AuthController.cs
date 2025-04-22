@@ -1,7 +1,3 @@
-// <copyright file="AuthController.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Controllers
 {
     using Microsoft.AspNetCore.Mvc;

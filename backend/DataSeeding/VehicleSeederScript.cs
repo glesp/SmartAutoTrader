@@ -1,7 +1,3 @@
-// <copyright file="VehicleSeederScript.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.DataSeeding
 {
     using System.Globalization;

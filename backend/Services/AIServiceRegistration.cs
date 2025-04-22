@@ -1,7 +1,3 @@
-// <copyright file="AIServiceRegistration.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Services
 {
     using System.Globalization;

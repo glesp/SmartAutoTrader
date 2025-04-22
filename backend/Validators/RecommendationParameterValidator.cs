@@ -1,7 +1,3 @@
-// <copyright file="RecommendationParameterValidator.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Validators
 {
     using SmartAutoTrader.API.Enums;

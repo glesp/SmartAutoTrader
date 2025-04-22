@@ -1,7 +1,3 @@
-// <copyright file="InquiryCreateDTO.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.DTOs
 {
     using System.ComponentModel.DataAnnotations;

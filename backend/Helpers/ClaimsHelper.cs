@@ -1,7 +1,3 @@
-// <copyright file="ClaimsHelper.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Helpers
 {
     using System.Security.Claims;

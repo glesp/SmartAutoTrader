@@ -1,7 +1,3 @@
-// <copyright file="RecommendationsController.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.Controllers
 {
     using System.Security.Claims;

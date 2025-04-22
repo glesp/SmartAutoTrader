@@ -1,8 +1,4 @@
 // backend/DataSeeding/UserRoleSeeder.cs
-// <copyright file="UserRoleSeeder.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 namespace SmartAutoTrader.API.DataSeeding
 {
     using Microsoft.EntityFrameworkCore;

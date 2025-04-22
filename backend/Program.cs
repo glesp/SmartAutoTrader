@@ -1,7 +1,3 @@
-// <copyright file="Program.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
-// </copyright>
-
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
