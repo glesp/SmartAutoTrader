@@ -1,4 +1,4 @@
-﻿// <copyright file="ChatRecommendationsService.cs" company="PlaceholderCompany">
+// <copyright file="ChatRecommendationsService.cs" company="PlaceholderCompany">
 // Copyright (c) PlaceholderCompany. All rights reserved.
 // </copyright>
 
@@ -63,7 +63,7 @@ namespace SmartAutoTrader.API.Services
                 conversationContext.MessageCount++; // Increment message count
 
                 // Determine model strategy based on context or message flags
-                string modelUsedForSession = DetermineModelStrategy(conversationContext);
+                string modelUsedForSession = this.DetermineModelStrategy(conversationContext);
 
                 // --- Get Current Session and ID ---
                 ConversationSession? currentSession = await this.contextService.GetCurrentSessionAsync(userId);
@@ -96,13 +96,13 @@ namespace SmartAutoTrader.API.Services
                     this.logger.LogError("User with ID {UserId} not found.", userId);
                     return new ChatResponse { Message = "Sorry, I couldn't find your user profile.", ConversationId = message.ConversationId };
                 }
-                // Load related entities if needed (Favorites, BrowsingHistory)
 
+                // Load related entities if needed (Favorites, BrowsingHistory)
 
                 // Determine if this is a clarification or a follow-up query
                 string messageToProcess = message.Content;
-                // Add logic for clarification/follow-up if needed
 
+                // Add logic for clarification/follow-up if needed
 
                 // --- Parameter Extraction ---
                 sw.Restart();
@@ -117,6 +117,7 @@ namespace SmartAutoTrader.API.Services
                 if (extractedParameters == null)
                 {
                     this.logger.LogError("Parameter extraction returned null for user {UserId}.", userId);
+
                     // Handle error, maybe return a generic error response
                     return new ChatResponse { Message = "Sorry, I couldn't understand your request.", ConversationId = message.ConversationId };
                 }
@@ -135,7 +136,8 @@ namespace SmartAutoTrader.API.Services
                     {
                         Message = fallbackMessage,
                         ClarificationNeeded = true, // Still requires user input
-                        ConversationId = message.ConversationId
+                        ConversationId = message.ConversationId,
+
                         // Keep RecommendedVehicles and UpdatedParameters null/empty
                     };
                 }
@@ -160,18 +162,18 @@ namespace SmartAutoTrader.API.Services
                 RecommendationParameters finalParametersForSearch = conversationContext.CurrentParameters;
 
                 // Check if the Python service explicitly indicated clarification is NOT needed
-                bool pythonServiceSaysClarificationNotNeeded = 
-                    extractedParameters.ClarificationNeededFor == null || 
+                bool pythonServiceSaysClarificationNotNeeded =
+                    extractedParameters.ClarificationNeededFor == null ||
                     !extractedParameters.ClarificationNeededFor.Any();
 
                 if (pythonServiceSaysClarificationNotNeeded)
                 {
                     // Log that we're bypassing clarification check based on Python's decision
                     this.logger.LogInformation("Python extraction service explicitly indicated NO clarification needed - bypassing C# clarification check");
-                    
+
                     // Skip to recommendation fetching directly
                     this.logger.LogInformation("Proceeding directly to recommendations using parameters: {@Parameters}", finalParametersForSearch);
-                    
+
                     sw.Restart();
                     IEnumerable<Vehicle> recommendations =
                         await this.recommendationService.GetRecommendationsAsync(userId, finalParametersForSearch);
@@ -213,7 +215,7 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Allow existing clarification logic to run
                     this.logger.LogInformation("Python extraction service did not explicity indicate NO clarification - proceeding with C# clarification check");
-                    
+
                     // --- Clarification Check ---
                     // Check if clarification is needed based on the *updated context*
                     bool needsClarification = NeedsClarification(finalParametersForSearch, message.Content, conversationContext) ||
@@ -226,7 +228,7 @@ namespace SmartAutoTrader.API.Services
 
                         // Enhanced logging for loop detection
                         this.logger.LogWarning(
-                            "Loop Detection Check - New Question: '{NewQuestion}', Previous Question: '{PreviousQuestion}'", 
+                            "Loop Detection Check - New Question: '{NewQuestion}', Previous Question: '{PreviousQuestion}'",
                             clarificationMessage.Substring(0, Math.Min(50, clarificationMessage.Length)),
                             conversationContext.LastQuestionAskedByAI?.Substring(0, Math.Min(50, conversationContext.LastQuestionAskedByAI?.Length ?? 0)) ?? "null");
 
@@ -239,7 +241,7 @@ namespace SmartAutoTrader.API.Services
                                 "CLARIFICATION LOOP DETECTED! Same question generated twice in a row.\n" +
                                 "User message: '{UserMessage}'\n" +
                                 "Parameters: {@Parameters}\n" +
-                                "Context MessageCount: {MessageCount}", 
+                                "Context MessageCount: {MessageCount}",
                                 message.Content,
                                 finalParametersForSearch,
                                 conversationContext.MessageCount);
@@ -247,7 +249,7 @@ namespace SmartAutoTrader.API.Services
                             // Loop detected - provide a fallback response
                             string fallbackMessage = "Sorry, I seem to be stuck. Could you try rephrasing your request clearly? Please provide specific details about the vehicle you're looking for.";
                             this.logger.LogWarning("Loop detected: Same clarification question generated consecutively. Providing fallback response.");
-                            
+
                             // Save the fallback response to chat history
                             await this.SaveChatHistoryAsync(userId, message, fallbackMessage, conversationSessionId);
 
@@ -258,6 +260,7 @@ namespace SmartAutoTrader.API.Services
                                 ClarificationNeeded = true,
                                 OriginalUserInput = message.Content,
                                 ConversationId = message.ConversationId,
+
                                 // Keep RecommendedVehicles and UpdatedParameters null/empty
                             };
                         }
@@ -271,13 +274,13 @@ namespace SmartAutoTrader.API.Services
                             ClarificationNeeded = true,
                             OriginalUserInput = message.Content, // Keep original input for context
                             ConversationId = message.ConversationId,
-                            UpdatedParameters = finalParametersForSearch // Return the current state
+                            UpdatedParameters = finalParametersForSearch, // Return the current state
                         };
                     }
 
                     // --- Recommendation Fetching ---
                     this.logger.LogInformation("Proceeding with recommendations using parameters: {@Parameters}", finalParametersForSearch);
-                    
+
                     // Continue with the rest of the existing recommendation logic
                     // (Note: The rest of the code matches what's in the "true" branch above, for consistency)
                     sw.Restart();
@@ -321,6 +324,7 @@ namespace SmartAutoTrader.API.Services
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+
                 // Return error response
                 return new ChatResponse { Message = "I'm sorry, I encountered an error...", ConversationId = message.ConversationId };
             }
@@ -574,7 +578,7 @@ namespace SmartAutoTrader.API.Services
                     // Use null coalescing operators to ensure we never work with null collections
                     List<string> newFeatures = newParams.DesiredFeatures ?? new List<string>();
                     List<string> existingFeatures = existingParams.DesiredFeatures ?? new List<string>();
-                    
+
                     mergedParams.DesiredFeatures = newFeatures.Union(existingFeatures).ToList();
                 }
                 else
@@ -646,7 +650,7 @@ namespace SmartAutoTrader.API.Services
                 // Features are always additive
                 if (newParams.DesiredFeatures.Any() == true || existingParams.DesiredFeatures.Any() == true)
                 {
-                    mergedParams.DesiredFeatures = (newParams.DesiredFeatures)
+                    mergedParams.DesiredFeatures = newParams.DesiredFeatures
                         .Union(existingParams.DesiredFeatures)
                         .ToList();
                 }
@@ -695,33 +699,68 @@ namespace SmartAutoTrader.API.Services
             {
                 return true;
             }
-            
+
             // Check structured context fields first
             bool hasVehicleType = context.ConfirmedVehicleTypes.Any();
             bool hasPrice = context.ConfirmedMinPrice.HasValue || context.ConfirmedMaxPrice.HasValue;
             bool hasMakes = context.ConfirmedMakes.Any();
-            
+
             // If we have a viable combination, we don't need clarification
             if (hasVehicleType && (hasPrice || hasMakes))
             {
                 return false;
             }
-            
+
             // Count missing parameter types
             double missingParameterTypes = 0;
-            
-            if (!hasPrice) missingParameterTypes++;
-            if (!hasVehicleType) missingParameterTypes++;
-            if (!hasMakes) missingParameterTypes++;
-            if (!context.ConfirmedMinYear.HasValue && !context.ConfirmedMaxYear.HasValue) missingParameterTypes++;
-            if (!context.ConfirmedMaxMileage.HasValue) missingParameterTypes++;
-            if (!context.ConfirmedFuelTypes.Any()) missingParameterTypes++;
-            
+
+            if (!hasPrice)
+            {
+                missingParameterTypes++;
+            }
+
+            if (!hasVehicleType)
+            {
+                missingParameterTypes++;
+            }
+
+            if (!hasMakes)
+            {
+                missingParameterTypes++;
+            }
+
+            if (!context.ConfirmedMinYear.HasValue && !context.ConfirmedMaxYear.HasValue)
+            {
+                missingParameterTypes++;
+            }
+
+            if (!context.ConfirmedMaxMileage.HasValue)
+            {
+                missingParameterTypes++;
+            }
+
+            if (!context.ConfirmedFuelTypes.Any())
+            {
+                missingParameterTypes++;
+            }
+
             // NEW: Count transmission, engine size, and horsepower as optional parameters
             // that don't necessarily trigger clarification if they're the only ones missing
-            if (!context.ConfirmedTransmission.HasValue) missingParameterTypes += 0.5;
-            if (!context.ConfirmedMinEngineSize.HasValue && !context.ConfirmedMaxEngineSize.HasValue) missingParameterTypes += 0.5;
-            if (!context.ConfirmedMinHorsePower.HasValue && !context.ConfirmedMaxHorsePower.HasValue) missingParameterTypes += 0.5;
+            if (!context.ConfirmedTransmission.HasValue)
+            {
+                missingParameterTypes += 0.5;
+            }
+
+            if (!context.ConfirmedMinEngineSize.HasValue && !context.ConfirmedMaxEngineSize.HasValue)
+            {
+                missingParameterTypes += 0.5;
+            }
+
+            if (!context.ConfirmedMinHorsePower.HasValue && !context.ConfirmedMaxHorsePower.HasValue)
+            {
+                missingParameterTypes += 0.5;
+            }
+
             return missingParameterTypes >= 3;
         }
 
@@ -808,33 +847,33 @@ namespace SmartAutoTrader.API.Services
                 }
 
                 // NEW: Transmission - only ask if we have some vehicle preferences established
-                bool hasVehiclePreference = parameters.PreferredVehicleTypes.Any() == true || 
+                bool hasVehiclePreference = parameters.PreferredVehicleTypes.Any() == true ||
                                            parameters.PreferredMakes.Any() == true;
-                                           
-                if (parameters.Transmission == null && hasVehiclePreference && 
+
+                if (parameters.Transmission == null && hasVehiclePreference &&
                     context.RejectedTransmission == null && questions.Count < 2)
                 {
                     questions.Add("Do you prefer automatic or manual transmission?");
                 }
-                
+
                 // NEW: Engine size - only ask if we have some performance or vehicle type context
-                bool mightCareAboutEngineSize = (parameters.PreferredVehicleTypes.Any() == true && 
-                                               parameters.PreferredVehicleTypes.Any(t => 
+                bool mightCareAboutEngineSize = (parameters.PreferredVehicleTypes.Any() == true &&
+                                               parameters.PreferredVehicleTypes.Any(t =>
                                                    t == VehicleType.SUV || t == VehicleType.Pickup)) ||
                                                context.TopicContext.ContainsKey("discussing_performance");
-                                               
-                if (!parameters.MinEngineSize.HasValue && !parameters.MaxEngineSize.HasValue && 
+
+                if (!parameters.MinEngineSize.HasValue && !parameters.MaxEngineSize.HasValue &&
                     mightCareAboutEngineSize && questions.Count < 2)
                 {
                     questions.Add("Any preferences about engine size (e.g., 2.0L or smaller, larger than 3.0L)?");
                 }
-                
+
                 // NEW: Horsepower - only ask if we have sports car or performance context
-                bool mightCareAboutHorsepower = context.TopicContext.ContainsKey("discussing_performance") || 
-                                              (parameters.PreferredVehicleTypes.Any() == true && 
+                bool mightCareAboutHorsepower = context.TopicContext.ContainsKey("discussing_performance") ||
+                                              (parameters.PreferredVehicleTypes.Any() == true &&
                                                parameters.PreferredVehicleTypes.Contains(VehicleType.Coupe));
-                                               
-                if (!parameters.MinHorsePower.HasValue && !parameters.MaxHorsePower.HasValue && 
+
+                if (!parameters.MinHorsePower.HasValue && !parameters.MaxHorsePower.HasValue &&
                     mightCareAboutHorsepower && questions.Count < 2)
                 {
                     questions.Add("Any minimum horsepower requirement for the vehicle?");
@@ -940,16 +979,20 @@ namespace SmartAutoTrader.API.Services
             {
                 // No matching vehicles found - create response explaining why
                 _ = response.Append("Unfortunately, I couldn't find any vehicles matching all your criteria. ");
-                
+
                 // Rest of the "no results" code...
             }
             else
             {
                 // Vehicles found - create response with appropriate intro based on conversation context
                 if (context.MessageCount > 1)
+                {
                     _ = response.Append("Based on our conversation, ");
+                }
                 else
+                {
                     _ = response.Append("Great! ");
+                }
 
                 // Rest of the "vehicles found" code...
             }
@@ -1014,15 +1057,17 @@ namespace SmartAutoTrader.API.Services
                         confirmedMinEngineSize = context.ConfirmedMinEngineSize,
                         confirmedMaxEngineSize = context.ConfirmedMaxEngineSize,
                         confirmedMinHorsePower = context.ConfirmedMinHorsePower,
-                        confirmedMaxHorsePower = context.ConfirmedMaxHorsePower
-                    } : null,
+                        confirmedMaxHorsePower = context.ConfirmedMaxHorsePower,
+                    }
+                    : null,
                     rejectedContext = context != null ? new
                     {
                         rejectedMakes = context.RejectedMakes,
                         rejectedVehicleTypes = context.RejectedVehicleTypes.Select(t => t.ToString()),
                         rejectedFuelTypes = context.RejectedFuelTypes.Select(f => f.ToString()),
-                        rejectedTransmission = context.RejectedTransmission?.ToString()
-                    } : null
+                        rejectedTransmission = context.RejectedTransmission?.ToString(),
+                    }
+                    : null,
                 };
 
                 this.logger.LogInformation(
@@ -1165,24 +1210,24 @@ namespace SmartAutoTrader.API.Services
                             ? transmission
                             : null
                         : null,
-                        
+
                     // NEW: Parse engine size range
                     MinEngineSize = jsonDoc.RootElement.TryGetProperty("minEngineSize", out JsonElement minEngineSizeElement) &&
                                   minEngineSizeElement.ValueKind == JsonValueKind.Number
                         ? minEngineSizeElement.GetDouble()
                         : null,
-                        
+
                     MaxEngineSize = jsonDoc.RootElement.TryGetProperty("maxEngineSize", out JsonElement maxEngineSizeElement) &&
                                   maxEngineSizeElement.ValueKind == JsonValueKind.Number
                         ? maxEngineSizeElement.GetDouble()
                         : null,
-                        
+
                     // NEW: Parse horsepower range
                     MinHorsePower = jsonDoc.RootElement.TryGetProperty("minHorsepower", out JsonElement minHorsepowerElement) &&
                                   minHorsepowerElement.ValueKind == JsonValueKind.Number
                         ? (int?)Convert.ToInt32(minHorsepowerElement.GetDouble())
                         : null,
-                        
+
                     MaxHorsePower = jsonDoc.RootElement.TryGetProperty("maxHorsepower", out JsonElement maxHorsepowerElement) &&
                                   maxHorsepowerElement.ValueKind == JsonValueKind.Number
                         ? (int?)Convert.ToInt32(maxHorsepowerElement.GetDouble())
@@ -1197,7 +1242,7 @@ namespace SmartAutoTrader.API.Services
                                           : null,
 
                     // Initialize ClarificationNeeded in the constructor
-                    ClarificationNeeded = jsonDoc.RootElement.TryGetProperty("clarificationNeeded", out JsonElement clarificationNeededElement) && 
+                    ClarificationNeeded = jsonDoc.RootElement.TryGetProperty("clarificationNeeded", out JsonElement clarificationNeededElement) &&
                                           clarificationNeededElement.ValueKind == JsonValueKind.True,
 
                     // Initialize ClarificationNeededFor as empty list
@@ -1269,7 +1314,7 @@ namespace SmartAutoTrader.API.Services
 
                 // Parse retriever suggestion - use a different variable name to avoid duplication
                 if (jsonDoc.RootElement.TryGetProperty(
-                    "retrieverSuggestion", 
+                    "retrieverSuggestion",
                     out JsonElement suggestionElement) &&
                     suggestionElement.ValueKind == JsonValueKind.String)
                 {
@@ -1301,19 +1346,29 @@ namespace SmartAutoTrader.API.Services
         {
             // Update confirmed parameters with new values from extracted parameters
             if (parameters.MinPrice.HasValue)
+            {
                 context.ConfirmedMinPrice = parameters.MinPrice;
+            }
 
             if (parameters.MaxPrice.HasValue)
+            {
                 context.ConfirmedMaxPrice = parameters.MaxPrice;
+            }
 
             if (parameters.MinYear.HasValue)
+            {
                 context.ConfirmedMinYear = parameters.MinYear;
+            }
 
             if (parameters.MaxYear.HasValue)
+            {
                 context.ConfirmedMaxYear = parameters.MaxYear;
+            }
 
             if (parameters.MaxMileage.HasValue)
+            {
                 context.ConfirmedMaxMileage = parameters.MaxMileage;
+            }
 
             // Update confirmed makes, removing from rejected if necessary
             if (parameters.PreferredMakes?.Any() == true)
@@ -1321,15 +1376,17 @@ namespace SmartAutoTrader.API.Services
                 foreach (var make in parameters.PreferredMakes)
                 {
                     // Remove from rejected list if present (case-insensitive)
-                    context.RejectedMakes.RemoveAll(m => 
+                    context.RejectedMakes.RemoveAll(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
-                    
+
                     // Add to confirmed list if not already present (case-insensitive)
-                    bool alreadyConfirmed = context.ConfirmedMakes.Any(m => 
+                    bool alreadyConfirmed = context.ConfirmedMakes.Any(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
-                        
+
                     if (!alreadyConfirmed)
+                    {
                         context.ConfirmedMakes.Add(make);
+                    }
                 }
             }
 
@@ -1340,11 +1397,15 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Remove this type from rejected using direct enum equality
                     if (context.RejectedVehicleTypes.Contains(type))
+                    {
                         context.RejectedVehicleTypes.Remove(type);
-                        
+                    }
+
                     // Add to confirmed using direct enum equality
                     if (!context.ConfirmedVehicleTypes.Contains(type))
+                    {
                         context.ConfirmedVehicleTypes.Add(type);
+                    }
                 }
             }
 
@@ -1355,11 +1416,15 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Remove this fuel type from rejected using direct enum equality
                     if (context.RejectedFuelTypes.Contains(fuel))
+                    {
                         context.RejectedFuelTypes.Remove(fuel);
-                        
+                    }
+
                     // Add to confirmed using direct enum equality
                     if (!context.ConfirmedFuelTypes.Contains(fuel))
+                    {
                         context.ConfirmedFuelTypes.Add(fuel);
+                    }
                 }
             }
 
@@ -1369,15 +1434,17 @@ namespace SmartAutoTrader.API.Services
                 foreach (var feature in parameters.DesiredFeatures)
                 {
                     // Remove from rejected features if present (case-insensitive)
-                    context.RejectedFeatures.RemoveAll(f => 
+                    context.RejectedFeatures.RemoveAll(f =>
                         string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
-                    
+
                     // Add to confirmed features if not already present (case-insensitive)
-                    bool alreadyConfirmed = context.ConfirmedFeatures.Any(f => 
+                    bool alreadyConfirmed = context.ConfirmedFeatures.Any(f =>
                         string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
-                        
+
                     if (!alreadyConfirmed)
+                    {
                         context.ConfirmedFeatures.Add(feature);
+                    }
                 }
             }
 
@@ -1386,24 +1453,34 @@ namespace SmartAutoTrader.API.Services
             {
                 // Only remove from rejected if it matches exactly
                 if (context.RejectedTransmission == parameters.Transmission.Value)
+                {
                     context.RejectedTransmission = null;
-                    
+                }
+
                 context.ConfirmedTransmission = parameters.Transmission.Value;
             }
 
             // Update engine size range
             if (parameters.MinEngineSize.HasValue)
+            {
                 context.ConfirmedMinEngineSize = parameters.MinEngineSize;
-                
+            }
+
             if (parameters.MaxEngineSize.HasValue)
+            {
                 context.ConfirmedMaxEngineSize = parameters.MaxEngineSize;
+            }
 
             // Update horsepower range
             if (parameters.MinHorsePower.HasValue)
+            {
                 context.ConfirmedMinHorsePower = parameters.MinHorsePower;
-                
+            }
+
             if (parameters.MaxHorsePower.HasValue)
+            {
                 context.ConfirmedMaxHorsePower = parameters.MaxHorsePower;
+            }
 
             // Process explicitly negated makes
             if (parameters.ExplicitlyNegatedMakes?.Any() == true)
@@ -1411,17 +1488,17 @@ namespace SmartAutoTrader.API.Services
                 foreach (var make in parameters.ExplicitlyNegatedMakes)
                 {
                     // Remove from confirmed makes if present (case-insensitive)
-                    context.ConfirmedMakes.RemoveAll(m => 
+                    context.ConfirmedMakes.RemoveAll(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
-                    
+
                     // Add to rejected makes if not already present (case-insensitive)
-                    bool alreadyRejected = context.RejectedMakes.Any(m => 
+                    bool alreadyRejected = context.RejectedMakes.Any(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
-                        
+
                     if (!alreadyRejected)
                     {
                         context.RejectedMakes.Add(make);
-                        logger.LogDebug("Added explicitly negated make '{Make}' to rejected context.", make);
+                        this.logger.LogDebug("Added explicitly negated make '{Make}' to rejected context.", make);
                     }
                 }
             }
@@ -1433,13 +1510,15 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Remove from confirmed if present (direct enum equality)
                     if (context.ConfirmedVehicleTypes.Contains(type))
+                    {
                         context.ConfirmedVehicleTypes.Remove(type);
-                        
+                    }
+
                     // Add to rejected if not already present (direct enum equality)
                     if (!context.RejectedVehicleTypes.Contains(type))
                     {
                         context.RejectedVehicleTypes.Add(type);
-                        logger.LogDebug("Added explicitly negated vehicle type '{Type}' to rejected context.", type);
+                        this.logger.LogDebug("Added explicitly negated vehicle type '{Type}' to rejected context.", type);
                     }
                 }
             }
@@ -1451,13 +1530,15 @@ namespace SmartAutoTrader.API.Services
                 {
                     // Remove from confirmed if present (direct enum equality)
                     if (context.ConfirmedFuelTypes.Contains(fuel))
+                    {
                         context.ConfirmedFuelTypes.Remove(fuel);
-                        
+                    }
+
                     // Add to rejected if not already present (direct enum equality)
                     if (!context.RejectedFuelTypes.Contains(fuel))
                     {
                         context.RejectedFuelTypes.Add(fuel);
-                        logger.LogDebug("Added explicitly negated fuel type '{Fuel}' to rejected context.", fuel);
+                        this.logger.LogDebug("Added explicitly negated fuel type '{Fuel}' to rejected context.", fuel);
                     }
                 }
             }
@@ -1529,7 +1610,9 @@ namespace SmartAutoTrader.API.Services
             foreach (var feature in context.ConfirmedFeatures)
             {
                 if (!context.MentionedVehicleFeatures.Contains(feature))
+                {
                     context.MentionedVehicleFeatures.Add(feature);
+                }
             }
         }
 

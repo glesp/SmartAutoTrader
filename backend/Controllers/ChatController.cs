@@ -90,7 +90,7 @@ namespace SmartAutoTrader.API.Controllers
                             MinYear = response.UpdatedParameters.MinYear,
                             MaxYear = response.UpdatedParameters.MaxYear,
                             MaxMileage = response.UpdatedParameters.MaxMileage,
-                            
+
                             // List parameters - preferred items
                             PreferredMakes = response.UpdatedParameters.PreferredMakes?.ToList() ?? [],
                             PreferredVehicleTypes = response.UpdatedParameters.PreferredVehicleTypes?
@@ -100,31 +100,31 @@ namespace SmartAutoTrader.API.Controllers
                                 .Select(f => f.ToString())
                                 .ToList() ?? [],
                             DesiredFeatures = response.UpdatedParameters.DesiredFeatures?.ToList() ?? [],
-                            
+
                             // List parameters - rejected/negated items
-                            RejectedMakes = response.UpdatedParameters.RejectedMakes?.ToList() ?? 
+                            RejectedMakes = response.UpdatedParameters.RejectedMakes?.ToList() ??
                                            response.UpdatedParameters.ExplicitlyNegatedMakes?.ToList() ?? [],
                             RejectedVehicleTypes = response.UpdatedParameters.RejectedVehicleTypes?
                                 .Select(t => t.ToString())
-                                .ToList() ?? 
+                                .ToList() ??
                                 response.UpdatedParameters.ExplicitlyNegatedVehicleTypes?
                                 .Select(t => t.ToString())
                                 .ToList() ?? [],
                             RejectedFuelTypes = response.UpdatedParameters.RejectedFuelTypes?
                                 .Select(f => f.ToString())
-                                .ToList() ?? 
+                                .ToList() ??
                                 response.UpdatedParameters.ExplicitlyNegatedFuelTypes?
                                 .Select(f => f.ToString())
                                 .ToList() ?? [],
                             RejectedFeatures = response.UpdatedParameters.RejectedFeatures?.ToList() ?? [],
-                            
+
                             // Additional parameters
                             Transmission = response.UpdatedParameters.Transmission?.ToString(),
                             MinEngineSize = response.UpdatedParameters.MinEngineSize,
                             MaxEngineSize = response.UpdatedParameters.MaxEngineSize,
                             MinHorsePower = response.UpdatedParameters.MinHorsePower,
                             MaxHorsePower = response.UpdatedParameters.MaxHorsePower,
-                            Intent = response.UpdatedParameters.Intent
+                            Intent = response.UpdatedParameters.Intent,
                         }
                         : null,
                 };

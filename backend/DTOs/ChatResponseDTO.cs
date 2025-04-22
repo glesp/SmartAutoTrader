@@ -16,6 +16,6 @@ public class ChatResponseDto
     public string? OriginalUserInput { get; set; }
 
     public string? ConversationId { get; set; }
-    
+
     public string? MatchedCategory { get; set; }
 }

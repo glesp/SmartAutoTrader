@@ -1,6 +1,6 @@
-using SmartAutoTrader.API.Enums;
-
 namespace SmartAutoTrader.API.Models;
+
+using SmartAutoTrader.API.Enums;
 
 public class ConversationContext
 {
@@ -29,28 +29,47 @@ public class ConversationContext
 
     // Confirmed criteria
     public decimal? ConfirmedMinPrice { get; set; }
+
     public decimal? ConfirmedMaxPrice { get; set; }
+
     public int? ConfirmedMinYear { get; set; }
+
     public int? ConfirmedMaxYear { get; set; }
+
     public int? ConfirmedMaxMileage { get; set; }
+
     public List<string> ConfirmedMakes { get; set; } = [];
+
     public List<string> ConfirmedModels { get; set; } = [];
+
     public List<VehicleType> ConfirmedVehicleTypes { get; set; } = [];
+
     public List<FuelType> ConfirmedFuelTypes { get; set; } = [];
+
     public TransmissionType? ConfirmedTransmission { get; set; }
+
     public List<string> ConfirmedFeatures { get; set; } = [];
+
     // Added engine size and horsepower confirmed criteria
     public double? ConfirmedMinEngineSize { get; set; }
+
     public double? ConfirmedMaxEngineSize { get; set; }
+
     public int? ConfirmedMinHorsePower { get; set; }
+
     public int? ConfirmedMaxHorsePower { get; set; }
 
-    // Rejected criteria  
+    // Rejected criteria
     public List<string> RejectedMakes { get; set; } = [];
+
     public List<string> RejectedModels { get; set; } = [];
+
     public List<VehicleType> RejectedVehicleTypes { get; set; } = [];
+
     public List<FuelType> RejectedFuelTypes { get; set; } = [];
+
     public TransmissionType? RejectedTransmission { get; set; }
+
     public List<string> RejectedFeatures { get; set; } = [];
 
     // Question tracking

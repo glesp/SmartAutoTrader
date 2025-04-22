@@ -55,7 +55,7 @@ namespace SmartAutoTrader.API.Services
                         ? string.Join(", ", parameters.PreferredVehicleTypes)
                         : "null",
                     parameters.Transmission.HasValue ? parameters.Transmission.Value.ToString() : "null",
-                    (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue) 
+                    (parameters.MinEngineSize.HasValue || parameters.MaxEngineSize.HasValue)
                         ? $"{parameters.MinEngineSize?.ToString() ?? "min"}-{parameters.MaxEngineSize?.ToString() ?? "max"}"
                         : "null",
                     (parameters.MinHorsePower.HasValue || parameters.MaxHorsePower.HasValue)
@@ -256,7 +256,7 @@ namespace SmartAutoTrader.API.Services
                     string.Join(", ", parameters.PreferredMakes));
             }
 
-            // Add rejected makes filter 
+            // Add rejected makes filter
             if (parameters.RejectedMakes?.Any() == true)
             {
                 foreach (string rejectedMake in parameters.RejectedMakes)
@@ -266,7 +266,7 @@ namespace SmartAutoTrader.API.Services
                         expression,
                         v => !v.Make.Contains(rejectedMake) && !rejectedMake.Contains(v.Make));
                 }
-                
+
                 this.logger.LogInformation(
                     "Excluding manufacturers: {RejectedManufacturers}",
                     string.Join(", ", parameters.RejectedMakes));
@@ -279,7 +279,7 @@ namespace SmartAutoTrader.API.Services
         private static Expression<Func<Vehicle, bool>> BuildMakeMatchExpression(string make)
         {
             return v => v.Make == make ||
-                        v.Make.Contains(make) || 
+                        v.Make.Contains(make) ||
                         make.Contains(v.Make);
         }
 

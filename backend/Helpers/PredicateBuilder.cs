@@ -1,9 +1,9 @@
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-
 namespace SmartAutoTrader.API.Helpers
 {
+    using System;
+    using System.Linq;
+    using System.Linq.Expressions;
+
     /// <summary>
     /// Enables the efficient, dynamic composition of query predicates.
     /// </summary>
@@ -12,16 +12,25 @@ namespace SmartAutoTrader.API.Helpers
         /// <summary>
         /// Creates a predicate that evaluates to true.
         /// </summary>
-        public static Expression<Func<T, bool>> True<T>() { return f => true; }
+        /// <returns></returns>
+        public static Expression<Func<T, bool>> True<T>()
+        {
+            return f => true;
+        }
 
         /// <summary>
         /// Creates a predicate that evaluates to false.
         /// </summary>
-        public static Expression<Func<T, bool>> False<T>() { return f => false; }
+        /// <returns></returns>
+        public static Expression<Func<T, bool>> False<T>()
+        {
+            return f => false;
+        }
 
         /// <summary>
         /// Combines the first predicate with the second using the logical "or".
         /// </summary>
+        /// <returns></returns>
         public static Expression<Func<T, bool>> Or<T>(this Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
         {
             var invokedExpr = Expression.Invoke(expr2, expr1.Parameters.Cast<Expression>());
@@ -31,6 +40,7 @@ namespace SmartAutoTrader.API.Helpers
         /// <summary>
         /// Combines the first predicate with the second using the logical "and".
         /// </summary>
+        /// <returns></returns>
         public static Expression<Func<T, bool>> And<T>(this Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
         {
             var invokedExpr = Expression.Invoke(expr2, expr1.Parameters.Cast<Expression>());

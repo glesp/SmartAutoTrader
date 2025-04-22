@@ -32,12 +32,12 @@ namespace SmartAutoTrader.API.Models
 
         // Engine size range in liters
         public double? MinEngineSize { get; set; }
-        
+
         public double? MaxEngineSize { get; set; }
 
         // Horsepower range
         public int? MinHorsePower { get; set; }
-        
+
         public int? MaxHorsePower { get; set; }
 
         public string? TextPrompt { get; set; }
@@ -67,9 +67,13 @@ namespace SmartAutoTrader.API.Models
 
         // Properties to hold rejected items for filtering
         public List<string> RejectedMakes { get; set; } = new List<string>();
+
         public List<VehicleType> RejectedVehicleTypes { get; set; } = new List<VehicleType>();
+
         public List<FuelType> RejectedFuelTypes { get; set; } = new List<FuelType>();
+
         public List<string> RejectedFeatures { get; set; } = new List<string>();
+
         public TransmissionType? RejectedTransmission { get; set; }
     }
 }
