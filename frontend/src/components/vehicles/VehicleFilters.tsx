@@ -58,6 +58,62 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     0, 800,
   ]);
 
+  // --- Local slider states for debounced filter updates ---
+  const [localYearRange, setLocalYearRange] = useState<[number, number]>([
+    filters.minYear ?? yearRange[0],
+    filters.maxYear ?? yearRange[1],
+  ]);
+  const [localEngineSizeRange, setLocalEngineSizeRange] = useState<
+    [number, number]
+  >([
+    typeof filters.minEngineSize === 'number'
+      ? filters.minEngineSize
+      : engineSizeRange[0],
+    typeof filters.maxEngineSize === 'number'
+      ? filters.maxEngineSize
+      : engineSizeRange[1],
+  ]);
+  const [localHorsepowerRange, setLocalHorsepowerRange] = useState<
+    [number, number]
+  >([
+    typeof filters.minHorsepower === 'number'
+      ? filters.minHorsepower
+      : horsepowerRange[0],
+    typeof filters.maxHorsepower === 'number'
+      ? filters.maxHorsepower
+      : horsepowerRange[1],
+  ]);
+
+  // Sync local slider state with parent filter changes
+  useEffect(() => {
+    setLocalYearRange([
+      filters.minYear ?? yearRange[0],
+      filters.maxYear ?? yearRange[1],
+    ]);
+  }, [filters.minYear, filters.maxYear, yearRange]);
+
+  useEffect(() => {
+    setLocalEngineSizeRange([
+      typeof filters.minEngineSize === 'number'
+        ? filters.minEngineSize
+        : engineSizeRange[0],
+      typeof filters.maxEngineSize === 'number'
+        ? filters.maxEngineSize
+        : engineSizeRange[1],
+    ]);
+  }, [filters.minEngineSize, filters.maxEngineSize, engineSizeRange]);
+
+  useEffect(() => {
+    setLocalHorsepowerRange([
+      typeof filters.minHorsepower === 'number'
+        ? filters.minHorsepower
+        : horsepowerRange[0],
+      typeof filters.maxHorsepower === 'number'
+        ? filters.maxHorsepower
+        : horsepowerRange[1],
+    ]);
+  }, [filters.minHorsepower, filters.maxHorsepower, horsepowerRange]);
+
   // Fetch available makes when component mounts
   useEffect(() => {
     const fetchMakesAndYears = async () => {
@@ -90,6 +146,10 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             engineSizeRangeResponse.min,
             engineSizeRangeResponse.max,
           ]);
+          setLocalEngineSizeRange([
+            Math.max(localEngineSizeRange[0], engineSizeRangeResponse.min),
+            Math.min(localEngineSizeRange[1], engineSizeRangeResponse.max),
+          ]);
         }
 
         const horsepowerRangeResponse =
@@ -103,6 +163,14 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             horsepowerRangeResponse.min,
             horsepowerRangeResponse.max,
           ]);
+          setLocalHorsepowerRange([
+            typeof filters.minHorsepower === 'number'
+              ? Math.max(filters.minHorsepower, horsepowerRangeResponse.min)
+              : horsepowerRangeResponse.min,
+            typeof filters.maxHorsepower === 'number'
+              ? Math.min(filters.maxHorsepower, horsepowerRangeResponse.max)
+              : horsepowerRangeResponse.max,
+          ]);
         }
       } catch (error) {
         console.error('Error fetching vehicle specifications:', error);
@@ -110,7 +178,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     };
 
     fetchMakesAndYears();
-  }, []);
+  }, [filters.minHorsepower, filters.maxHorsepower, localEngineSizeRange]);
 
   // Fetch models when make changes
   useEffect(() => {
@@ -135,8 +203,16 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     fetchModels();
   }, [filters.make]);
 
-  // Handle year range changes
-  const handleYearRangeChange = (event: Event, newValue: number | number[]) => {
+  // --- Slider handlers for debounced updates ---
+  // Year Range
+  const handleYearChange = (event: Event, newValue: number | number[]) => {
+    if (Array.isArray(newValue))
+      setLocalYearRange(newValue as [number, number]);
+  };
+  const handleYearChangeCommitted = (
+    event: Event | React.SyntheticEvent,
+    newValue: number | number[]
+  ) => {
     if (Array.isArray(newValue)) {
       onFilterChange({
         minYear: newValue[0],
@@ -145,9 +221,16 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     }
   };
 
-  // Handle engine size range changes
-  const handleEngineSizeRangeChange = (
+  // Engine Size Range
+  const handleEngineSizeChange = (
     event: Event,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue))
+      setLocalEngineSizeRange(newValue as [number, number]);
+  };
+  const handleEngineSizeChangeCommitted = (
+    event: Event | React.SyntheticEvent,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue)) {
@@ -158,9 +241,16 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     }
   };
 
-  // Handle horsepower range changes
-  const handleHorsepowerRangeChange = (
+  // Horsepower Range
+  const handleHorsepowerChange = (
     event: Event,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue))
+      setLocalHorsepowerRange(newValue as [number, number]);
+  };
+  const handleHorsepowerChangeCommitted = (
+    event: Event | React.SyntheticEvent,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue)) {
@@ -276,11 +366,9 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
       <Box sx={{ mt: 3, mb: 2 }}>
         <Typography gutterBottom>Year Range</Typography>
         <Slider
-          value={[
-            filters.minYear || yearRange[0],
-            filters.maxYear || yearRange[1],
-          ]}
-          onChange={handleYearRangeChange}
+          value={localYearRange}
+          onChange={handleYearChange}
+          onChangeCommitted={handleYearChangeCommitted}
           valueLabelDisplay="auto"
           min={yearRange[0]}
           max={yearRange[1]}
@@ -410,15 +498,9 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography gutterBottom>Engine Size (L)</Typography>
             <Slider
-              value={[
-                typeof filters.minEngineSize === 'number'
-                  ? filters.minEngineSize
-                  : engineSizeRange[0],
-                typeof filters.maxEngineSize === 'number'
-                  ? filters.maxEngineSize
-                  : engineSizeRange[1],
-              ]}
-              onChange={handleEngineSizeRangeChange}
+              value={localEngineSizeRange}
+              onChange={handleEngineSizeChange}
+              onChangeCommitted={handleEngineSizeChangeCommitted}
               valueLabelDisplay="auto"
               min={engineSizeRange[0]}
               max={engineSizeRange[1]}
@@ -440,15 +522,9 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
           <Box sx={{ mt: 3, mb: 2 }}>
             <Typography gutterBottom>Horsepower (HP)</Typography>
             <Slider
-              value={[
-                typeof filters.minHorsepower === 'number'
-                  ? filters.minHorsepower
-                  : horsepowerRange[0],
-                typeof filters.maxHorsepower === 'number'
-                  ? filters.maxHorsepower
-                  : horsepowerRange[1],
-              ]}
-              onChange={handleHorsepowerRangeChange}
+              value={localHorsepowerRange}
+              onChange={handleHorsepowerChange}
+              onChangeCommitted={handleHorsepowerChangeCommitted}
               valueLabelDisplay="auto"
               min={horsepowerRange[0]}
               max={horsepowerRange[1]}
@@ -505,6 +581,19 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             <MenuItem value="Model">Model</MenuItem>
           </Select>
         </FormControl>
+      </Box>
+
+      {/* Reset All Filters button at the bottom */}
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        <Button
+          variant="outlined"
+          color="secondary"
+          startIcon={<RestartAltIcon />}
+          onClick={handleResetFilters}
+          size="large"
+        >
+          Reset All Filters
+        </Button>
       </Box>
     </Box>
   );

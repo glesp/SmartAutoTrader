@@ -14,6 +14,7 @@ import {
   Pagination,
   CircularProgress,
   Divider,
+  Skeleton,
 } from '@mui/material';
 
 const VehicleListingPage = () => {
@@ -54,8 +55,18 @@ const VehicleListingPage = () => {
   }, [filters, page]);
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
-    setPage(1); // Reset to first page when filters change
+    setFilters((prev) => {
+      const next = { ...prev, ...newFilters };
+      const changed = Object.keys(newFilters).some((key) => {
+        const typedKey = key as keyof FilterState;
+        return newFilters[typedKey] !== prev[typedKey];
+      });
+      if (changed) {
+        setPage(1); // Reset to first page when filters change
+        return next;
+      }
+      return prev;
+    });
   };
 
   const handlePageChange = (
@@ -97,15 +108,20 @@ const VehicleListingPage = () => {
         {/* Vehicle results section - 9 columns on md+ screens, full width on smaller screens */}
         <Grid item xs={12} md={9}>
           {loading ? (
-            <Box
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              height={300}
-            >
-              <CircularProgress />
-              <Typography sx={{ ml: 2 }}>Loading vehicles...</Typography>
-            </Box>
+            <Grid container spacing={3}>
+              {[1, 2, 3, 4].map((i) => (
+                <Grid item xs={12} sm={6} md={4} lg={4} key={i}>
+                  <Skeleton
+                    variant="rectangular"
+                    height={200}
+                    sx={{ borderRadius: 2, mb: 2 }}
+                  />
+                  <Skeleton variant="text" width="60%" />
+                  <Skeleton variant="text" width="40%" />
+                  <Skeleton variant="text" width="80%" />
+                </Grid>
+              ))}
+            </Grid>
           ) : vehicles.length === 0 ? (
             <Paper
               elevation={0}

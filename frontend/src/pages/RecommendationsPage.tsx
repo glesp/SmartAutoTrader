@@ -38,6 +38,8 @@ const RecommendationsPage = () => {
   const [isChatMinimized, setIsChatMinimized] = useState(true);
   const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false);
   const [showChatBadge, setShowChatBadge] = useState(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(false);
 
   // Show loading state while checking authentication
   if (loading) {
@@ -163,10 +165,16 @@ const RecommendationsPage = () => {
             }}
           >
             {activeTab === 'recommendations' ? (
-              <VehicleRecommendations
-                recommendedVehicles={recommendedVehicles}
-                parameters={parameters}
-              />
+              <Grid item xs={12}>
+                <Fade in={!isLoadingRecommendations} timeout={500}>
+                  <div>
+                    <VehicleRecommendations
+                      recommendedVehicles={recommendedVehicles}
+                      parameters={parameters}
+                    />
+                  </div>
+                </Fade>
+              </Grid>
             ) : (
               <Paper
                 elevation={2}

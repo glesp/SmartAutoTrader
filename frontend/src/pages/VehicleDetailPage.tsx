@@ -15,6 +15,7 @@ import {
   Link as MuiLink,
   ButtonBase,
   Divider,
+  IconButton,
 } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -54,6 +55,7 @@ const VehicleDetailPage = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [checkingFavorite, setCheckingFavorite] = useState(false);
+  const [favAnim, setFavAnim] = useState(false);
   const { isAuthenticated } = useContext(AuthContext);
 
   useEffect(() => {
@@ -115,6 +117,14 @@ const VehicleDetailPage = () => {
 
     checkFavorite();
   }, [id, isAuthenticated]);
+
+  useEffect(() => {
+    if (isFavorite !== undefined) {
+      setFavAnim(true);
+      const timeout = setTimeout(() => setFavAnim(false), 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [isFavorite]);
 
   const handleToggleFavorite = async () => {
     if (!isAuthenticated || !id) return;
@@ -355,28 +365,16 @@ const VehicleDetailPage = () => {
             </Button>
 
             {isAuthenticated ? (
-              <Button
-                variant={isFavorite ? 'outlined' : 'contained'}
-                color={isFavorite ? 'error' : 'primary'}
+              <IconButton
                 onClick={handleToggleFavorite}
-                disabled={checkingFavorite}
-                fullWidth
-                startIcon={
-                  isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />
-                }
                 sx={{
-                  bgcolor: isFavorite ? 'error.light' : undefined,
-                  '&:hover': {
-                    bgcolor: isFavorite ? 'error.200' : undefined,
-                  },
+                  transition: 'transform 0.2s',
+                  transform: favAnim ? 'scale(1.15)' : 'scale(1.0)',
+                  color: isFavorite ? 'error.main' : 'grey.500',
                 }}
               >
-                {checkingFavorite
-                  ? 'Loading...'
-                  : isFavorite
-                    ? 'Remove from Favorites'
-                    : 'Add to Favorites'}
-              </Button>
+                {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              </IconButton>
             ) : (
               <Button variant="outlined" component={Link} to="/login" fullWidth>
                 Login to Save to Favorites

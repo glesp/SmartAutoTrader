@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { VehicleProps } from '../../types/models';
+import Card from '@mui/material/Card';
 
 // Define image type to avoid type errors
 interface VehicleImage {
@@ -57,18 +58,20 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
         width: '100%',
       }}
     >
-      <div
-        style={{
+      <Card
+        sx={{
+          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+          '&:hover, &:focus': {
+            transform: 'translateY(-4px)',
+            boxShadow: (theme) => theme.shadows[6],
+          },
           border: '1px solid #eee',
           borderRadius: '8px',
           overflow: 'hidden',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
         }}
-        className="hover:shadow-lg hover:-translate-y-1"
       >
         <div style={{ height: '200px', overflow: 'hidden' }}>
           <img
@@ -142,7 +145,7 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </Link>
   );
 };

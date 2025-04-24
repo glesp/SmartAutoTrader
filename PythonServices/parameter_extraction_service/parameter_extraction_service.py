@@ -660,6 +660,9 @@ Latest User Query: "{user_query}"
    -to proceed (e.g., "Find me something nice"). If true, list needed info in clarificationNeededFor
    -(e.g., ["budget", "type"]).
    - DO NOT set to true if the user is just refining or negating criteria.
+"When the user mentions a budget with a single number (e.g., 'under 50000', 'around 50000', '50000 budget'),
+    - interpret this number as the maxPrice ONLY. Leave minPrice as null unless a clear 
+    -range (e.g., 'between 40k and 50k') is stated."
 
 ## NEGATION HANDLING (CRITICAL RULES):
 - If the user explicitly rejects a make/type/fuel (e.g., "not Toyota", "no SUVs", "don't want diesel")
@@ -1187,7 +1190,13 @@ def find_positive_terms(
 
 
 def merge_list_param_corrected(
-    param_name, context_key, llm_list, positive_set, negated_set, is_simple_negation, confirmed_context
+    param_name,
+    context_key,
+    llm_list,
+    positive_set,
+    negated_set,
+    is_simple_negation,
+    confirmed_context,
 ):
     """
     Merges LLM and context lists for a parameter, handling simple negation and robust union logic.
@@ -1207,6 +1216,323 @@ def merge_list_param_corrected(
         f"Merged {param_name}: {merged} (llm={llm_list}, context={context_list}, negated={negated_set})"
     )
     return list(merged)
+
+
+def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
+    """
+    Try to extract parameter name and value from RAG category and query.
+
+    Args:
+        category_name: The matched category name from RAG
+        user_query: The user's query text
+
+    Returns:
+        tuple: (param_name, param_value) if extraction succeeds, else (None, None)
+    """
+    logger.info(
+        f"Attempting parameter extraction from RAG category: '{category_name}' and query: '{user_query}'"
+    )
+
+    # Convert to lowercase for easier matching
+    category_lower = category_name.lower()
+    query_lower = user_query.lower()
+
+    # Extract price/budget
+    if any(
+        term in category_lower
+        for term in ["budget", "price", "cost", "cheap", "affordable", "expensive"]
+    ):
+        # Look for numeric values with optional currency symbols
+        price_match = re.search(r"(\d[\d,]*(?:\.\d+)?)\s*(?:k|€|£|\$)?", query_lower)
+        if price_match:
+            try:
+                # Remove commas and convert to float
+                price_value = float(price_match.group(1).replace(",", ""))
+
+                # If the value seems to be in thousands (k)
+                if "k" in query_lower and price_value < 1000:
+                    price_value *= 1000
+
+                # For budget queries, typically this is a maximum price
+                logger.info(f"Extracted price parameter: maxPrice={price_value}")
+                return "maxPrice", price_value
+            except ValueError:
+                logger.warning(f"Failed to convert extracted price value to float")
+
+    # Extract mileage
+    elif any(term in category_lower for term in ["mileage", "km", "miles", "odometer"]):
+        # Look for numeric values with optional unit indicators
+        mileage_match = re.search(r"(\d[\d,]*)\s*(?:km|miles|mi)?", query_lower)
+        if mileage_match:
+            try:
+                mileage_value = int(mileage_match.group(1).replace(",", ""))
+                logger.info(f"Extracted mileage parameter: maxMileage={mileage_value}")
+                return "maxMileage", mileage_value
+            except ValueError:
+                logger.warning(f"Failed to convert extracted mileage value to int")
+
+    # Extract year
+    elif any(term in category_lower for term in ["year", "new", "older", "newer"]):
+        # Look for 4-digit years or 2-digit years with apostrophe
+        year_match = re.search(r"(20\d{2}|19\d{2}|'\d{2}|\d{2})", query_lower)
+        if year_match:
+            try:
+                year_str = year_match.group(1)
+                # Handle '22 format
+                if year_str.startswith("'"):
+                    year_value = 2000 + int(year_str[1:])
+                # Handle 2-digit years (assuming 21st century)
+                elif len(year_str) == 2 and year_str.isdigit():
+                    year_value = 2000 + int(year_str)
+                else:
+                    year_value = int(year_str)
+
+                # Check if this is likely minYear or maxYear
+                if any(
+                    term in query_lower
+                    for term in ["after", "newer", "min", "from", "since"]
+                ):
+                    logger.info(f"Extracted year parameter: minYear={year_value}")
+                    return "minYear", year_value
+                else:
+                    logger.info(f"Extracted year parameter: maxYear={year_value}")
+                    return "maxYear", year_value
+            except ValueError:
+                logger.warning(f"Failed to convert extracted year value to int")
+
+    # Add more parameter extraction cases here as needed
+
+    logger.info(f"No parameters extracted from RAG category and query")
+    return None, None
+
+
+def try_extract_param_from_rag_category(category_name: str) -> tuple:
+    """
+    Extract a single parameter and value from a RAG category name.
+
+    Args:
+        category_name: The matched category name from RAG
+
+    Returns:
+        tuple: (param_name, param_value) if extraction succeeds, else (None, None)
+    """
+    logger.info(f"Attempting parameter extraction from RAG category: '{category_name}'")
+
+    category_lower = category_name.lower()
+
+    # Extract price range
+    # Look for patterns like "under €25000", "budget 25k", "affordable (under 15000)"
+    price_match = re.search(
+        r"(?:budget|price|cost|under|up to|€|£|\$)\s*(\d[\d,]*(?:\.\d+)?)\s*(?:k|€|£|\$)?",
+        category_lower,
+    )
+    if price_match:
+        try:
+            price_value = float(price_match.group(1).replace(",", ""))
+
+            # If 'k' is in the category or the value seems too small to be a full price
+            if "k" in category_lower and price_value < 1000:
+                price_value *= 1000
+
+            logger.info(f"Extracted from category: maxPrice={price_value}")
+            return "maxPrice", price_value
+        except ValueError:
+            logger.warning(f"Failed to convert category price value to float")
+
+    # Extract mileage
+    # Look for patterns like "low mileage (under 50000 km)", "under 100000 miles"
+    mileage_match = re.search(
+        r"(?:mileage|miles|km|odometer).*?(\d[\d,]*)\s*(?:km|miles|mi)?", category_lower
+    )
+    if mileage_match:
+        try:
+            mileage_value = int(mileage_match.group(1).replace(",", ""))
+            logger.info(f"Extracted from category: maxMileage={mileage_value}")
+            return "maxMileage", mileage_value
+        except ValueError:
+            logger.warning(f"Failed to convert category mileage value to int")
+
+    # Extract year
+    # Look for patterns like "newer than 2018", "after 2020", "2015 or newer"
+    year_match = re.search(
+        r"(?:year|from|since|after|before|newer than|older than)\s*((?:20|19)\d{2})",
+        category_lower,
+    )
+    if year_match:
+        try:
+            year_value = int(year_match.group(1))
+
+            # Determine if it's likely minYear or maxYear based on context
+            if any(
+                term in category_lower
+                for term in ["after", "newer", "from", "since", "min"]
+            ):
+                logger.info(f"Extracted from category: minYear={year_value}")
+                return "minYear", year_value
+            else:
+                logger.info(f"Extracted from category: maxYear={year_value}")
+                return "maxYear", year_value
+        except ValueError:
+            logger.warning(f"Failed to convert category year value to int")
+
+    # Standalone year (e.g., "2018 Toyota Camry")
+    standalone_year = re.search(r"\b(20\d{2}|19\d{2})\b", category_lower)
+    if standalone_year:
+        try:
+            year_value = int(standalone_year.group(1))
+            # Default to minYear for standalone years in categories
+            logger.info(f"Extracted from category: minYear={year_value} (standalone)")
+            return "minYear", year_value
+        except ValueError:
+            pass
+
+    # Check for vehicle type (most common types)
+    for vehicle_type in [
+        "suv",
+        "sedan",
+        "saloon",
+        "hatchback",
+        "estate",
+        "coupe",
+        "convertible",
+    ]:
+        if vehicle_type in category_lower:
+            # Find formal name in VALID_VEHICLE_TYPES
+            for valid_type in VALID_VEHICLE_TYPES:
+                if vehicle_type == valid_type.lower():
+                    logger.info(
+                        f"Extracted from category: preferredVehicleTypes=[{valid_type}]"
+                    )
+                    return "preferredVehicleTypes", [valid_type]
+
+    # Check for fuel type
+    for fuel_type in ["petrol", "diesel", "electric", "hybrid"]:
+        if fuel_type in category_lower:
+            # Find formal name in VALID_FUEL_TYPES
+            for valid_fuel in VALID_FUEL_TYPES:
+                if fuel_type == valid_fuel.lower():
+                    logger.info(
+                        f"Extracted from category: preferredFuelTypes=[{valid_fuel}]"
+                    )
+                    return "preferredFuelTypes", [valid_fuel]
+
+    # Check for manufacturers
+    for make in VALID_MANUFACTURERS:
+        if make.lower() in category_lower:
+            logger.info(f"Extracted from category: preferredMakes=[{make}]")
+            return "preferredMakes", [make]
+
+    logger.info(f"No parameters extracted from RAG category")
+    return None, None
+
+
+def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
+    """
+    Directly extract parameters from the user query using regex patterns.
+
+    Args:
+        user_query: The user's query text
+
+    Returns:
+        Dict of extracted parameters (e.g., {'maxPrice': 25000})
+    """
+    results = {}
+    query_lower = user_query.lower()
+
+    # Extract price/budget
+    price_patterns = [
+        # Match formats like "€25000", "25k", "under 25000", "budget 25000"
+        r"(?:budget|price|cost|under|up to|max|maximum|\€|\$|\£)\s*(\d[\d,]*(?:\.\d+)?)\s*(?:k|€|£|\$)?",
+        # Match standalone numbers with currency indicators
+        r"(\d[\d,]*(?:\.\d+)?)\s*(?:k|grand|euros|euro|pounds|dollars)",
+    ]
+
+    for pattern in price_patterns:
+        price_match = re.search(pattern, query_lower)
+        if price_match:
+            try:
+                # Remove commas and convert to float
+                price_value = float(price_match.group(1).replace(",", ""))
+
+                # If the value has 'k' nearby or seems small enough to be expressed in thousands
+                if ("k" in query_lower and price_value < 1000) or (
+                    "grand" in query_lower and price_value < 1000
+                ):
+                    price_value *= 1000
+
+                results["maxPrice"] = price_value
+                logger.info(f"Direct extraction: Found maxPrice={price_value}")
+                break
+            except ValueError:
+                logger.warning(f"Failed to convert extracted price value to float")
+
+    # Extract mileage
+    mileage_patterns = [
+        # Match formats like "50000 km", "under 50000 miles", "max mileage 50000"
+        r"(?:mileage|miles|km|odometer|driven|under|max|maximum)\s*(\d[\d,]*)\s*(?:km|miles|mi)?",
+    ]
+
+    for pattern in mileage_patterns:
+        mileage_match = re.search(pattern, query_lower)
+        if mileage_match:
+            try:
+                mileage_value = int(mileage_match.group(1).replace(",", ""))
+                results["maxMileage"] = mileage_value
+                logger.info(f"Direct extraction: Found maxMileage={mileage_value}")
+                break
+            except ValueError:
+                logger.warning(f"Failed to convert extracted mileage value to int")
+
+    # Extract year
+    # Look for years that come after qualifiers indicating min or max
+    year_after_pattern = r"(?:after|since|from|newer than|min|minimum|at least)\s*((?:20|19)\d{2}|[\']\d{2})"
+    year_before_pattern = r"(?:before|until|older than|max|maximum|up to|no older than)\s*((?:20|19)\d{2}|[\']\d{2})"
+
+    year_after_match = re.search(year_after_pattern, query_lower)
+    if year_after_match:
+        try:
+            year_str = year_after_match.group(1)
+            # Handle '22 format
+            if year_str.startswith("'"):
+                year_value = 2000 + int(year_str[1:])
+            else:
+                year_value = int(year_str)
+
+            results["minYear"] = year_value
+            logger.info(f"Direct extraction: Found minYear={year_value}")
+        except ValueError:
+            logger.warning(f"Failed to convert extracted minYear value to int")
+
+    year_before_match = re.search(year_before_pattern, query_lower)
+    if year_before_match:
+        try:
+            year_str = year_before_match.group(1)
+            # Handle '22 format
+            if year_str.startswith("'"):
+                year_value = 2000 + int(year_str[1:])
+            else:
+                year_value = int(year_str)
+
+            results["maxYear"] = year_value
+            logger.info(f"Direct extraction: Found maxYear={year_value}")
+        except ValueError:
+            logger.warning(f"Failed to convert extracted maxYear value to int")
+
+    # If no year with qualifiers found, check for standalone 4-digit year
+    if "minYear" not in results and "maxYear" not in results:
+        standalone_year = re.search(r"\b(20\d{2})\b", query_lower)
+        if standalone_year:
+            try:
+                year_value = int(standalone_year.group(1))
+                # Default to minYear for standalone years
+                results["minYear"] = year_value
+                logger.info(
+                    f"Direct extraction: Found standalone year, assuming minYear={year_value}"
+                )
+            except ValueError:
+                pass
+
+    return results
 
 
 def run_llm_with_history(
@@ -1658,17 +1984,75 @@ def run_llm_with_history(
             # --- 7. Replace Output Assignment ---
             logger.info(f"Final merged parameters: {final_params}")
 
+            # NEW: Override clarificationNeeded flag based on the sufficiency of extracted parameters
+            # We override LLM's request for clarification if we already have enough info
+            if final_params.get("clarificationNeeded") is True:
+                # Define what constitutes "sufficient information" for a vehicle search
+                has_vehicle_category = (
+                    len(final_params.get("preferredMakes", [])) > 0
+                    or len(final_params.get("preferredVehicleTypes", [])) > 0
+                )
+
+                has_constraints = (
+                    final_params.get("minPrice") is not None
+                    or final_params.get("maxPrice") is not None
+                    or final_params.get("minYear") is not None
+                    or final_params.get("maxYear") is not None
+                    or final_params.get("maxMileage") is not None
+                    or len(final_params.get("preferredFuelTypes", [])) > 0
+                    or final_params.get("transmission") is not None
+                )
+
+                sufficient_info = has_vehicle_category and has_constraints
+
+                if sufficient_info:
+                    logger.info(
+                        "SUFFICIENCY OVERRIDE: Overriding LLM's clarificationNeeded=True because "
+                        "sufficient search parameters are already present."
+                    )
+                    logger.info(
+                        f"Vehicle category: {has_vehicle_category}, Constraints: {has_constraints}"
+                    )
+                    # Override the clarification flags
+                    final_params["clarificationNeeded"] = False
+                    final_params["clarificationNeededFor"] = []
+                else:
+                    # Log why we're keeping the clarification request
+                    missing_elements = []
+                    if not has_vehicle_category:
+                        missing_elements.append(
+                            "vehicle category (make or vehicle type)"
+                        )
+                    if not has_constraints:
+                        missing_elements.append(
+                            "constraints (price, year, mileage, etc.)"
+                        )
+
+                    logger.info(
+                        f"Keeping clarificationNeeded=True because missing: {', '.join(missing_elements)}"
+                    )
+
+                    # Optionally enhance clarificationNeededFor with specific missing elements
+                    if not final_params.get("clarificationNeededFor"):
+                        final_params["clarificationNeededFor"] = []
+
+                    if not has_vehicle_category:
+                        if "make" not in final_params["clarificationNeededFor"]:
+                            final_params["clarificationNeededFor"].append("make")
+                        if "type" not in final_params["clarificationNeededFor"]:
+                            final_params["clarificationNeededFor"].append("type")
+
+                    if (
+                        not has_constraints
+                        and "budget" not in final_params["clarificationNeededFor"]
+                    ):
+                        final_params["clarificationNeededFor"].append("budget")
+
             # Check validity before return
             if is_valid_extraction(final_params):
                 logger.info("Post-processing complete. Parameters are valid.")
                 extracted_params = final_params
                 break
-            else:
-                logger.warning(
-                    f"Parameters became invalid after merging for model {model}. Discarded. Trying next model."
-                )
-                extracted_params = None
-                continue
 
         else:
             logger.warning(
@@ -1712,10 +2096,16 @@ def extract_parameters():
     Uses intent classification, conversation context, and special conditions
     to determine the best processing path.
     """
+
+    MODERATE_RAG_THRESHOLD = 0.45  # Or desired value
+    HIGH_RAG_THRESHOLD = 0.7  # Or desired value
     try:
         start_time = datetime.datetime.now()
         logger.info("Received request: %s", request.json)
         data = request.json or {}
+
+        is_follow_up = data.get("isFollowUpQuery", False)
+        logger.info(f"Processing as follow-up query: {is_follow_up}")
 
         if "query" not in data:
             logger.error("No 'query' provided in request.")
@@ -1892,45 +2282,206 @@ def extract_parameters():
                 match_cat, score = find_best_match(query_fragment)
                 logger.info(f"RAG result: Category='{match_cat}', Score={score:.2f}")
 
-                # Check if the score is extremely low - indicates very low confidence
-                if score < LOW_CONFIDENCE_THRESHOLD:
-                    logger.warning(
-                        f"Intent was VAGUE and RAG score ({score:.2f}) is below "
-                        f"confidence threshold ({LOW_CONFIDENCE_THRESHOLD}). "
-                        f"Triggering CONFUSED_FALLBACK."
-                    )
-                    final_response = create_default_parameters(
-                        intent="CONFUSED_FALLBACK",
-                        clarification_needed=True,
-                        clarification_needed_for=["reset"],
-                        retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
-                    )
-                # Original check for weak RAG match, now as elif
-                elif score < 0.6:  # Threshold for weak RAG match
-                    logger.info("RAG score too low. Requesting general clarification.")
-                    final_response = create_default_parameters(
-                        intent="clarify",
-                        clarification_needed=True,
-                        clarification_needed_for=["details"],
-                        retriever_suggestion=(
-                            "Could you provide more specific details about the "
-                            "type of vehicle you need?"
-                        ),
-                    )
-                else:  # Medium/High RAG score >= 0.6
+                # Define RAG confidence thresholds
+                LOW_CONFIDENCE_THRESHOLD = 0.4  # Very low confidence
+                MODERATE_RAG_THRESHOLD = 0.45  # Moderate confidence
+                HIGH_RAG_THRESHOLD = 0.7  # High confidence
+
+                # Check if this is a follow-up query
+                is_follow_up = data.get("isFollowUpQuery", False)
+
+                # Try direct extraction from query first (highest priority)
+                extracted_params_direct = try_direct_extract_from_query(query_fragment)
+
+                if extracted_params_direct:
+                    # Direct extraction succeeded - use these parameters
                     logger.info(
-                        "RAG score sufficient. Requesting specific clarification based on matched category."
+                        "Direct parameter extraction from query text successful."
                     )
                     final_response = create_default_parameters(
-                        intent="clarify",
-                        clarification_needed=True,
-                        clarification_needed_for=["budget", "year", "make"],
-                        matched_category=match_cat,
-                        retriever_suggestion=(
-                            f"Okay, thinking about {match_cat}s. What's your "
-                            f"budget or preferred year range?"
-                        ),
+                        intent="refine_criteria",
+                        clarification_needed=False,
+                        matched_category=(
+                            match_cat if score >= MODERATE_RAG_THRESHOLD else None
+                        ),  # Include matched category if score is reasonable
                     )
+
+                    # Update with extracted parameters
+                    for param, value in extracted_params_direct.items():
+                        final_response[param] = value
+
+                    # Merge with confirmed context
+                    if confirmed_context:
+                        logger.info(
+                            "Merging direct extracted parameters with confirmed context"
+                        )
+
+                        # Handle scalar parameters - only copy those not extracted directly
+                        scalar_params = [
+                            ("minPrice", "confirmedMinPrice"),
+                            ("maxPrice", "confirmedMaxPrice"),
+                            ("minYear", "confirmedMinYear"),
+                            ("maxYear", "confirmedMaxYear"),
+                            ("maxMileage", "confirmedMaxMileage"),
+                            ("transmission", "confirmedTransmission"),
+                            ("minEngineSize", "confirmedMinEngineSize"),
+                            ("maxEngineSize", "confirmedMaxEngineSize"),
+                            ("minHorsepower", "confirmedMinHorsePower"),
+                            ("maxHorsepower", "confirmedMaxHorsePower"),
+                        ]
+
+                        for param, context_key in scalar_params:
+                            if (
+                                param not in extracted_params_direct
+                                and confirmed_context.get(context_key) is not None
+                            ):
+                                final_response[param] = confirmed_context[context_key]
+
+                        # Handle list parameters - use context for those not directly extracted
+                        list_params = [
+                            ("preferredMakes", "confirmedMakes"),
+                            ("preferredFuelTypes", "confirmedFuelTypes"),
+                            ("preferredVehicleTypes", "confirmedVehicleTypes"),
+                        ]
+
+                        for param, context_key in list_params:
+                            if (
+                                param not in extracted_params_direct
+                                and confirmed_context.get(context_key)
+                            ):
+                                final_response[param] = confirmed_context[context_key]
+                else:
+                    # Direct extraction failed - fallback to RAG-based approaches
+                    logger.info(
+                        "Direct extraction failed. Proceeding with RAG-based approaches."
+                    )
+
+                    # High confidence match - provide category-specific clarification
+                    if score >= HIGH_RAG_THRESHOLD:
+                        logger.info(
+                            f"High confidence RAG match ({score:.2f}) for '{match_cat}'"
+                        )
+                        final_response = create_default_parameters(
+                            intent="clarify",
+                            clarification_needed=True,
+                            clarification_needed_for=["budget", "year", "make"],
+                            matched_category=match_cat,
+                            retriever_suggestion=(
+                                f"Okay, thinking about {match_cat}s. What's your "
+                                f"budget or preferred year range?"
+                            ),
+                        )
+
+                    # Follow-up query with moderate confidence - try parameter extraction from category
+                    elif is_follow_up and score >= MODERATE_RAG_THRESHOLD:
+                        logger.info(
+                            f"Follow-up query with moderate RAG confidence ({score:.2f}). Attempting parameter extraction."
+                        )
+                        param_name, param_value = try_extract_param_from_rag_category(
+                            match_cat
+                        )
+
+                        if param_name and param_value is not None:
+                            # Successfully extracted a parameter from category
+                            final_response = create_default_parameters(
+                                intent="refine_criteria",
+                                clarification_needed=False,
+                                matched_category=match_cat,
+                            )
+                            # Set the extracted parameter
+                            final_response[param_name] = param_value
+                            logger.info(
+                                f"Category parameter extraction successful: {param_name}={param_value}"
+                            )
+
+                            # Merge with confirmed context
+                            if confirmed_context:
+                                logger.info(
+                                    "Merging extracted parameters with confirmed context"
+                                )
+
+                                # Handle scalar parameters (excluding the one we just extracted)
+                                scalar_params = [
+                                    ("minPrice", "confirmedMinPrice"),
+                                    ("maxPrice", "confirmedMaxPrice"),
+                                    ("minYear", "confirmedMinYear"),
+                                    ("maxYear", "confirmedMaxYear"),
+                                    ("maxMileage", "confirmedMaxMileage"),
+                                    ("transmission", "confirmedTransmission"),
+                                    ("minEngineSize", "confirmedMinEngineSize"),
+                                    ("maxEngineSize", "confirmedMaxEngineSize"),
+                                    ("minHorsepower", "confirmedMinHorsePower"),
+                                    ("maxHorsepower", "confirmedMaxHorsePower"),
+                                ]
+
+                                for p, context_key in scalar_params:
+                                    if (
+                                        p != param_name
+                                        and confirmed_context.get(context_key)
+                                        is not None
+                                    ):
+                                        final_response[p] = confirmed_context[
+                                            context_key
+                                        ]
+
+                                # Handle list parameters (excluding the one we just extracted)
+                                list_params = [
+                                    ("preferredMakes", "confirmedMakes"),
+                                    ("preferredFuelTypes", "confirmedFuelTypes"),
+                                    ("preferredVehicleTypes", "confirmedVehicleTypes"),
+                                ]
+
+                                for p, context_key in list_params:
+                                    if p != param_name and confirmed_context.get(
+                                        context_key
+                                    ):
+                                        final_response[p] = confirmed_context[
+                                            context_key
+                                        ]
+                        else:
+                            # Category extraction failed - request clarification
+                            logger.info(
+                                "Category extraction failed. Requesting clarification."
+                            )
+                            final_response = create_default_parameters(
+                                intent="clarify",
+                                clarification_needed=True,
+                                clarification_needed_for=["details"],
+                                matched_category=match_cat,
+                                retriever_suggestion=(
+                                    f"I understand you're interested in {match_cat}. "
+                                    f"Could you provide more specifics about what you're looking for?"
+                                ),
+                            )
+
+                    # Very low confidence - use confused fallback
+                    elif score < LOW_CONFIDENCE_THRESHOLD:
+                        logger.warning(
+                            f"RAG score ({score:.2f}) is below confidence threshold ({LOW_CONFIDENCE_THRESHOLD}). "
+                            f"Triggering CONFUSED_FALLBACK."
+                        )
+                        final_response = create_default_parameters(
+                            intent="CONFUSED_FALLBACK",
+                            clarification_needed=True,
+                            clarification_needed_for=["reset"],
+                            retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
+                        )
+
+                    # Low-moderate confidence or not a follow-up - general clarification
+                    else:
+                        logger.info(
+                            f"Low-moderate RAG score ({score:.2f}) or not a follow-up. Requesting general clarification."
+                        )
+                        final_response = create_default_parameters(
+                            intent="clarify",
+                            clarification_needed=True,
+                            clarification_needed_for=["details"],
+                            retriever_suggestion=(
+                                "Could you provide more specific details about the "
+                                "type of vehicle you need?"
+                            ),
+                        )
+
             except Exception as e:
                 logger.error(f"Error during RAG processing: {e}", exc_info=True)
                 logger.warning("RAG failed, falling back to generic clarification.")

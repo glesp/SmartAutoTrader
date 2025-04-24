@@ -21,6 +21,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import ChatIcon from '@mui/icons-material/Chat';
 import AddIcon from '@mui/icons-material/Add';
 import Zoom from '@mui/material/Zoom';
+import Fade from '@mui/material/Fade';
 
 // Type definitions
 interface ChatInterfaceProps {
@@ -675,178 +676,178 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         )}
 
         {messages.map((message) => (
-          <Box
-            key={message.id}
-            sx={{
-              display: 'flex',
-              justifyContent:
-                message.sender === 'user' ? 'flex-end' : 'flex-start',
-              mb: 0.5,
-              animation: 'fadeIn 0.3s ease-out forwards',
-            }}
-          >
-            <Paper
-              elevation={0}
+          <Fade in={true} timeout={300} key={message.id}>
+            <Box
               sx={{
-                maxWidth: '85%',
-                p: 1.5,
-                backgroundColor:
-                  message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
-                borderRadius: 2,
+                display: 'flex',
+                justifyContent:
+                  message.sender === 'user' ? 'flex-end' : 'flex-start',
+                mb: 0.5,
               }}
             >
-              <Typography
-                variant="body2"
-                sx={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}
-              >
-                {message.content}
-              </Typography>
-
-              {message.vehicles && message.vehicles.length > 0 && (
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 500, color: 'primary.main' }}
-                  >
-                    Found {message.vehicles.length} matching vehicles
-                  </Typography>
-                  <Tooltip title="Results shown in main content area">
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        ml: 0.5,
-                        color: 'primary.main',
-                        cursor: 'help',
-                        fontSize: '0.75rem',
-                      }}
-                    >
-                      ⓘ
-                    </Box>
-                  </Tooltip>
-                </Box>
-              )}
-
-              {/* Commented out section for displaying vehicles in chat
-              {message.vehicles && message.vehicles.length > 0 && (
-                <Box sx={{ 
-                  mt: 2, 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: 1,
-                  maxWidth: '100%',
-                  overflowX: 'auto'
-                }}>
-                  {message.vehicles.slice(0, 5).map((vehicle) => {
-                    const primaryImage = Array.isArray(vehicle.images)
-                      ? vehicle.images.find((img) => img.isPrimary)
-                      : vehicle.images?.$values?.find((img) => img.isPrimary);
-                    
-                    return (
-                      <Box
-                        key={vehicle.id}
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          borderRadius: 1,
-                          overflow: 'hidden',
-                          border: '1px solid #eee',
-                          width: 80,
-                        }}
-                      >
-                        {primaryImage ? (
-                          <Box
-                            component="img"
-                            src={primaryImage.imageUrl}
-                            alt={`${vehicle.make} ${vehicle.model}`}
-                            sx={{
-                              width: '100%',
-                              height: 50,
-                              objectFit: 'cover',
-                            }}
-                          />
-                        ) : (
-                          <Box
-                            sx={{
-                              width: '100%',
-                              height: 50,
-                              bgcolor: '#f0f0f0',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              sx={{ color: '#999' }}
-                            >
-                              No image
-                            </Typography>
-                          </Box>
-                        )}
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '0.7rem',
-                            p: 0.5,
-                            textAlign: 'center',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {vehicle.make} {vehicle.model}
-                        </Typography>
-                      </Box>
-                    )
-                  })}
-                </Box>
-              )}
-              */}
-
-              {message.clarificationNeeded && message.sender === 'ai' && (
-                <>
-                  {message.parameters?.matchedCategory && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: 'block',
-                        color: 'primary.main',
-                        fontWeight: 600,
-                        mt: 1,
-                      }}
-                    >
-                      Sounds like you might be interested in:{' '}
-                      {message.parameters.matchedCategory}
-                    </Typography>
-                  )}
-                  <Typography
-                    variant="caption"
-                    sx={{ display: 'block', color: 'primary.main', mt: 0.5 }}
-                  >
-                    Could you let me know your budget, preferred fuel type, or
-                    how new you'd like the car to be?
-                  </Typography>
-                </>
-              )}
-
-              <Typography
-                variant="caption"
+              <Paper
+                elevation={0}
                 sx={{
-                  display: 'block',
-                  mt: 0.5,
-                  color: 'text.secondary',
-                  fontSize: '0.7rem',
+                  maxWidth: '85%',
+                  p: 1.5,
+                  backgroundColor:
+                    message.sender === 'user' ? '#e3f2fd' : '#f5f5f5',
+                  borderRadius: 2,
                 }}
               >
-                {message.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Typography>
-            </Paper>
-          </Box>
+                <Typography
+                  variant="body2"
+                  sx={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}
+                >
+                  {message.content}
+                </Typography>
+
+                {message.vehicles && message.vehicles.length > 0 && (
+                  <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 500, color: 'primary.main' }}
+                    >
+                      Found {message.vehicles.length} matching vehicles
+                    </Typography>
+                    <Tooltip title="Results shown in main content area">
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          ml: 0.5,
+                          color: 'primary.main',
+                          cursor: 'help',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        ⓘ
+                      </Box>
+                    </Tooltip>
+                  </Box>
+                )}
+
+                {/* Commented out section for displaying vehicles in chat
+                {message.vehicles && message.vehicles.length > 0 && (
+                  <Box sx={{ 
+                    mt: 2, 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: 1,
+                    maxWidth: '100%',
+                    overflowX: 'auto'
+                  }}>
+                    {message.vehicles.slice(0, 5).map((vehicle) => {
+                      const primaryImage = Array.isArray(vehicle.images)
+                        ? vehicle.images.find((img) => img.isPrimary)
+                        : vehicle.images?.$values?.find((img) => img.isPrimary);
+                      
+                      return (
+                        <Box
+                          key={vehicle.id}
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            borderRadius: 1,
+                            overflow: 'hidden',
+                            border: '1px solid #eee',
+                            width: 80,
+                          }}
+                        >
+                          {primaryImage ? (
+                            <Box
+                              component="img"
+                              src={primaryImage.imageUrl}
+                              alt={`${vehicle.make} ${vehicle.model}`}
+                              sx={{
+                                width: '100%',
+                                height: 50,
+                                objectFit: 'cover',
+                              }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                width: '100%',
+                                height: 50,
+                                bgcolor: '#f0f0f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ color: '#999' }}
+                              >
+                                No image
+                              </Typography>
+                            </Box>
+                          )}
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontSize: '0.7rem',
+                              p: 0.5,
+                              textAlign: 'center',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {vehicle.make} {vehicle.model}
+                          </Typography>
+                        </Box>
+                      )
+                    })}
+                  </Box>
+                )}
+                */}
+
+                {message.clarificationNeeded && message.sender === 'ai' && (
+                  <>
+                    {message.parameters?.matchedCategory && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          color: 'primary.main',
+                          fontWeight: 600,
+                          mt: 1,
+                        }}
+                      >
+                        Sounds like you might be interested in:{' '}
+                        {message.parameters.matchedCategory}
+                      </Typography>
+                    )}
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', color: 'primary.main', mt: 0.5 }}
+                    >
+                      Could you let me know your budget, preferred fuel type, or
+                      how new you'd like the car to be?
+                    </Typography>
+                  </>
+                )}
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mt: 0.5,
+                    color: 'text.secondary',
+                    fontSize: '0.7rem',
+                  }}
+                >
+                  {message.timestamp.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Typography>
+              </Paper>
+            </Box>
+          </Fade>
         ))}
 
         {isLoading && (

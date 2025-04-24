@@ -213,9 +213,9 @@ def test_run_llm_post_processing_negations(
     # --- Add similar assertions here for Fuel Types and Vehicle Types if needed ---
     # Example for fuel types (using Scenario 8)
     if test_id == "negation_fuel_hallucination_make":
-        assert (
-            result_params.get("preferredFuelTypes", []) == ["Petrol"]
-        ), "Expected preferredFuelTypes to be ['Petrol']"
+        assert result_params.get("preferredFuelTypes", []) == [
+            "Petrol"
+        ], "Expected preferredFuelTypes to be ['Petrol']"
         assert sorted(result_params.get("explicitly_negated_fuel_types", [])) == sorted(
             ["Diesel"]
         ), "Expected explicitly_negated_fuel_types to contain 'Diesel'"
