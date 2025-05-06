@@ -35,6 +35,14 @@ namespace SmartAutoTrader.API.Services
         // Define the model strategies
         private readonly string[] modelStrategies = ["fast", "refine", "clarify"];
 
+        // Task 1: Add _fallbackMessages array
+        private static readonly string[] _fallbackMessages = 
+        { 
+            "Sorry, I didn't quite catch that. Could you rephrase?", 
+            "I'm still learning. Can you try asking differently?", 
+            "I'm having trouble understanding that request. Could you simplify?" 
+        };
+
         // Constants for loop prevention
         private const int MaxClarificationAttempts = 3;
         private const int MaxQuestionsToKeep = 3;
@@ -126,15 +134,30 @@ namespace SmartAutoTrader.API.Services
                 if (extractedParameters.Intent?.Equals("CONFUSED_FALLBACK", StringComparison.OrdinalIgnoreCase) == true)
                 {
                     this.logger.LogWarning("Python service indicated confusion. Returning fallback prompt.");
-                    string fallbackMessage = extractedParameters.RetrieverSuggestion ?? "Sorry, I'm having trouble understanding. Could you please rephrase simply?";
+                    string baseMessage;
+                    if (!string.IsNullOrEmpty(extractedParameters.RetrieverSuggestion))
+                    {
+                        baseMessage = extractedParameters.RetrieverSuggestion;
+                    }
+                    else
+                    {
+                        baseMessage = _fallbackMessages[(conversationContext.MessageCount + conversationContext.ConsecutiveClarificationAttempts) % _fallbackMessages.Length];
+                    }
+
+                    string finalMessage = baseMessage;
+                    // Append "start new" if it's a terminal confusion state (CONFUSED_FALLBACK intent + high attempts)
+                    if (conversationContext.ConsecutiveClarificationAttempts >= MaxClarificationAttempts)
+                    {
+                        finalMessage += " Would you like to clear this search and start a new conversation?";
+                    }
 
                     // Save history with the fallback message as AI response
-                    await this.SaveChatHistoryAsync(userId, message, fallbackMessage, conversationSessionId);
+                    await this.SaveChatHistoryAsync(userId, message, finalMessage, conversationSessionId);
 
                     // Return a specific response for the confused state
                     return new ChatResponse
                     {
-                        Message = fallbackMessage,
+                        Message = finalMessage,
                         ClarificationNeeded = true, // Still requires user input
                         ConversationId = message.ConversationId,
 
@@ -285,17 +308,18 @@ namespace SmartAutoTrader.API.Services
                                 conversationContext.MessageCount);
 
                             // Loop detected - provide a fallback response
-                            string fallbackMessage = "Sorry, I seem to be stuck. Could you try rephrasing your request clearly? Please provide specific details about the vehicle you're looking for.";
+                            string baseFallbackMessage = _fallbackMessages[(conversationContext.MessageCount + conversationContext.ConsecutiveClarificationAttempts) % _fallbackMessages.Length];
+                            string loopFallbackMessage = baseFallbackMessage + " Would you like to clear this search and start a new conversation?";
                             
                             // Save the fallback response to chat history  
-                            await this.SaveChatHistoryAsync(userId, message, fallbackMessage, conversationSessionId);
+                            await this.SaveChatHistoryAsync(userId, message, loopFallbackMessage, conversationSessionId);
                             
                             // Reset the attempt counter as we're providing a fallback
                             conversationContext.ConsecutiveClarificationAttempts = 0;
                             
                             return new ChatResponse
                             {
-                                Message = fallbackMessage,
+                                Message = loopFallbackMessage,
                                 ClarificationNeeded = true,
                                 OriginalUserInput = message.Content,
                                 ConversationId = message.ConversationId,
@@ -411,10 +435,16 @@ namespace SmartAutoTrader.API.Services
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error processing chat message for user ID {UserId}", userId);
+                this.logger.LogError(ex, "Error processing chat message for user ID {UserId}, Message: {UserMessageContent}", userId, message.Content);
 
                 // Return error response
-                return new ChatResponse { Message = "I'm sorry, I encountered an error...", ConversationId = message.ConversationId };
+                return new ChatResponse 
+                { 
+                    Message = "Sorry, an internal error occurred. Please try again later.",
+                    ConversationId = message.ConversationId,
+                    ClarificationNeeded = false,
+                    RecommendedVehicles = new List<Vehicle>()
+                };
             }
         }
 
@@ -1092,15 +1122,18 @@ namespace SmartAutoTrader.API.Services
                 {
                     string errorContent = await response.Content.ReadAsStringAsync();
                     this.logger.LogError(
-                        "Parameter extraction service error: {StatusCode}, {ErrorContent}",
+                        "Parameter extraction service error: {StatusCode}, Content: {ErrorContent} for UserQuery: {UserQuery}",
                         response.StatusCode,
-                        errorContent);
+                        errorContent,
+                        message);
 
                     return new RecommendationParameters
                     {
                         TextPrompt = message,
-                        MaxResults = 10, // CHANGED FROM 5 TO 10
-                        Intent = "new_query",
+                        Intent = "CONFUSED_FALLBACK", 
+                        RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.", 
+                        ClarificationNeeded = true, 
+                        ClarificationNeededFor = new List<string> { "extraction_service_error" } 
                     };
                 }
 
@@ -1329,13 +1362,15 @@ namespace SmartAutoTrader.API.Services
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error extracting parameters from message");
+                this.logger.LogError(ex, "Unhandled error during parameter extraction for message: {UserQuery}", message);
 
                 return new RecommendationParameters
                 {
                     TextPrompt = message,
-                    MaxResults = 10, // CHANGED FROM 5 TO 10
-                    Intent = "new_query",
+                    Intent = "CONFUSED_FALLBACK", 
+                    RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.", 
+                    ClarificationNeeded = true, 
+                    ClarificationNeededFor = new List<string> { "internal_error" } 
                 };
             }
         }

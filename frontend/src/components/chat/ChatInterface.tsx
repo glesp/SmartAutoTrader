@@ -222,15 +222,29 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         }
       );
 
-      if (response.data?.conversationId) {
-        setCurrentConversationId(response.data.conversationId.toString());
-        setMessages([]);
+      if (response.data?.conversationId && response.data?.welcomeMessage) {
+        const newConversationId = response.data.conversationId.toString();
+        const welcomeMessageContent = response.data.welcomeMessage;
+
+        setMessages([]); // Clear current messages
+
+        const welcomeAiMessage: Message = {
+          id: `welcome-${newConversationId}`,
+          content: welcomeMessageContent,
+          sender: 'ai',
+          timestamp: new Date(),
+          conversationId: newConversationId,
+        };
+
+        setMessages([welcomeAiMessage]); // Set the welcome message
+        setCurrentConversationId(newConversationId);
 
         // Reset any ongoing clarification
         setClarificationState({
           awaiting: false,
           originalUserInput: '',
         });
+        setInput(''); // Clear the input field
 
         // Refresh the conversations list
         loadConversations();

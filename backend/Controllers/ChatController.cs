@@ -241,7 +241,11 @@ namespace SmartAutoTrader.API.Controllers
                 // Create a new conversation session
                 ConversationSession session = await this.contextService.StartNewSessionAsync((int)userId);
 
-                return this.Ok(new { conversationId = session.Id });
+                // Define the standard welcome message
+                string welcomeMessage = "Hi! I'm your Smart Auto Trader assistant. I can help you find the perfect car. What are you looking for today?";
+
+                // Return the new conversation ID and the welcome message
+                return this.Ok(new { conversationId = session.Id.ToString(), welcomeMessage = welcomeMessage });
             }
             catch (Exception ex)
             {

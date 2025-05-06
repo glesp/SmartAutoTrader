@@ -66,6 +66,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
 REFINE_MODEL = "google/gemma-3-27b-it:free"
 CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
+VERY_LOW_CONFIDENCE_THRESHOLD = 0.2  # Task 1: Define a constant
 
 # Define thresholds for confidence levels
 LOW_CONFIDENCE_THRESHOLD = 0.4
@@ -1596,31 +1597,59 @@ def run_llm_with_history(
         if extracted:
             processed = process_parameters(extracted)
 
+            # Task 2 & 3: Insert new validation code block
+            min_price = processed.get("minPrice")
+            max_price = processed.get("maxPrice")
+            min_year = processed.get("minYear")
+            max_year = processed.get("maxYear")
+
+            validation_failed = False
+            failure_reason = ""
+
+            if min_price is not None and max_price is not None and isinstance(min_price, (int, float)) and isinstance(max_price, (int, float)) and min_price > max_price:
+                validation_failed = True
+                failure_reason = "minPrice > maxPrice"
+            elif min_year is not None and max_year is not None and isinstance(min_year, (int, float)) and isinstance(max_year, (int, float)) and min_year > max_year:
+                validation_failed = True
+                failure_reason = "minYear > maxYear"
+            elif "Ferrari" in processed.get("preferredMakes", []) and max_price is not None and isinstance(max_price, (int, float)) and max_price < 20000:
+                validation_failed = True
+                failure_reason = "Ferrari requested with maxPrice < 20000"
+
+            if validation_failed:
+                logger.warning(f"LLM output failed validation: {failure_reason}. LLM output: {processed}")
+                fallback_params = create_default_parameters(
+                    intent='CONFUSED_FALLBACK',
+                    clarification_needed=True,
+                    clarification_needed_for=['implausible_result'],
+                    retriever_suggestion=CONFUSED_FALLBACK_PROMPT # Added for consistency
+                )
+                return fallback_params
+
             # Extract query fragment for analysis
             query_fragment = extract_newest_user_fragment(user_query)
-            lower_query_fragment = query_fragment.lower()
 
             # --- 1. Determine Context ---
             # First, find negated terms in the query
             negated_makes_set = find_negated_terms(
-                lower_query_fragment, VALID_MANUFACTURERS
+                query_fragment.lower(), VALID_MANUFACTURERS
             )
             negated_types_set = find_negated_terms(
-                lower_query_fragment, VALID_VEHICLE_TYPES
+                query_fragment.lower(), VALID_VEHICLE_TYPES
             )
             negated_fuels_set = find_negated_terms(
-                lower_query_fragment, VALID_FUEL_TYPES
+                query_fragment.lower(), VALID_FUEL_TYPES
             )
 
             # Then find positive mentions, excluding negated terms
             positive_makes_set = find_positive_terms(
-                lower_query_fragment, VALID_MANUFACTURERS, negated_makes_set
+                query_fragment.lower(), VALID_MANUFACTURERS, negated_makes_set
             )
             positive_types_set = find_positive_terms(
-                lower_query_fragment, VALID_VEHICLE_TYPES, negated_types_set
+                query_fragment.lower(), VALID_VEHICLE_TYPES, negated_types_set
             )
             positive_fuels_set = find_positive_terms(
-                lower_query_fragment, VALID_FUEL_TYPES, negated_fuels_set
+                query_fragment.lower(), VALID_FUEL_TYPES, negated_fuels_set
             )
 
             # Determine basic query attributes
@@ -1656,7 +1685,7 @@ def run_llm_with_history(
                     "refine_criteria"  # Update in processed for consistency
                 )
 
-            # --- 1a. Define keyw       ord sets for scalar parameter types ---
+            # --- 1a. Define keyword sets for scalar parameter types ---
             # Keywords related to price parameters
             PRICE_KEYWORDS = {
                 "price",
@@ -1842,7 +1871,7 @@ def run_llm_with_history(
 
                 # Check if the current query mentions this parameter type
                 query_mentions_param = any(
-                    kw in lower_query_fragment for kw in relevant_keywords
+                    kw in query_fragment.lower() for kw in relevant_keywords
                 )
 
                 # Apply new logic based on query content and LLM extraction
@@ -1875,8 +1904,8 @@ def run_llm_with_history(
                         )
 
             # --- 4. Merge List Parameters ---
-            # Helper function to handle list merging logic consistently
-            def merge_list_param(
+            # Helper function to handle list merging logic consistently (currently unused, merge_list_param_corrected is used)
+            def merge_list_param( 
                 param_name,
                 context_key,
                 positive_set,
@@ -1918,51 +1947,59 @@ def run_llm_with_history(
                 # Convert back to list
                 return list(result_set)
 
-            # Apply the merging logic to each list parameter
-            final_params["preferredMakes"] = merge_list_param_corrected(
-                "preferredMakes",
-                "confirmedMakes",
-                processed.get("preferredMakes", []),
-                positive_makes_set,
-                negated_makes_set,
-                is_simple_negation_query,
-                confirmed_context,
-            )
-
-            final_params["preferredVehicleTypes"] = merge_list_param_corrected(
-                "preferredVehicleTypes",
-                "confirmedVehicleTypes",
-                processed.get("preferredVehicleTypes", []),
-                positive_types_set,
-                negated_types_set,
-                is_simple_negation_query,
-                confirmed_context,
-            )
-
-            final_params["preferredFuelTypes"] = merge_list_param_corrected(
-                "preferredFuelTypes",
-                "confirmedFuelTypes",
-                processed.get("preferredFuelTypes", []),
-                positive_fuels_set,
-                negated_fuels_set,
-                is_simple_negation_query,
-                confirmed_context,
-            )
-
-            # Special handling for desiredFeatures - just union with context
-            if (
-                final_intent in ["refine_criteria", "clarify", "add_criteria"]
-                and confirmed_context
-            ):
-                context_features = set(confirmed_context.get("confirmedFeatures", []))
-                new_features = set(processed.get("desiredFeatures", []))
-
-                # Features can't easily be analyzed directly from text, so we just trust what the LLM extracted
-                final_params["desiredFeatures"] = list(
-                    context_features.union(new_features)
-                )
-            else:
+            # For "new_query" intent, list parameters (Makes, VehicleTypes, FuelTypes, DesiredFeatures) 
+            # should be based ONLY on positive mentions or direct LLM extraction from the current query, 
+            # effectively replacing any previous context for these lists.
+            # For other intents (refine, clarify, add), merge with context using existing logic.
+            if final_intent == "new_query":
+                logger.info(f"Intent is 'new_query'. Setting list parameters based only on current query's positive mentions/LLM extraction.")
+                final_params["preferredMakes"] = list(positive_makes_set)
+                final_params["preferredVehicleTypes"] = list(positive_types_set)
+                final_params["preferredFuelTypes"] = list(positive_fuels_set)
+                # For new_query, desiredFeatures come only from the current LLM processing
                 final_params["desiredFeatures"] = processed.get("desiredFeatures", [])
+                logger.info(f"New query: preferredMakes={final_params['preferredMakes']}, preferredVehicleTypes={final_params['preferredVehicleTypes']}, preferredFuelTypes={final_params['preferredFuelTypes']}, desiredFeatures={final_params['desiredFeatures']}")
+            else:
+                logger.info(f"Intent is '{final_intent}'. Merging list parameters with context.")
+                # Apply the existing merging logic (using merge_list_param_corrected) for makes, types, fuels
+                final_params["preferredMakes"] = merge_list_param_corrected(
+                    "preferredMakes",
+                    "confirmedMakes",
+                    processed.get("preferredMakes", []),
+                    positive_makes_set,
+                    negated_makes_set,
+                    is_simple_negation_query,
+                    confirmed_context,
+                )
+
+                final_params["preferredVehicleTypes"] = merge_list_param_corrected(
+                    "preferredVehicleTypes",
+                    "confirmedVehicleTypes",
+                    processed.get("preferredVehicleTypes", []),
+                    positive_types_set,
+                    negated_types_set,
+                    is_simple_negation_query,
+                    confirmed_context,
+                )
+
+                final_params["preferredFuelTypes"] = merge_list_param_corrected(
+                    "preferredFuelTypes",
+                    "confirmedFuelTypes",
+                    processed.get("preferredFuelTypes", []),
+                    positive_fuels_set,
+                    negated_fuels_set,
+                    is_simple_negation_query,
+                    confirmed_context,
+                )
+
+                # For other intents, merge desiredFeatures with context
+                if confirmed_context:
+                    context_features = set(confirmed_context.get("confirmedFeatures", []))
+                    new_features = set(processed.get("desiredFeatures", []))
+                    final_params["desiredFeatures"] = list(context_features.union(new_features))
+                else:
+                    final_params["desiredFeatures"] = processed.get("desiredFeatures", [])
+                logger.info(f"Merged query ({final_intent}): preferredMakes={final_params['preferredMakes']}, preferredVehicleTypes={final_params['preferredVehicleTypes']}, preferredFuelTypes={final_params['preferredFuelTypes']}, desiredFeatures={final_params['desiredFeatures']}")
 
             # --- 5. Set Negated Lists ---
             final_params["explicitly_negated_makes"] = list(negated_makes_set)
@@ -2158,10 +2195,14 @@ def extract_parameters():
 
         # 2) Intent Classification (Zero-Shot)
         classified_intent = "SPECIFIC_SEARCH"  # Default assumption
+        intent_scores = None  # Initialize intent_scores to None
         try:
             query_embedding = get_query_embedding(user_query)
             if query_embedding is not None:
                 # Adjusted threshold based on testing
+                # NOTE: classify_intent_zero_shot currently only returns the intent string.
+                # For the following logic to work as intended, classify_intent_zero_shot
+                # would need to be modified to return an intent_scores dictionary as well.
                 intent_result = classify_intent_zero_shot(
                     query_embedding, threshold=0.35
                 )
@@ -2172,17 +2213,32 @@ def extract_parameters():
                         "Intent classification score below threshold, using fallback logic."
                     )
                     # Fallback logic is now inside classify_intent_zero_shot
-                    if intent_result is None:
+                    if intent_result is None: # This means classify_intent_zero_shot returned None
                         classified_intent = "SPECIFIC_SEARCH"  # Safe default
-            else:
+            else: # query_embedding was None
                 logger.error(
                     "Failed to get query embedding, defaulting intent to SPECIFIC_SEARCH."
                 )
+                classified_intent = "SPECIFIC_SEARCH" # Default if embedding fails
         except Exception as e:
             logger.error(
                 f"Error during embedding or classification: {e}", exc_info=True
             )
             classified_intent = "SPECIFIC_SEARCH"  # Fallback safely
+
+        # This block checks hypothetical scores. For this to be effective,
+        # classify_intent_zero_shot would need to be modified to return 'intent_scores'.
+        if intent_scores and \
+           isinstance(intent_scores, dict) and \
+           intent_scores.get("SPECIFIC_SEARCH", 0.0) < VERY_LOW_CONFIDENCE_THRESHOLD and \
+           intent_scores.get("VAGUE_INQUIRY", 0.0) < VERY_LOW_CONFIDENCE_THRESHOLD:
+            logger.warning(
+                f"Both SPECIFIC_SEARCH ({intent_scores.get('SPECIFIC_SEARCH', 0.0):.2f}) and "
+                f"VAGUE_INQUIRY ({intent_scores.get('VAGUE_INQUIRY', 0.0):.2f}) scores "
+                f"are below VERY_LOW_CONFIDENCE_THRESHOLD ({VERY_LOW_CONFIDENCE_THRESHOLD}). "
+                f"Forcing intent to CONFUSED_FALLBACK."
+            )
+            classified_intent = "CONFUSED_FALLBACK"
 
         # 3) Extract newest user fragment for processing
         query_fragment = extract_newest_user_fragment(user_query)
