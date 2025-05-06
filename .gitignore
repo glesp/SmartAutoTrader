@@ -25,26 +25,33 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
 # Python
-**/venv/       # More robust for venvs in subdirectories
-**/.venv/      # Common alternative naming for venvs
-**/__pycache__/ # Ensure it catches pycache in subdirectories
+# General rules for virtual environments usually named venv or .venv
+**/venv/
+**/.venv/
+
+# Specific rules for the venv components within parameter_extraction_service
+# This assumes your source files for parameter_extraction_service are in the
+# PythonServices/parameter_extraction_service/ directory alongside these venv folders.
+PythonServices/parameter_extraction_service/Lib/
+PythonServices/parameter_extraction_service/Scripts/
+PythonServices/parameter_extraction_service/include/ # Standard venv folder
+PythonServices/parameter_extraction_service/pyvenv.cfg # Standard venv file
+# If on macOS/Linux, a 'bin/' folder might be used instead of 'Scripts/' by the venv
+PythonServices/parameter_extraction_service/bin/
+
+# Other common Python ignores
+**/__pycache__/
 *.pyc
 *.egg-info/
 dist/          # Python packaging build output
-build/         # Python packaging build output (can sometimes conflict with other build dirs)
-
-# Python virtual environment specific folders (if not within a venv/ or .venv/ folder)
-# Add these if your `Lib/` and `Scripts/` are directly the venv contents
-# and not inside a parent venv folder that would be caught by **/venv/
-# PythonServices/parameter_extraction_service/Lib/
-# PythonServices/parameter_extraction_service/Scripts/
+build/         # Python packaging build output
 
 # Databases (Local/Generated)
 *.db
 *.db-journal
-*.db-shm      # Add this for SQLite
-*.db-wal      # Add this for SQLite
-sqlitedb      # Common name for SQLite files if not ending in .db
+*.db-shm
+*.db-wal
+sqlitedb
 
 # Logs
 Logs/
@@ -61,10 +68,9 @@ app_log.txt
 .LSOverride
 
 # Other / Project Specific
-# repomix-output.txt # Original entry
-repomix-output.* # Ignores repomix-output.xml and any other extension
-# *.jpg            # Be careful with broad image ignores, only if they are truly generated/temporary
-# *.jpeg           # Same as above
+repomix-output.*
+# *.jpg
+# *.jpeg
 
 # Protect API key
 *.env
