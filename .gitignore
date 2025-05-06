@@ -4,9 +4,9 @@
 **/.vs/
 **/*.user
 **/.vscode/
-**/Migrations/
-[Bb]in/
-[Oo]bj/
+# **/Migrations/ # CONSIDER VERY CAREFULLY - Migrations should usually be tracked!
+# [Bb]in/ # Redundant with **/bin/
+# [Oo]bj/ # Redundant with **/obj/
 .idea/
 
 # React Frontend
@@ -25,13 +25,26 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
 # Python
-venv/
-__pycache__/
+**/venv/       # More robust for venvs in subdirectories
+**/.venv/      # Common alternative naming for venvs
+**/__pycache__/ # Ensure it catches pycache in subdirectories
 *.pyc
+*.egg-info/
+dist/          # Python packaging build output
+build/         # Python packaging build output (can sometimes conflict with other build dirs)
+
+# Python virtual environment specific folders (if not within a venv/ or .venv/ folder)
+# Add these if your `Lib/` and `Scripts/` are directly the venv contents
+# and not inside a parent venv folder that would be caught by **/venv/
+# PythonServices/parameter_extraction_service/Lib/
+# PythonServices/parameter_extraction_service/Scripts/
 
 # Databases (Local/Generated)
 *.db
 *.db-journal
+*.db-shm      # Add this for SQLite
+*.db-wal      # Add this for SQLite
+sqlitedb      # Common name for SQLite files if not ending in .db
 
 # Logs
 Logs/
@@ -48,9 +61,10 @@ app_log.txt
 .LSOverride
 
 # Other / Project Specific
-repomix-output.txt
-*.jpg
-*.jpeg
+# repomix-output.txt # Original entry
+repomix-output.* # Ignores repomix-output.xml and any other extension
+# *.jpg            # Be careful with broad image ignores, only if they are truly generated/temporary
+# *.jpeg           # Same as above
 
 # Protect API key
 *.env
