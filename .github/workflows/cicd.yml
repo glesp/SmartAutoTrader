@@ -222,7 +222,6 @@ jobs:
     name: Build and Push Docker Images to ACR
     needs: [build_test_analyze_backend, test_analyze_python]
     runs-on: ubuntu-latest
-    # Run only on push events to main (where deployment also happens)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -244,11 +243,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Backend Docker Image to ACR
+      - name: Build and Push Backend (.NET API) Docker Image to ACR
         uses: docker/build-push-action@v5
         with:
-          context: ./backend # Path to backend Dockerfile directory
-          push: true # Always push on main branch runs
+          context: ./backend
+          file: ./backend/Dockerfile.api
+          push: true
           tags: |
             ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:latest
             ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
@@ -258,9 +258,10 @@ jobs:
       - name: Build and Push Python Service Docker Image to ACR
         uses: docker/build-push-action@v5
         with:
-          context: ./PythonServices # Path to Python Dockerfile directory
-          push: true # Always push on main branch runs
-          tags: | # Use multi-line tags format
+          context: ./PythonServices
+          file: ./PythonServices/Dockerfile.python
+          push: true
+          tags: |
             ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:latest
             ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
           cache-from: type=gha
