@@ -5,29 +5,29 @@ namespace SmartAutoTrader.API.Data
 
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<Vehicle>? Vehicles { get; set; }
 
-        public DbSet<VehicleImage> VehicleImages { get; set; }
+        public DbSet<VehicleImage>? VehicleImages { get; set; }
 
-        public DbSet<VehicleFeature> VehicleFeatures { get; set; }
+        public DbSet<VehicleFeature>? VehicleFeatures { get; set; }
 
-        public DbSet<User> Users { get; set; }
+        public DbSet<User>? Users { get; set; }
 
-        public DbSet<UserFavorite> UserFavorites { get; set; }
+        public DbSet<UserFavorite>? UserFavorites { get; set; }
 
-        public DbSet<UserPreference> UserPreferences { get; set; }
+        public DbSet<UserPreference>? UserPreferences { get; set; }
 
-        public DbSet<BrowsingHistory> BrowsingHistory { get; set; }
+        public DbSet<BrowsingHistory>? BrowsingHistory { get; set; }
 
-        public DbSet<Inquiry> Inquiries { get; set; }
+        public DbSet<Inquiry>? Inquiries { get; set; }
 
-        public DbSet<ChatHistory> ChatHistory { get; set; }
+        public DbSet<ChatHistory>? ChatHistory { get; set; }
 
-        public DbSet<ConversationSession> ConversationSessions { get; set; }
+        public DbSet<ConversationSession>? ConversationSessions { get; set; }
 
-        public DbSet<Role> Roles { get; set; }
+        public DbSet<Role>? Roles { get; set; }
 
-        public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<UserRole>? UserRoles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

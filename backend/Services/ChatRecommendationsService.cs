@@ -24,6 +24,20 @@ namespace SmartAutoTrader.API.Services
         IAIRecommendationService recommendationService,
         IConversationContextService contextService) : IChatRecommendationService
     {
+        // Constants should be declared first
+        private const int MaxClarificationAttempts = 3;
+        private const int MaxQuestionsToKeep = 3;
+        private const int MaxRecentParametersToTrack = 5;
+
+        // Static readonly fields can come after constants
+        private static readonly string[] _fallbackMessages =
+        {
+            "Sorry, I didn't quite catch that. Could you rephrase?",
+            "I'm still learning. Can you try asking differently?",
+            "I'm having trouble understanding that request. Could you simplify?",
+        };
+
+        // Instance readonly fields (dependencies and others)
         private readonly IChatRepository chatRepo = chatRepo;
         private readonly IConfiguration configuration = configuration;
         private readonly IConversationContextService contextService = contextService;
@@ -34,19 +48,6 @@ namespace SmartAutoTrader.API.Services
 
         // Define the model strategies
         private readonly string[] modelStrategies = ["fast", "refine", "clarify"];
-
-        // Task 1: Add _fallbackMessages array
-        private static readonly string[] _fallbackMessages = 
-        { 
-            "Sorry, I didn't quite catch that. Could you rephrase?", 
-            "I'm still learning. Can you try asking differently?", 
-            "I'm having trouble understanding that request. Could you simplify?" 
-        };
-
-        // Constants for loop prevention
-        private const int MaxClarificationAttempts = 3;
-        private const int MaxQuestionsToKeep = 3;
-        private const int MaxRecentParametersToTrack = 5;
 
         // Method to determine which LLM strategy to use
         private string DetermineModelStrategy(ConversationContext context)
@@ -145,6 +146,7 @@ namespace SmartAutoTrader.API.Services
                     }
 
                     string finalMessage = baseMessage;
+
                     // Append "start new" if it's a terminal confusion state (CONFUSED_FALLBACK intent + high attempts)
                     if (conversationContext.ConsecutiveClarificationAttempts >= MaxClarificationAttempts)
                     {
@@ -271,7 +273,7 @@ namespace SmartAutoTrader.API.Services
                                 PreferredMakes = conversationContext.ConfirmedMakes.ToList(),
                                 PreferredVehicleTypes = conversationContext.ConfirmedVehicleTypes.ToList(),
                                 PreferredFuelTypes = conversationContext.ConfirmedFuelTypes.ToList(),
-                                MaxResults = 10 // Show more options to increase chances of relevance
+                                MaxResults = 10, // Show more options to increase chances of relevance
                             };
 
                             // Get recommendations with these relaxed parameters
@@ -295,7 +297,7 @@ namespace SmartAutoTrader.API.Services
                             finalParametersForSearch, message.Content, conversationContext);
 
                         // Check for a clarification loop using the enhanced similarity check
-                        if (IsSimilarToRecentQuestion(clarificationMessage, conversationContext))
+                        if (this.IsSimilarToRecentQuestion(clarificationMessage, conversationContext))
                         {
                             // Log detailed information about the loop
                             this.logger.LogError(
@@ -310,19 +312,20 @@ namespace SmartAutoTrader.API.Services
                             // Loop detected - provide a fallback response
                             string baseFallbackMessage = _fallbackMessages[(conversationContext.MessageCount + conversationContext.ConsecutiveClarificationAttempts) % _fallbackMessages.Length];
                             string loopFallbackMessage = baseFallbackMessage + " Would you like to clear this search and start a new conversation?";
-                            
-                            // Save the fallback response to chat history  
+
+                            // Save the fallback response to chat history
                             await this.SaveChatHistoryAsync(userId, message, loopFallbackMessage, conversationSessionId);
-                            
+
                             // Reset the attempt counter as we're providing a fallback
                             conversationContext.ConsecutiveClarificationAttempts = 0;
-                            
+
                             return new ChatResponse
                             {
                                 Message = loopFallbackMessage,
                                 ClarificationNeeded = true,
                                 OriginalUserInput = message.Content,
                                 ConversationId = message.ConversationId,
+
                                 // Keep RecommendedVehicles and UpdatedParameters null/empty
                             };
                         }
@@ -367,6 +370,7 @@ namespace SmartAutoTrader.API.Services
 
                         // Store the current question for basic loop detection (existing functionality)
                         conversationContext.LastQuestionAskedByAI = clarificationMessage;
+
                         // --- END: Enhanced tracking after generating clarification ---
 
                         // Update context
@@ -438,12 +442,12 @@ namespace SmartAutoTrader.API.Services
                 this.logger.LogError(ex, "Error processing chat message for user ID {UserId}, Message: {UserMessageContent}", userId, message.Content);
 
                 // Return error response
-                return new ChatResponse 
-                { 
+                return new ChatResponse
+                {
                     Message = "Sorry, an internal error occurred. Please try again later.",
                     ConversationId = message.ConversationId,
                     ClarificationNeeded = false,
-                    RecommendedVehicles = new List<Vehicle>()
+                    RecommendedVehicles = new List<Vehicle>(),
                 };
             }
         }
@@ -912,12 +916,12 @@ namespace SmartAutoTrader.API.Services
             bool hasMakes = parameters.PreferredMakes.Any() == true;
 
             // Check recent parameters to possibly avoid repeating questions
-            bool recentlyAskedAboutVehicleType = context.RecentClarificationParameters.Contains("vehicle_type") || 
+            bool recentlyAskedAboutVehicleType = context.RecentClarificationParameters.Contains("vehicle_type") ||
                                                 context.RecentClarificationParameters.Contains("type");
-            bool recentlyAskedAboutPrice = context.RecentClarificationParameters.Contains("price") || 
+            bool recentlyAskedAboutPrice = context.RecentClarificationParameters.Contains("price") ||
                                           context.RecentClarificationParameters.Contains("budget");
-            bool recentlyAskedAboutMake = context.RecentClarificationParameters.Contains("make") || 
-                                         context.RecentClarificationParameters.Contains("manufacturer") || 
+            bool recentlyAskedAboutMake = context.RecentClarificationParameters.Contains("make") ||
+                                         context.RecentClarificationParameters.Contains("manufacturer") ||
                                          context.RecentClarificationParameters.Contains("brand");
 
             // Priority 1: VehicleType - with varied phrasing
@@ -1036,7 +1040,7 @@ namespace SmartAutoTrader.API.Services
             string message,
             string? modelStrategy = null,
             List<ConversationTurn>? recentHistory = null,
-            ConversationContext context = null)
+            ConversationContext? context = null)
         {
             try
             {
@@ -1130,10 +1134,10 @@ namespace SmartAutoTrader.API.Services
                     return new RecommendationParameters
                     {
                         TextPrompt = message,
-                        Intent = "CONFUSED_FALLBACK", 
-                        RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.", 
-                        ClarificationNeeded = true, 
-                        ClarificationNeededFor = new List<string> { "extraction_service_error" } 
+                        Intent = "CONFUSED_FALLBACK",
+                        RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.",
+                        ClarificationNeeded = true,
+                        ClarificationNeededFor = new List<string> { "extraction_service_error" },
                     };
                 }
 
@@ -1367,15 +1371,15 @@ namespace SmartAutoTrader.API.Services
                 return new RecommendationParameters
                 {
                     TextPrompt = message,
-                    Intent = "CONFUSED_FALLBACK", 
-                    RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.", 
-                    ClarificationNeeded = true, 
-                    ClarificationNeededFor = new List<string> { "internal_error" } 
+                    Intent = "CONFUSED_FALLBACK",
+                    RetrieverSuggestion = "Sorry, I encountered a technical issue processing your request.",
+                    ClarificationNeeded = true,
+                    ClarificationNeededFor = new List<string> { "internal_error" },
                 };
             }
         }
 
-        private async Task UpdateStructuredContextFromParametersAsync(
+        private Task UpdateStructuredContextFromParametersAsync(
             RecommendationParameters parameters,
             ConversationContext context,
             string userMessage)
@@ -1416,7 +1420,7 @@ namespace SmartAutoTrader.API.Services
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
 
                     // Add to confirmed list if not already present (case-insensitive)
-                    bool alreadyConfirmed = context.ConfirmedMakes.Any(m =>
+                    var alreadyConfirmed = context.ConfirmedMakes.Any(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
 
                     if (!alreadyConfirmed)
@@ -1474,7 +1478,7 @@ namespace SmartAutoTrader.API.Services
                         string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
 
                     // Add to confirmed features if not already present (case-insensitive)
-                    bool alreadyConfirmed = context.ConfirmedFeatures.Any(f =>
+                    var alreadyConfirmed = context.ConfirmedFeatures.Any(f =>
                         string.Equals(f, feature, StringComparison.OrdinalIgnoreCase));
 
                     if (!alreadyConfirmed)
@@ -1528,7 +1532,7 @@ namespace SmartAutoTrader.API.Services
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
 
                     // Add to rejected makes if not already present (case-insensitive)
-                    bool alreadyRejected = context.RejectedMakes.Any(m =>
+                    var alreadyRejected = context.RejectedMakes.Any(m =>
                         string.Equals(m, make, StringComparison.OrdinalIgnoreCase));
 
                     if (!alreadyRejected)
@@ -1578,6 +1582,8 @@ namespace SmartAutoTrader.API.Services
                     }
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         private void SynchronizeCurrentParametersWithConfirmedValues(ConversationContext context)
@@ -1781,32 +1787,32 @@ namespace SmartAutoTrader.API.Services
             {
                 return false;
             }
-            
+
             // Check if exactly the same as the most recent question (existing check)
             if (context.LastQuestionsAsked.LastOrDefault() == currentQuestion)
             {
                 return true;
             }
-            
+
             // Extract the main topics from the current question
-            var currentTopics = ExtractQuestionTopics(currentQuestion);
-            
+            var currentTopics = this.ExtractQuestionTopics(currentQuestion);
+
             // Check against all recent questions
             foreach (var recentQuestion in context.LastQuestionsAsked)
             {
-                var recentTopics = ExtractQuestionTopics(recentQuestion);
-                
+                var recentTopics = this.ExtractQuestionTopics(recentQuestion);
+
                 // Calculate topic overlap
                 var commonTopics = currentTopics.Intersect(recentTopics).Count();
                 var totalUniqueTopics = currentTopics.Union(recentTopics).Count();
-                
+
                 // If there's significant overlap (>70%), consider them similar
                 if (totalUniqueTopics > 0 && (double)commonTopics / totalUniqueTopics > 0.7)
                 {
                     return true;
                 }
             }
-            
+
             return false;
         }
 
@@ -1814,24 +1820,24 @@ namespace SmartAutoTrader.API.Services
         {
             // A simple implementation to extract key topics from questions
             var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            
+
             // Check for common question topics
-            if (question.Contains("budget", StringComparison.OrdinalIgnoreCase) || 
+            if (question.Contains("budget", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("price", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("spend", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("afford", StringComparison.OrdinalIgnoreCase))
             {
                 keywords.Add("budget");
             }
-            
-            if (question.Contains("make", StringComparison.OrdinalIgnoreCase) || 
+
+            if (question.Contains("make", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("brand", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("manufacturer", StringComparison.OrdinalIgnoreCase))
             {
                 keywords.Add("make");
             }
-            
-            if (question.Contains("type", StringComparison.OrdinalIgnoreCase) || 
+
+            if (question.Contains("type", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("SUV", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("sedan", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("hatchback", StringComparison.OrdinalIgnoreCase) ||
@@ -1839,16 +1845,16 @@ namespace SmartAutoTrader.API.Services
             {
                 keywords.Add("vehicle_type");
             }
-            
-            if (question.Contains("year", StringComparison.OrdinalIgnoreCase) || 
+
+            if (question.Contains("year", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("age", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("new", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("old", StringComparison.OrdinalIgnoreCase))
             {
                 keywords.Add("year");
             }
-            
-            if (question.Contains("fuel", StringComparison.OrdinalIgnoreCase) || 
+
+            if (question.Contains("fuel", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("petrol", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("diesel", StringComparison.OrdinalIgnoreCase) ||
                 question.Contains("electric", StringComparison.OrdinalIgnoreCase) ||
@@ -1856,9 +1862,8 @@ namespace SmartAutoTrader.API.Services
             {
                 keywords.Add("fuel_type");
             }
-            
+
             // Add more topic detections as needed
-            
             return keywords;
         }
     }

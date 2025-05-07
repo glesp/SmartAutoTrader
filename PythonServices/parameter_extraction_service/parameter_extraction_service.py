@@ -662,7 +662,7 @@ Latest User Query: "{user_query}"
    -(e.g., ["budget", "type"]).
    - DO NOT set to true if the user is just refining or negating criteria.
 "When the user mentions a budget with a single number (e.g., 'under 50000', 'around 50000', '50000 budget'),
-    - interpret this number as the maxPrice ONLY. Leave minPrice as null unless a clear 
+    - interpret this number as the maxPrice ONLY. Leave minPrice as null unless a clear
     -range (e.g., 'between 40k and 50k') is stated."
 
 ## NEGATION HANDLING (CRITICAL RULES):
@@ -1258,7 +1258,7 @@ def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
                 logger.info(f"Extracted price parameter: maxPrice={price_value}")
                 return "maxPrice", price_value
             except ValueError:
-                logger.warning(f"Failed to convert extracted price value to float")
+                logger.warning("Failed to convert extracted price value to float")
 
     # Extract mileage
     elif any(term in category_lower for term in ["mileage", "km", "miles", "odometer"]):
@@ -1270,7 +1270,7 @@ def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
                 logger.info(f"Extracted mileage parameter: maxMileage={mileage_value}")
                 return "maxMileage", mileage_value
             except ValueError:
-                logger.warning(f"Failed to convert extracted mileage value to int")
+                logger.warning("Failed to convert extracted mileage value to int")
 
     # Extract year
     elif any(term in category_lower for term in ["year", "new", "older", "newer"]):
@@ -1299,11 +1299,11 @@ def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
                     logger.info(f"Extracted year parameter: maxYear={year_value}")
                     return "maxYear", year_value
             except ValueError:
-                logger.warning(f"Failed to convert extracted year value to int")
+                logger.warning("Failed to convert extracted year value to int")
 
     # Add more parameter extraction cases here as needed
 
-    logger.info(f"No parameters extracted from RAG category and query")
+    logger.info("No parameters extracted from RAG category and query")
     return None, None
 
 
@@ -1338,7 +1338,7 @@ def try_extract_param_from_rag_category(category_name: str) -> tuple:
             logger.info(f"Extracted from category: maxPrice={price_value}")
             return "maxPrice", price_value
         except ValueError:
-            logger.warning(f"Failed to convert category price value to float")
+            logger.warning("Failed to convert category price value to float")
 
     # Extract mileage
     # Look for patterns like "low mileage (under 50000 km)", "under 100000 miles"
@@ -1351,7 +1351,7 @@ def try_extract_param_from_rag_category(category_name: str) -> tuple:
             logger.info(f"Extracted from category: maxMileage={mileage_value}")
             return "maxMileage", mileage_value
         except ValueError:
-            logger.warning(f"Failed to convert category mileage value to int")
+            logger.warning("Failed to convert category mileage value to int")
 
     # Extract year
     # Look for patterns like "newer than 2018", "after 2020", "2015 or newer"
@@ -1374,7 +1374,7 @@ def try_extract_param_from_rag_category(category_name: str) -> tuple:
                 logger.info(f"Extracted from category: maxYear={year_value}")
                 return "maxYear", year_value
         except ValueError:
-            logger.warning(f"Failed to convert category year value to int")
+            logger.warning("Failed to convert category year value to int")
 
     # Standalone year (e.g., "2018 Toyota Camry")
     standalone_year = re.search(r"\b(20\d{2}|19\d{2})\b", category_lower)
@@ -1423,7 +1423,7 @@ def try_extract_param_from_rag_category(category_name: str) -> tuple:
             logger.info(f"Extracted from category: preferredMakes=[{make}]")
             return "preferredMakes", [make]
 
-    logger.info(f"No parameters extracted from RAG category")
+    logger.info("No parameters extracted from RAG category")
     return None, None
 
 
@@ -1465,7 +1465,7 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
                 logger.info(f"Direct extraction: Found maxPrice={price_value}")
                 break
             except ValueError:
-                logger.warning(f"Failed to convert extracted price value to float")
+                logger.warning("Failed to convert extracted price value to float")
 
     # Extract mileage
     mileage_patterns = [
@@ -1482,7 +1482,7 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
                 logger.info(f"Direct extraction: Found maxMileage={mileage_value}")
                 break
             except ValueError:
-                logger.warning(f"Failed to convert extracted mileage value to int")
+                logger.warning("Failed to convert extracted mileage value to int")
 
     # Extract year
     # Look for years that come after qualifiers indicating min or max
@@ -1502,7 +1502,7 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
             results["minYear"] = year_value
             logger.info(f"Direct extraction: Found minYear={year_value}")
         except ValueError:
-            logger.warning(f"Failed to convert extracted minYear value to int")
+            logger.warning("Failed to convert extracted minYear value to int")
 
     year_before_match = re.search(year_before_pattern, query_lower)
     if year_before_match:
@@ -1517,7 +1517,7 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
             results["maxYear"] = year_value
             logger.info(f"Direct extraction: Found maxYear={year_value}")
         except ValueError:
-            logger.warning(f"Failed to convert extracted maxYear value to int")
+            logger.warning("Failed to convert extracted maxYear value to int")
 
     # If no year with qualifiers found, check for standalone 4-digit year
     if "minYear" not in results and "maxYear" not in results:
@@ -1606,23 +1606,42 @@ def run_llm_with_history(
             validation_failed = False
             failure_reason = ""
 
-            if min_price is not None and max_price is not None and isinstance(min_price, (int, float)) and isinstance(max_price, (int, float)) and min_price > max_price:
+            if (
+                min_price is not None
+                and max_price is not None
+                and isinstance(min_price, (int, float))
+                and isinstance(max_price, (int, float))
+                and min_price > max_price
+            ):
                 validation_failed = True
                 failure_reason = "minPrice > maxPrice"
-            elif min_year is not None and max_year is not None and isinstance(min_year, (int, float)) and isinstance(max_year, (int, float)) and min_year > max_year:
+            elif (
+                min_year is not None
+                and max_year is not None
+                and isinstance(min_year, (int, float))
+                and isinstance(max_year, (int, float))
+                and min_year > max_year
+            ):
                 validation_failed = True
                 failure_reason = "minYear > maxYear"
-            elif "Ferrari" in processed.get("preferredMakes", []) and max_price is not None and isinstance(max_price, (int, float)) and max_price < 20000:
+            elif (
+                "Ferrari" in processed.get("preferredMakes", [])
+                and max_price is not None
+                and isinstance(max_price, (int, float))
+                and max_price < 20000
+            ):
                 validation_failed = True
                 failure_reason = "Ferrari requested with maxPrice < 20000"
 
             if validation_failed:
-                logger.warning(f"LLM output failed validation: {failure_reason}. LLM output: {processed}")
+                logger.warning(
+                    f"LLM output failed validation: {failure_reason}. LLM output: {processed}"
+                )
                 fallback_params = create_default_parameters(
-                    intent='CONFUSED_FALLBACK',
+                    intent="CONFUSED_FALLBACK",
                     clarification_needed=True,
-                    clarification_needed_for=['implausible_result'],
-                    retriever_suggestion=CONFUSED_FALLBACK_PROMPT # Added for consistency
+                    clarification_needed_for=["implausible_result"],
+                    retriever_suggestion=CONFUSED_FALLBACK_PROMPT,  # Added for consistency
                 )
                 return fallback_params
 
@@ -1904,8 +1923,9 @@ def run_llm_with_history(
                         )
 
             # --- 4. Merge List Parameters ---
-            # Helper function to handle list merging logic consistently (currently unused, merge_list_param_corrected is used)
-            def merge_list_param( 
+            # Helper function to handle list merging logic consistently
+            # (currently unused, merge_list_param_corrected is used)
+            def merge_list_param(
                 param_name,
                 context_key,
                 positive_set,
@@ -1947,20 +1967,30 @@ def run_llm_with_history(
                 # Convert back to list
                 return list(result_set)
 
-            # For "new_query" intent, list parameters (Makes, VehicleTypes, FuelTypes, DesiredFeatures) 
-            # should be based ONLY on positive mentions or direct LLM extraction from the current query, 
+            # For "new_query" intent, list parameters (Makes, VehicleTypes, FuelTypes, DesiredFeatures)
+            # should be based ONLY on positive mentions or direct LLM extraction from the current query,
             # effectively replacing any previous context for these lists.
             # For other intents (refine, clarify, add), merge with context using existing logic.
             if final_intent == "new_query":
-                logger.info(f"Intent is 'new_query'. Setting list parameters based only on current query's positive mentions/LLM extraction.")
+                logger.info(
+                    "Intent is 'new_query'. Setting list parameters based only on"
+                    " current query's positive mentions/LLM extraction."
+                )
                 final_params["preferredMakes"] = list(positive_makes_set)
                 final_params["preferredVehicleTypes"] = list(positive_types_set)
                 final_params["preferredFuelTypes"] = list(positive_fuels_set)
                 # For new_query, desiredFeatures come only from the current LLM processing
                 final_params["desiredFeatures"] = processed.get("desiredFeatures", [])
-                logger.info(f"New query: preferredMakes={final_params['preferredMakes']}, preferredVehicleTypes={final_params['preferredVehicleTypes']}, preferredFuelTypes={final_params['preferredFuelTypes']}, desiredFeatures={final_params['desiredFeatures']}")
+                logger.info(
+                    f"New query: preferredMakes={final_params['preferredMakes']}, "
+                    f"preferredVehicleTypes={final_params['preferredVehicleTypes']}, "
+                    f"preferredFuelTypes={final_params['preferredFuelTypes']}, "
+                    f"desiredFeatures={final_params['desiredFeatures']}"
+                )
             else:
-                logger.info(f"Intent is '{final_intent}'. Merging list parameters with context.")
+                logger.info(
+                    f"Intent is '{final_intent}'. Merging list parameters with context."
+                )
                 # Apply the existing merging logic (using merge_list_param_corrected) for makes, types, fuels
                 final_params["preferredMakes"] = merge_list_param_corrected(
                     "preferredMakes",
@@ -1994,12 +2024,23 @@ def run_llm_with_history(
 
                 # For other intents, merge desiredFeatures with context
                 if confirmed_context:
-                    context_features = set(confirmed_context.get("confirmedFeatures", []))
+                    context_features = set(
+                        confirmed_context.get("confirmedFeatures", [])
+                    )
                     new_features = set(processed.get("desiredFeatures", []))
-                    final_params["desiredFeatures"] = list(context_features.union(new_features))
+                    final_params["desiredFeatures"] = list(
+                        context_features.union(new_features)
+                    )
                 else:
-                    final_params["desiredFeatures"] = processed.get("desiredFeatures", [])
-                logger.info(f"Merged query ({final_intent}): preferredMakes={final_params['preferredMakes']}, preferredVehicleTypes={final_params['preferredVehicleTypes']}, preferredFuelTypes={final_params['preferredFuelTypes']}, desiredFeatures={final_params['desiredFeatures']}")
+                    final_params["desiredFeatures"] = processed.get(
+                        "desiredFeatures", []
+                    )
+                logger.info(
+                    f"Merged query ({final_intent}): preferredMakes={final_params['preferredMakes']}, "
+                    f"preferredVehicleTypes={final_params['preferredVehicleTypes']}, "
+                    f"preferredFuelTypes={final_params['preferredFuelTypes']}, "
+                    f"desiredFeatures={final_params['desiredFeatures']}"
+                )
 
             # --- 5. Set Negated Lists ---
             final_params["explicitly_negated_makes"] = list(negated_makes_set)
@@ -2213,13 +2254,15 @@ def extract_parameters():
                         "Intent classification score below threshold, using fallback logic."
                     )
                     # Fallback logic is now inside classify_intent_zero_shot
-                    if intent_result is None: # This means classify_intent_zero_shot returned None
+                    if (
+                        intent_result is None
+                    ):  # This means classify_intent_zero_shot returned None
                         classified_intent = "SPECIFIC_SEARCH"  # Safe default
-            else: # query_embedding was None
+            else:  # query_embedding was None
                 logger.error(
                     "Failed to get query embedding, defaulting intent to SPECIFIC_SEARCH."
                 )
-                classified_intent = "SPECIFIC_SEARCH" # Default if embedding fails
+                classified_intent = "SPECIFIC_SEARCH"  # Default if embedding fails
         except Exception as e:
             logger.error(
                 f"Error during embedding or classification: {e}", exc_info=True
@@ -2228,10 +2271,13 @@ def extract_parameters():
 
         # This block checks hypothetical scores. For this to be effective,
         # classify_intent_zero_shot would need to be modified to return 'intent_scores'.
-        if intent_scores and \
-           isinstance(intent_scores, dict) and \
-           intent_scores.get("SPECIFIC_SEARCH", 0.0) < VERY_LOW_CONFIDENCE_THRESHOLD and \
-           intent_scores.get("VAGUE_INQUIRY", 0.0) < VERY_LOW_CONFIDENCE_THRESHOLD:
+        if (
+            intent_scores
+            and isinstance(intent_scores, dict)
+            and intent_scores.get("SPECIFIC_SEARCH", 0.0)
+            < VERY_LOW_CONFIDENCE_THRESHOLD
+            and intent_scores.get("VAGUE_INQUIRY", 0.0) < VERY_LOW_CONFIDENCE_THRESHOLD
+        ):
             logger.warning(
                 f"Both SPECIFIC_SEARCH ({intent_scores.get('SPECIFIC_SEARCH', 0.0):.2f}) and "
                 f"VAGUE_INQUIRY ({intent_scores.get('VAGUE_INQUIRY', 0.0):.2f}) scores "
@@ -2431,7 +2477,8 @@ def extract_parameters():
                     # Follow-up query with moderate confidence - try parameter extraction from category
                     elif is_follow_up and score >= MODERATE_RAG_THRESHOLD:
                         logger.info(
-                            f"Follow-up query with moderate RAG confidence ({score:.2f}). Attempting parameter extraction."
+                            f"Follow-up query with moderate RAG confidence ({score:.2f}). "
+                            f"Attempting parameter extraction."
                         )
                         param_name, param_value = try_extract_param_from_rag_category(
                             match_cat
@@ -2526,7 +2573,8 @@ def extract_parameters():
                     # Low-moderate confidence or not a follow-up - general clarification
                     else:
                         logger.info(
-                            f"Low-moderate RAG score ({score:.2f}) or not a follow-up. Requesting general clarification."
+                            f"Low-moderate RAG score ({score:.2f}) or not a follow-up. "
+                            f"Requesting general clarification."
                         )
                         final_response = create_default_parameters(
                             intent="clarify",

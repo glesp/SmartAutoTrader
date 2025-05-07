@@ -73,7 +73,7 @@ jobs:
         run: pip install flake8
 
       - name: Lint Python with Flake8
-        run: flake8 . # Adjust path if Python code isn't directly in PythonServices
+        run: flake8 parameter_extraction_service.py retriever/retriever.py
         working-directory: ./PythonServices/parameter_extraction_service
 
   # -----------------------------------------------

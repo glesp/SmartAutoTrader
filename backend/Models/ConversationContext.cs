@@ -14,10 +14,10 @@ public class ConversationContext
 
     // NEW: Track clarification attempts to prevent loops
     public int ConsecutiveClarificationAttempts { get; set; } = 0;
-    
+
     // NEW: Track recently asked clarification parameters
     public List<string> RecentClarificationParameters { get; set; } = [];
-    
+
     // NEW: Store the last few questions to enable more sophisticated loop detection
     public List<string> LastQuestionsAsked { get; set; } = [];
 

@@ -12,7 +12,7 @@ namespace SmartAutoTrader.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20250506124958_initialMigration")]
-    partial class initialMigration
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
