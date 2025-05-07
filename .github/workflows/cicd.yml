@@ -346,9 +346,10 @@ jobs:
           # skip_api_build: true
 
       - name: Output Static Web App URL
-        run: echo "Azure Static Web App deployed to: ${{ steps.swa_deploy.outputs.static_web_app_url }}"
+        run: |
+          echo "Azure Static Web App deployed to: ${{ steps.swa_deploy.outputs.static_web_app_url }}"
 
       # === Logout from Azure (Good Practice) ===
       - name: Logout from Azure
         run: az logout
-        if: always() # Ensure logout runs even if previous steps fail
+        if: always()
