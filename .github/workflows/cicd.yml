@@ -1,0 +1,354 @@
+name: SmartAutoTrader CI/CD Azure
+
+on:
+  push:
+    branches: [ main, devops-pipeline ] # CI runs on pushes to these branches
+  pull_request:
+    branches: [ main ]                  # CI runs on PRs targeting main
+    # Run workflow only if changes occur in relevant directories or this workflow file
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'PythonServices/**'
+      - 'SmartAutoTrader.Tests/**'
+      - '.github/workflows/cicd.yml'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  # -----------------------------------
+  # Stage 1: Linting (Run in Parallel)
+  # -----------------------------------
+  lint_frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Run frontend lint (ESLint + Prettier)
+        run: npm run lint
+        working-directory: ./frontend
+
+  lint_backend:
+    name: Lint Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check .NET code formatting
+        run: dotnet format ./backend/SmartAutoTrader.API.csproj --verify-no-changes --severity error
+
+  lint_python:
+    name: Lint Python
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: PythonServices/parameter_extraction_service/requirements.txt
+
+      - name: Install Flake8
+        run: pip install flake8
+
+      - name: Lint Python with Flake8
+        run: flake8 . # Adjust path if Python code isn't directly in PythonServices
+        working-directory: ./PythonServices/parameter_extraction_service
+
+  # -----------------------------------------------
+  # Stage 2: Build, Test, Security Scan (Run after Linting)
+  # -----------------------------------------------
+  build_test_analyze_backend:
+    name: Build, Test & Analyze Backend
+    needs: lint_backend
+    runs-on: ubuntu-latest
+    permissions: # Required for CodeQL
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Initialize CodeQL (C#)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+
+      - name: Restore .NET dependencies
+        run: dotnet restore ./backend/SmartAutoTrader.API.csproj
+
+      - name: Build .NET project (Needed for CodeQL & Tests)
+        run: dotnet build ./backend/SmartAutoTrader.API.csproj --configuration Release --no-restore
+
+      - name: Run .NET unit tests
+        run: dotnet test ./SmartAutoTrader.Tests/SmartAutoTrader.Tests.csproj --no-build --verbosity normal
+
+      - name: Check for .NET vulnerabilities
+        run: dotnet list ./backend/SmartAutoTrader.API.csproj package --vulnerable --include-transitive
+
+      - name: Perform CodeQL Analysis (C#)
+        uses: github/codeql-action/analyze@v3
+
+  build_test_analyze_frontend:
+    name: Build, Test & Analyze Frontend
+    needs: lint_frontend
+    runs-on: ubuntu-latest
+    outputs: # Define output to signal artifact is ready
+      artifact_name: frontend-build-artifact # Consistent artifact name
+    permissions: # Required for CodeQL and artifact upload
+      actions: write # Needed for upload-artifact v4+
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Initialize CodeQL (JS/TS)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript # Analyzes both JS and TS
+
+      - name: Build Frontend (Needed for CodeQL, Tests & Artifact)
+        run: npm run build
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: ${{ secrets.API_URL }}
+
+      # - name: Run Frontend Tests
+      #   run: npm test # Assumes 'test' script exists in package.json
+      #   working-directory: ./frontend
+
+      - name: Check for Node vulnerabilities
+        # Can remove '|| true' to fail build on vulnerabilities
+        run: npm audit --audit-level=moderate || true
+        working-directory: ./frontend
+
+      - name: Perform CodeQL Analysis (JS/TS)
+        uses: github/codeql-action/analyze@v3
+
+      - name: Archive Frontend Build Artifact
+        id: archive_artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-artifact #
+          path: ./frontend/dist
+
+  test_analyze_python:
+    name: Test & Analyze Python
+    needs: lint_python
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: PythonServices/parameter_extraction_service/requirements.txt
+
+      - name: Install Python dependencies & tools
+        run: |
+          pip install --upgrade pip
+          pip install pytest pip-audit flake8
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else echo "requirements.txt not found"; exit 1; fi
+
+        working-directory: ./PythonServices/parameter_extraction_service
+
+      - name: Initialize CodeQL (Python)
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+
+      - name: Run Python Tests
+        run: pytest
+        working-directory: ./PythonServices/parameter_extraction_service
+
+      - name: Check for Python vulnerabilities
+        # Can add '--fail-on MEDIUM' or removing '|| true' to fail build
+        run: pip-audit || true
+        working-directory: ./PythonServices/parameter_extraction_service
+
+      - name: Perform CodeQL Analysis (Python)
+        uses: github/codeql-action/analyze@v3
+
+  # -----------------------------------------------------
+  # Stage 3: Build Docker Images and Push to ACR (Runs after Tests & Analysis)
+  # -----------------------------------------------------
+  build_docker_images:
+    name: Build and Push Docker Images to ACR
+    needs: [build_test_analyze_backend, test_analyze_python]
+    runs-on: ubuntu-latest
+    # Run only on push events to main (where deployment also happens)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry (ACR)
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+        env:
+          ACR_NAME: ${{ secrets.ACR_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Backend Docker Image to ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend # Path to backend Dockerfile directory
+          push: true # Always push on main branch runs
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Python Service Docker Image to ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./PythonServices # Path to Python Dockerfile directory
+          push: true # Always push on main branch runs
+          tags: | # Use multi-line tags format
+            ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()
+
+  # -----------------------------------------------------
+  # Stage 4: Deploy to Azure Staging Environment
+  # -----------------------------------------------------
+  deploy_staging:
+    name: Deploy to Azure Staging
+    # This job needs the Docker images pushed to ACR and the frontend artifact created.
+    needs: [build_docker_images, build_test_analyze_frontend]
+    runs-on: ubuntu-latest
+    # Optional: Define a GitHub Environment for staging secrets/rules
+    # environment: staging
+
+    # Run only when pushing to the main branch
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Needed if deployment scripts/configs are in repo
+
+      - name: Login to Azure
+        id: azure-login # Give login step an ID if needed later (optional here)
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }} # Use the Service Principal secret
+
+      # Note: ACR login is done in build_docker_images job. Container Apps action uses Azure login creds.
+
+      # === Deploy Backend API to Azure Container Apps ===
+      - name: Deploy Backend API to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroupName: SmartAutoTrader-Staging-RG
+          containerAppName: smartautotrader-api-personal
+          # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
+          imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
+          environmentVariables: | # Example: Add environment variables needed at runtime
+            ASPNETCORE_ENVIRONMENT=Development
+            ConnectionStrings__DefaultConnection=${{ secrets.AZURE_DB_CONNECTION_STRING }}
+            API_URL=${{ secrets.API_URL }}
+            Jwt__Key=${{ secrets.JWT_SECRET_KEY }}
+            CorsOrigins=https://gentle-sky-0c91c2c03.6.azurestaticapps.net
+            Services__ParameterExtraction__Endpoint=https://smartautotrader-python-personal.mangoflower-17417b1d.westeurope.azurecontainerapps.io/extract_parameters
+
+      # === Deploy Python Service to Azure Container Apps ===
+      - name: Deploy Python Service to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          resourceGroupName: SmartAutoTrader-Staging-RG
+          containerAppName: smartautotrader-python-personal
+          # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
+          imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
+          environmentVariables: | # Example: Add environment variables needed at runtime
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+
+      # === Deploy Frontend to Azure Static Web Apps ===
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          # Consistent artifact name defined in the build job output
+          name: ${{ needs.build_test_analyze_frontend.outputs.artifact_name || 'frontend-build-artifact' }}
+          path: ./frontend-deploy # Download artifact to this directory
+
+      - name: Deploy Frontend to Azure Static Web Apps
+        id: swa_deploy # Give step an ID
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Default token for GitHub Actions integrations
+          action: "upload"
+          # The location of the built frontend assets, downloaded in the previous step
+          app_location: "./frontend-deploy"
+          # api_location: "" # Not deploying an API with SWA
+          output_location: "" # Root of app_location contains the deployable files
+          # skip_app_build: true # You might need this if SWA deploy action tries to build again
+          # skip_api_build: true
+
+      - name: Output Static Web App URL
+        run: echo "Azure Static Web App deployed to: ${{ steps.swa_deploy.outputs.static_web_app_url }}"
+
+      # === Logout from Azure (Good Practice) ===
+      - name: Logout from Azure
+        run: az logout
+        if: always() # Ensure logout runs even if previous steps fail
