@@ -118,7 +118,7 @@ const ProfilePage = () => {
         {/* Material-UI Tabs */}
         <Tabs
           value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
+          onChange={(_e, newValue) => setActiveTab(newValue)}
           sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}
         >
           <Tab

@@ -108,7 +108,7 @@ jobs:
         run: dotnet build ./backend/SmartAutoTrader.API.csproj --configuration Release --no-restore
 
       - name: Run .NET unit tests
-        run: dotnet test ./SmartAutoTrader.Tests/SmartAutoTrader.Tests.csproj --no-build --verbosity normal
+        run: dotnet test ./SmartAutoTrader.Tests/SmartAutoTrader.Tests.csproj --verbosity normal
 
       - name: Check for .NET vulnerabilities
         run: dotnet list ./backend/SmartAutoTrader.API.csproj package --vulnerable --include-transitive

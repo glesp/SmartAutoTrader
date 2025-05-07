@@ -38,7 +38,7 @@ const RecommendationsPage = () => {
   const [isChatMinimized, setIsChatMinimized] = useState(true);
   const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false);
   const [showChatBadge, setShowChatBadge] = useState(false);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+  const [isLoadingRecommendations /*, setIsLoadingRecommendations*/] =
     useState(false);
 
   // Show loading state while checking authentication
@@ -113,7 +113,7 @@ const RecommendationsPage = () => {
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs
               value={activeTab}
-              onChange={(e, newValue) => setActiveTab(newValue)}
+              onChange={(_e, newValue) => setActiveTab(newValue)}
               indicatorColor="primary"
               textColor="primary"
             >

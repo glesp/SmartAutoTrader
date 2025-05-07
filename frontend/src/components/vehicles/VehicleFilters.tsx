@@ -205,12 +205,12 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
 
   // --- Slider handlers for debounced updates ---
   // Year Range
-  const handleYearChange = (event: Event, newValue: number | number[]) => {
+  const handleYearChange = (_event: Event, newValue: number | number[]) => {
     if (Array.isArray(newValue))
       setLocalYearRange(newValue as [number, number]);
   };
   const handleYearChangeCommitted = (
-    event: Event | React.SyntheticEvent,
+    _event: Event | React.SyntheticEvent,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue)) {
@@ -223,14 +223,14 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
 
   // Engine Size Range
   const handleEngineSizeChange = (
-    event: Event,
+    _event: Event,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue))
       setLocalEngineSizeRange(newValue as [number, number]);
   };
   const handleEngineSizeChangeCommitted = (
-    event: Event | React.SyntheticEvent,
+    _event: Event | React.SyntheticEvent,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue)) {
@@ -243,14 +243,14 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
 
   // Horsepower Range
   const handleHorsepowerChange = (
-    event: Event,
+    _event: Event,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue))
       setLocalHorsepowerRange(newValue as [number, number]);
   };
   const handleHorsepowerChangeCommitted = (
-    event: Event | React.SyntheticEvent,
+    _event: Event | React.SyntheticEvent,
     newValue: number | number[]
   ) => {
     if (Array.isArray(newValue)) {

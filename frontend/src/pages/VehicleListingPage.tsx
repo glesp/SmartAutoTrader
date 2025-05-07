@@ -12,7 +12,6 @@ import {
   Container,
   Paper,
   Pagination,
-  CircularProgress,
   Divider,
   Skeleton,
 } from '@mui/material';
@@ -70,7 +69,7 @@ const VehicleListingPage = () => {
   };
 
   const handlePageChange = (
-    event: React.ChangeEvent<unknown>,
+    _event: React.ChangeEvent<unknown>,
     newPage: number
   ) => {
     setPage(newPage);

@@ -16,6 +16,7 @@ import {
   ButtonBase,
   Divider,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -367,13 +368,20 @@ const VehicleDetailPage = () => {
             {isAuthenticated ? (
               <IconButton
                 onClick={handleToggleFavorite}
+                disabled={checkingFavorite} // Disable button while checking favorite status
                 sx={{
                   transition: 'transform 0.2s',
                   transform: favAnim ? 'scale(1.15)' : 'scale(1.0)',
                   color: isFavorite ? 'error.main' : 'grey.500',
                 }}
               >
-                {isFavorite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                {checkingFavorite ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : isFavorite ? (
+                  <FavoriteIcon />
+                ) : (
+                  <FavoriteBorderIcon />
+                )}
               </IconButton>
             ) : (
               <Button variant="outlined" component={Link} to="/login" fullWidth>
