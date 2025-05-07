@@ -159,4 +159,4 @@ Create necessary environment configuration files (e.g., `.env` for Python, `apps
 1.  Ensure the Backend API, Frontend App, and Python Service are all running.
 2.  Open your browser and navigate to the frontend URL (e.g., `http://localhost:5173`).
 3.  Register or log in.
-4.  Browse vehicles or start interacting with the Chat Assistant on the Recommendations page..
+4.  Browse vehicles or start interacting with the Chat Assistant on the Recommendations page.
