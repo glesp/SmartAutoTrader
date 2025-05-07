@@ -17,7 +17,7 @@ An AI-powered vehicle marketplace designed to offer personalized recommendations
 - [Contributing](#contributing)
 - [License](#license)
 
-## Features ✨
+## Features 
 
 - **User Authentication & Profile:** Secure user registration and login. Profile management for user details and preferences.
 - **Vehicle Browsing & Filtering:** Display vehicle listings with detailed information. Advanced filtering options including make, model, year, price, fuel type, transmission, vehicle type, and mileage.
