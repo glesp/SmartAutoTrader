@@ -301,7 +301,7 @@ jobs:
       - name: Deploy Backend API to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
-          resourceGroupName: SmartAutoTrader-Staging-RG
+          resourceGroup: SmartAutoTrader-Staging-RG
           containerAppName: smartautotrader-api-personal
           # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
@@ -317,7 +317,7 @@ jobs:
       - name: Deploy Python Service to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
-          resourceGroupName: SmartAutoTrader-Staging-RG
+          resourceGroup: SmartAutoTrader-Staging-RG
           containerAppName: smartautotrader-python-personal
           # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
