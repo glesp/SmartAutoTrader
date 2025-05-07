@@ -1,4 +1,4 @@
-# Smart Auto Trader 🚗💨
+# Smart Auto Trader
 
 An AI-powered vehicle marketplace designed to offer personalized recommendations and streamline the car buying experience through intelligent chat interaction and advanced filtering.
 
