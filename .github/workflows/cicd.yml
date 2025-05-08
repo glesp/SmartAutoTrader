@@ -305,7 +305,7 @@ jobs:
           containerAppName: smartautotrader-api-personal
           # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
-          environmentVariables: | # Example: Add environment variables needed at runtime
+          environmentVariables: |
             ASPNETCORE_ENVIRONMENT=Development
             ConnectionStrings__DefaultConnection=${{ secrets.AZURE_DB_CONNECTION_STRING }}
             API_URL=${{ secrets.API_URL }}
@@ -321,7 +321,7 @@ jobs:
           containerAppName: smartautotrader-python-personal
           # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
-          environmentVariables: | # Example: Add environment variables needed at runtime
+          environmentVariables: >
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
 
       # === Deploy Frontend to Azure Static Web Apps ===
