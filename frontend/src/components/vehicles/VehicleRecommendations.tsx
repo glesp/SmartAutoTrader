@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { Vehicle } from '../../types/models.ts';
 import { VehicleRecommendationsProps } from '../../types/models.ts';
+import API_URL from '../../services/api';
 import {
   Box,
   Typography,
@@ -47,17 +48,16 @@ const VehicleRecommendations = ({
   // Helper function to get primary image URL or fallback
   const getImageUrl = (vehicle: Vehicle) => {
     const images = extractArray(vehicle.images);
-    if (images.length === 0)
-      return 'https://via.placeholder.com/300x200?text=No+Image';
+    if (images.length === 0) return '/images/placeholder.jpg';
 
     // Find primary image
     const primaryImage = images.find((img) => img.isPrimary);
     const path = primaryImage?.imageUrl || images[0]?.imageUrl;
 
-    // Important: Add the base URL prefix just like in VehicleDetailPage
+    // Use API_URL instead of hardcoded URL
     return path
-      ? `https://localhost:7001/${path}`
-      : 'https://via.placeholder.com/300x200?text=No+Image';
+      ? `${API_URL}/${path.replace(/^\/+/, '')}`
+      : '/images/placeholder.jpg';
   };
 
   // Map fuel type numbers to strings

@@ -3,6 +3,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicleService, favoriteService } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
+import API_URL from '../services/api';
 // Add Material-UI imports
 import {
   Box,
@@ -159,8 +160,8 @@ const VehicleDetailPage = () => {
   };
 
   const getImageUrl = (image: VehicleImage | undefined) => {
-    if (!image || !image.imageUrl) return '';
-    return `https://localhost:7001/${image.imageUrl.replace(/^\/+/, '')}`;
+    if (!image || !image.imageUrl) return '/images/placeholder.jpg';
+    return `${API_URL}/${image.imageUrl.replace(/^\/+/, '')}`;
   };
 
   if (loading) {
