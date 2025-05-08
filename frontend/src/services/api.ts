@@ -46,7 +46,7 @@ api.interceptors.request.use(
 // Authentication service
 export const authService = {
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/api/auth/login', { email, password });
     return response.data;
   },
   register: async (userData: {
@@ -57,7 +57,7 @@ export const authService = {
     lastName?: string;
     phoneNumber?: string;
   }) => {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post('/api/auth/register', userData);
     return response.data;
   },
 };
@@ -66,7 +66,7 @@ export const authService = {
 export const vehicleService = {
   getVehicles: async (params?: VehicleParams): Promise<Vehicle[]> => {
     try {
-      const response = await api.get('/vehicles', { params });
+      const response = await api.get('/api/vehicles', { params });
 
       if (response.data?.$values && Array.isArray(response.data.$values)) {
         return response.data.$values;
@@ -82,15 +82,14 @@ export const vehicleService = {
     }
   },
 
-  // Existing method: fetch a single vehicle by ID
   getVehicle: async (id: number) => {
-    const response = await api.get<Vehicle>(`/vehicles/${id}`);
+    const response = await api.get<Vehicle>(`/api/vehicles/${id}`);
     return response.data;
   },
 
   getAvailableMakes: async (): Promise<string[]> => {
     try {
-      const response = await api.get('/vehicles/available-makes');
+      const response = await api.get('/api/vehicles/available-makes');
       return response.data;
     } catch (error) {
       console.error('Error fetching makes:', error);
@@ -100,7 +99,7 @@ export const vehicleService = {
 
   getAvailableModels: async (make: string): Promise<string[]> => {
     try {
-      const response = await api.get('/vehicles/available-models', {
+      const response = await api.get('/api/vehicles/available-models', {
         params: { make },
       });
       return response.data;
@@ -112,7 +111,7 @@ export const vehicleService = {
 
   getYearRange: async (): Promise<{ min: number; max: number }> => {
     try {
-      const response = await api.get('/vehicles/year-range');
+      const response = await api.get('/api/vehicles/year-range');
       return response.data;
     } catch (error) {
       console.error('Error fetching year range:', error);
@@ -122,7 +121,7 @@ export const vehicleService = {
 
   getEngineSizeRange: async (): Promise<{ min: number; max: number }> => {
     try {
-      const response = await api.get('/vehicles/engine-size-range');
+      const response = await api.get('/api/vehicles/engine-size-range');
       return response.data;
     } catch (error) {
       console.error('Error fetching engine size range:', error);
@@ -132,7 +131,7 @@ export const vehicleService = {
 
   getHorsepowerRange: async (): Promise<{ min: number; max: number }> => {
     try {
-      const response = await api.get('/vehicles/horsepower-range');
+      const response = await api.get('/api/vehicles/horsepower-range');
       return response.data;
     } catch (error) {
       console.error('Error fetching horsepower range:', error);
@@ -144,23 +143,23 @@ export const vehicleService = {
 // Favorites service
 export const favoriteService = {
   getFavorites: async () => {
-    const response = await api.get<Vehicle[]>('/favorites');
+    const response = await api.get<Vehicle[]>('/api/favorites');
     return response.data;
   },
   addFavorite: async (vehicleId: number) => {
-    const response = await api.post(`/favorites/${vehicleId}`);
+    const response = await api.post(`/api/favorites/${vehicleId}`);
     return response.data;
   },
   removeFavorite: async (vehicleId: number) => {
-    const response = await api.delete(`/favorites/${vehicleId}`);
+    const response = await api.delete(`/api/favorites/${vehicleId}`);
     return response.data;
   },
   checkFavorite: async (vehicleId: number) => {
-    const response = await api.get<boolean>(`/favorites/check/${vehicleId}`);
+    const response = await api.get<boolean>(`/api/favorites/check/${vehicleId}`);
     return response.data;
   },
   getFavoritesCount: async () => {
-    const response = await api.get<number>('/favorites/count');
+    const response = await api.get<number>('/api/favorites/count');
     return response.data;
   },
 };
@@ -172,11 +171,11 @@ interface InquiryReplyData {
 
 export const inquiryService = {
   getInquiries: async () => {
-    const response = await api.get('/inquiries');
+    const response = await api.get('/api/inquiries');
     return response.data;
   },
   getInquiry: async (id: number) => {
-    const response = await api.get(`/inquiries/${id}`);
+    const response = await api.get(`/api/inquiries/${id}`);
     return response.data;
   },
   createInquiry: async (inquiryData: {
@@ -184,23 +183,23 @@ export const inquiryService = {
     subject: string;
     message: string;
   }) => {
-    const response = await api.post('/inquiries', inquiryData);
+    const response = await api.post('/api/inquiries', inquiryData);
     return response.data;
   },
   closeInquiry: async (id: number) => {
-    await api.put(`/inquiries/${id}/close`);
+    await api.put(`/api/inquiries/${id}/close`);
   },
   getAllInquiries: async (status = '') => {
     const response = await api.get(
-      `/inquiries/admin${status ? `?status=${status}` : ''}`
+      `/api/inquiries/admin${status ? `?status=${status}` : ''}`
     );
     return response.data;
   },
   markInquiryAsRead: async (id: number) => {
-    await api.put(`/inquiries/${id}/MarkAsRead`);
+    await api.put(`/api/inquiries/${id}/MarkAsRead`);
   },
   replyToInquiry: async (id: number, replyData: InquiryReplyData) => {
-    await api.put(`/inquiries/${id}/Reply`, replyData);
+    await api.put(`/api/inquiries/${id}/Reply`, replyData);
   },
 };
 
