@@ -36,8 +36,8 @@ namespace SmartAutoTrader.Tests.Services
                 .ReturnsAsync(new List<string> { "User" });
 
             _authService = new AuthService(
-                _userRepoMock.Object, 
-                _roleRepoMock.Object, 
+                _userRepoMock.Object,
+                _roleRepoMock.Object,
                 _configMock.Object);
         }
 
@@ -158,7 +158,7 @@ namespace SmartAutoTrader.Tests.Services
             // Arrange
             int userId = 1;
             var expectedRoles = new List<string> { "User", "Admin" };
-            
+
             _roleRepoMock.Setup(r => r.GetUserRolesAsync(userId))
                 .ReturnsAsync(expectedRoles);
 
@@ -177,13 +177,13 @@ namespace SmartAutoTrader.Tests.Services
             int userId = 1;
             string roleName = "Admin";
             var role = new Role { Id = 1, Name = roleName };
-            
+
             _roleRepoMock.Setup(r => r.GetRoleByNameAsync(roleName))
                 .ReturnsAsync(role);
-            
+
             // Act
             await _authService.AssignRoleToUserAsync(userId, roleName);
-            
+
             // Assert
             _roleRepoMock.Verify(r => r.GetRoleByNameAsync(roleName), Times.Once);
             _roleRepoMock.Verify(r => r.AssignRoleToUserAsync(userId, role.Id), Times.Once);
@@ -195,14 +195,14 @@ namespace SmartAutoTrader.Tests.Services
             // Arrange
             int userId = 1;
             string roleName = "NonExistentRole";
-            
+
             _roleRepoMock.Setup(r => r.GetRoleByNameAsync(roleName))
                 .ReturnsAsync((Role)null);
-            
+
             // Act & Assert
             var ex = await Assert.ThrowsAsync<Exception>(() =>
                 _authService.AssignRoleToUserAsync(userId, roleName));
-            
+
             Assert.Equal($"Role '{roleName}' not found.", ex.Message);
             _roleRepoMock.Verify(r => r.GetRoleByNameAsync(roleName), Times.Once);
             _roleRepoMock.Verify(r => r.AssignRoleToUserAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);

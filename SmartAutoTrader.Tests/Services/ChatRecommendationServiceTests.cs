@@ -40,8 +40,8 @@ namespace SmartAutoTrader.Tests.Services
                 {
                     StatusCode = HttpStatusCode.OK,
                     Content = new StringContent(
-                        "{\"intent\":\"new_query\",\"preferredMakes\":[\"Toyota\"],\"preferredFuelTypes\":[\"Petrol\"],\"preferredVehicleTypes\":[\"SUV\"],\"isOffTopic\":false,\"clarificationNeeded\":false}", 
-                        Encoding.UTF8, 
+                        "{\"intent\":\"new_query\",\"preferredMakes\":[\"Toyota\"],\"preferredFuelTypes\":[\"Petrol\"],\"preferredVehicleTypes\":[\"SUV\"],\"isOffTopic\":false,\"clarificationNeeded\":false}",
+                        Encoding.UTF8,
                         "application/json")
                 });
 
@@ -71,8 +71,9 @@ namespace SmartAutoTrader.Tests.Services
             // Arrange
             var message = new ChatMessage { Content = "I'm not sure", ConversationId = "123" };
             var userId = 1;
-            var context = new ConversationContext { 
-                ModelUsed = "test", 
+            var context = new ConversationContext
+            {
+                ModelUsed = "test",
                 MessageCount = 1,
                 CurrentParameters = new RecommendationParameters(),
                 ShownVehicleIds = new List<int>()
@@ -83,18 +84,18 @@ namespace SmartAutoTrader.Tests.Services
             _userRepoMock.Setup(r => r.GetFavoritesWithVehiclesAsync(userId)).ReturnsAsync(new List<UserFavorite>());
             _userRepoMock.Setup(r => r.GetRecentBrowsingHistoryWithVehiclesAsync(userId, It.IsAny<int>()))
                          .ReturnsAsync(new List<BrowsingHistory>());
-            
+
             _contextServiceMock.Setup(c => c.GetOrCreateContextAsync(userId)).ReturnsAsync(context);
             _contextServiceMock.Setup(c => c.UpdateContextAsync(userId, It.IsAny<ConversationContext>()))
                                .Returns(Task.CompletedTask);
-            
+
             _chatRepoMock.Setup(r => r.GetRecentHistoryAsync(userId, It.IsAny<int>(), It.IsAny<int>()))
                          .ReturnsAsync(new List<ConversationTurn>());
             _chatRepoMock.Setup(c => c.AddChatHistoryAsync(It.IsAny<ChatHistory>()))
                          .Returns(Task.CompletedTask);
             _chatRepoMock.Setup(c => c.SaveChangesAsync())
                          .Returns(Task.CompletedTask);
-            
+
             _recommendationServiceMock.Setup(r => r.GetRecommendationsAsync(userId, It.IsAny<RecommendationParameters>()))
                                       .ReturnsAsync(new List<Vehicle>());
 
@@ -118,8 +119,8 @@ namespace SmartAutoTrader.Tests.Services
             var handler = new Mock<HttpMessageHandler>();
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync", 
-                    ItExpr.IsAny<HttpRequestMessage>(), 
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
@@ -151,25 +152,26 @@ namespace SmartAutoTrader.Tests.Services
             // Arrange
             var userId = 999;
             var message = new ChatMessage { Content = "Find me a hybrid", ConversationId = "1" };
-            
+
             // Mock user repository to return null (user not found)
             _userRepoMock.Setup(repo => repo.GetByIdAsync(userId)).ReturnsAsync((User)null);
-            
+
             // Mock conversation context
             _contextServiceMock.Setup(c => c.GetOrCreateContextAsync(userId))
-                               .ReturnsAsync(new ConversationContext { 
-                                   ModelUsed = "default", 
+                               .ReturnsAsync(new ConversationContext
+                               {
+                                   ModelUsed = "default",
                                    MessageCount = 1,
                                    CurrentParameters = new RecommendationParameters(),
                                    ShownVehicleIds = new List<int>()
                                });
             _contextServiceMock.Setup(c => c.UpdateContextAsync(userId, It.IsAny<ConversationContext>()))
                                .Returns(Task.CompletedTask);
-            
+
             // Mock GetRecentHistoryAsync to return empty list (CRITICAL FOR TEST TO PASS)
             _chatRepoMock.Setup(r => r.GetRecentHistoryAsync(userId, It.IsAny<int>(), It.IsAny<int>()))
                          .ReturnsAsync(new List<ConversationTurn>());
-            
+
             // Act
             var result = await _service.ProcessMessageAsync(userId, message);
 
@@ -190,17 +192,18 @@ namespace SmartAutoTrader.Tests.Services
             _userRepoMock.Setup(r => r.GetFavoritesWithVehiclesAsync(userId)).ReturnsAsync(new List<UserFavorite>());
             _userRepoMock.Setup(r => r.GetRecentBrowsingHistoryWithVehiclesAsync(userId, It.IsAny<int>()))
                          .ReturnsAsync(new List<BrowsingHistory>());
-            
+
             _contextServiceMock.Setup(c => c.GetOrCreateContextAsync(userId))
-                               .ReturnsAsync(new ConversationContext { 
-                                   ModelUsed = "fast", 
+                               .ReturnsAsync(new ConversationContext
+                               {
+                                   ModelUsed = "fast",
                                    MessageCount = 2,
                                    CurrentParameters = new RecommendationParameters(),
                                    ShownVehicleIds = new List<int>()
                                });
             _contextServiceMock.Setup(c => c.UpdateContextAsync(userId, It.IsAny<ConversationContext>()))
                                .Returns(Task.CompletedTask);
-                               
+
             // Setup chat repository mocks including history
             _chatRepoMock.Setup(r => r.GetRecentHistoryAsync(userId, It.IsAny<int>(), It.IsAny<int>()))
                          .ReturnsAsync(new List<ConversationTurn>());
@@ -222,8 +225,8 @@ namespace SmartAutoTrader.Tests.Services
 
             var handler = new Mock<HttpMessageHandler>();
             handler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync", 
-                    ItExpr.IsAny<HttpRequestMessage>(), 
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
