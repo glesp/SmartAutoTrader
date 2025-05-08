@@ -303,15 +303,22 @@ jobs:
         with:
           resourceGroup: SmartAutoTrader-Staging-RG
           containerAppName: smartautotrader-api-personal
-          # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-api:${{ github.sha }}
-          environmentVariables: |
-            ASPNETCORE_ENVIRONMENT=Development
-            ConnectionStrings__DefaultConnection=${{ secrets.AZURE_DB_CONNECTION_STRING }}
-            API_URL=${{ secrets.API_URL }}
-            Jwt__Key=${{ secrets.JWT_SECRET_KEY }}
-            CorsOrigins=https://gentle-sky-0c91c2c03.6.azurestaticapps.net
-            Services__ParameterExtraction__Endpoint=https://smartautotrader-python-personal.mangoflower-17417b1d.westeurope.azurecontainerapps.io/extract_parameters
+
+      # === Set Backend API Environment Variables Directly ===
+      - name: Set Backend API Environment Variables
+        run: |
+          echo "Setting environment variables for Backend API"
+          az containerapp update \
+            --name smartautotrader-api-personal \
+            --resource-group SmartAutoTrader-Staging-RG \
+            --set-env-vars \
+              "ASPNETCORE_ENVIRONMENT=Development" \
+              "ConnectionStrings__DefaultConnection=${{ secrets.AZURE_DB_CONNECTION_STRING }}" \
+              "API_URL=${{ secrets.API_URL }}" \
+              "Jwt__Key=${{ secrets.JWT_SECRET_KEY }}" \
+              "CorsOrigins=https://gentle-sky-0c91c2c03.6.azurestaticapps.net" \
+              "Services__ParameterExtraction__Endpoint=https://smartautotrader-python-personal.mangoflower-17417b1d.westeurope.azurecontainerapps.io/extract_parameters"
 
       # === Deploy Python Service to Azure Container Apps ===
       - name: Deploy Python Service to Azure Container Apps
@@ -319,10 +326,17 @@ jobs:
         with:
           resourceGroup: SmartAutoTrader-Staging-RG
           containerAppName: smartautotrader-python-personal
-          # Deploys the image tagged with the specific commit SHA pushed in build_docker_images
           imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/smartautotrader-python:${{ github.sha }}
-          environmentVariables: >
-            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+
+      # === Set Python Service Environment Variables Directly ===
+      - name: Set Python Service Environment Variables
+        run: |
+          echo "Setting environment variables for Python Service"
+          az containerapp update \
+            --name smartautotrader-python-personal \
+            --resource-group SmartAutoTrader-Staging-RG \
+            --set-env-vars \
+              "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}"
 
       # === Deploy Frontend to Azure Static Web Apps ===
       - name: Download Frontend Artifact
