@@ -114,9 +114,10 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     ]);
   }, [filters.minHorsepower, filters.maxHorsepower, horsepowerRange]);
 
-  // Fetch available makes when component mounts
+  // Fetch available makes and ranges ONCE when component mounts
   useEffect(() => {
-    const fetchMakesAndYears = async () => {
+    const fetchFilterData = async () => {
+      // Renamed function
       try {
         // Fetch makes
         const makesResponse = await vehicleService.getAvailableMakes();
@@ -128,57 +129,48 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         const yearRangeResponse = await vehicleService.getYearRange();
         if (
           yearRangeResponse &&
-          yearRangeResponse.min &&
-          yearRangeResponse.max
+          typeof yearRangeResponse.min === 'number' &&
+          typeof yearRangeResponse.max === 'number'
         ) {
           setYearRange([yearRangeResponse.min, yearRangeResponse.max]);
         }
 
-        // Add these API calls to fetch engine size and horsepower ranges
+        // Fetch engine size range
         const engineSizeRangeResponse =
           await vehicleService.getEngineSizeRange();
         if (
           engineSizeRangeResponse &&
-          engineSizeRangeResponse.min !== undefined &&
-          engineSizeRangeResponse.max !== undefined
+          typeof engineSizeRangeResponse.min === 'number' &&
+          typeof engineSizeRangeResponse.max === 'number'
         ) {
           setEngineSizeRange([
             engineSizeRangeResponse.min,
             engineSizeRangeResponse.max,
           ]);
-          setLocalEngineSizeRange([
-            Math.max(localEngineSizeRange[0], engineSizeRangeResponse.min),
-            Math.min(localEngineSizeRange[1], engineSizeRangeResponse.max),
-          ]);
+          // REMOVED the setLocalEngineSizeRange call from here
         }
 
+        // Fetch horsepower range
         const horsepowerRangeResponse =
           await vehicleService.getHorsepowerRange();
         if (
           horsepowerRangeResponse &&
-          horsepowerRangeResponse.min !== undefined &&
-          horsepowerRangeResponse.max !== undefined
+          typeof horsepowerRangeResponse.min === 'number' &&
+          typeof horsepowerRangeResponse.max === 'number'
         ) {
           setHorsepowerRange([
             horsepowerRangeResponse.min,
             horsepowerRangeResponse.max,
           ]);
-          setLocalHorsepowerRange([
-            typeof filters.minHorsepower === 'number'
-              ? Math.max(filters.minHorsepower, horsepowerRangeResponse.min)
-              : horsepowerRangeResponse.min,
-            typeof filters.maxHorsepower === 'number'
-              ? Math.min(filters.maxHorsepower, horsepowerRangeResponse.max)
-              : horsepowerRangeResponse.max,
-          ]);
+          // REMOVED the setLocalHorsepowerRange call from here
         }
       } catch (error) {
         console.error('Error fetching vehicle specifications:', error);
       }
     };
 
-    fetchMakesAndYears();
-  }, [filters.minHorsepower, filters.maxHorsepower, localEngineSizeRange]);
+    fetchFilterData();
+  }, []); // <-- THE FIX: Changed dependency array to empty []
 
   // Fetch models when make changes
   useEffect(() => {
