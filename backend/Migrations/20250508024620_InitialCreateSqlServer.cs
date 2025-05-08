@@ -1,12 +1,12 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
-
 #nullable disable
 
 #pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
 
 namespace SmartAutoTrader.API.Migrations
 {
+    using System;
+    using Microsoft.EntityFrameworkCore.Migrations;
+
     /// <inheritdoc />
     public partial class InitialCreateSqlServer : Migration
     {
@@ -19,7 +19,7 @@ namespace SmartAutoTrader.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                 },
                 constraints: table =>
                 {
@@ -38,7 +38,7 @@ namespace SmartAutoTrader.API.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DateRegistered = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    DateRegistered = table.Column<DateTime>(type: "datetime2", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -64,7 +64,7 @@ namespace SmartAutoTrader.API.Migrations
                     Country = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateListed = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -80,7 +80,7 @@ namespace SmartAutoTrader.API.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastInteractionAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SessionContext = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SessionContext = table.Column<string>(type: "nvarchar(max)", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -102,7 +102,7 @@ namespace SmartAutoTrader.API.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     PreferenceType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Value = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Weight = table.Column<float>(type: "real", nullable: false)
+                    Weight = table.Column<float>(type: "real", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -120,7 +120,7 @@ namespace SmartAutoTrader.API.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false)
+                    RoleId = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -148,7 +148,7 @@ namespace SmartAutoTrader.API.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     VehicleId = table.Column<int>(type: "int", nullable: false),
                     ViewDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ViewDurationSeconds = table.Column<int>(type: "int", nullable: false)
+                    ViewDurationSeconds = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -180,7 +180,7 @@ namespace SmartAutoTrader.API.Migrations
                     Response = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DateSent = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DateReplied = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -207,7 +207,7 @@ namespace SmartAutoTrader.API.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     VehicleId = table.Column<int>(type: "int", nullable: false),
-                    DateAdded = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    DateAdded = table.Column<DateTime>(type: "datetime2", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -233,7 +233,7 @@ namespace SmartAutoTrader.API.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    VehicleId = table.Column<int>(type: "int", nullable: false)
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -254,7 +254,7 @@ namespace SmartAutoTrader.API.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false),
-                    VehicleId = table.Column<int>(type: "int", nullable: false)
+                    VehicleId = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
@@ -277,7 +277,7 @@ namespace SmartAutoTrader.API.Migrations
                     UserMessage = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AIResponse = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ConversationSessionId = table.Column<int>(type: "int", nullable: true)
+                    ConversationSessionId = table.Column<int>(type: "int", nullable: true),
                 },
                 constraints: table =>
                 {
@@ -301,7 +301,7 @@ namespace SmartAutoTrader.API.Migrations
                 values: new object[,]
                 {
                     { 1, "Admin" },
-                    { 2, "User" }
+                    { 2, "User" },
                 });
 
             migrationBuilder.CreateIndex(
