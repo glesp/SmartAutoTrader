@@ -155,7 +155,9 @@ export const favoriteService = {
     return response.data;
   },
   checkFavorite: async (vehicleId: number) => {
-    const response = await api.get<boolean>(`/api/favorites/check/${vehicleId}`);
+    const response = await api.get<boolean>(
+      `/api/favorites/check/${vehicleId}`
+    );
     return response.data;
   },
   getFavoritesCount: async () => {
