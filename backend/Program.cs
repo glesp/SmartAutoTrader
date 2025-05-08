@@ -20,10 +20,9 @@ builder.Services.AddControllers();
 builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
 builder.Services.AddMemoryCache();
 
-// Configure SQLite
 builder.Services.AddDbContext<ApplicationDbContext>(
     options =>
-        options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure Authentication
 JwtSettingsValidator.ValidateJwtSettings(builder.Configuration);
@@ -66,20 +65,33 @@ builder.Services.AddControllers()
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         });
 
-// Configure CORS
-builder.Services.AddCors(
-    options =>
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        options.AddPolicy(
-            "AllowFrontend",
-            policy =>
-            {
-                _ = policy.WithOrigins("http://localhost:5173")
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
-            });
+        string? allowedOrigin = builder.Configuration["CorsOrigins"];
+
+        if (!string.IsNullOrWhiteSpace(allowedOrigin))
+        {
+            policy.WithOrigins(allowedOrigin)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+
+            Console.WriteLine($"CORS Policy 'AllowFrontend' configured for origin: {allowedOrigin}");
+        }
+        else
+        {
+            // Optional: Fallback for local development if the environment variable isn't set
+            policy.WithOrigins("http://localhost:5173")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+
+            Console.WriteLine("CORS Policy 'AllowFrontend' using fallback origin: http://localhost:5173");
+        }
     });
+});
 
 // Ensure Logs folder exists
 Directory.CreateDirectory("Logs");
