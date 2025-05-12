@@ -33,6 +33,6 @@ export default defineConfig({
         'src/contexts/index.ts',
         'src/components/chat/index.tsx',
       ],
-    }
+    },
   },
 });
