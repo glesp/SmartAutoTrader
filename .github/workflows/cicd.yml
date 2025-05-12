@@ -152,9 +152,11 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.API_URL }}
 
-      # - name: Run Frontend Tests
-      #   run: npm test # Assumes 'test' script exists in package.json
-      #   working-directory: ./frontend
+      - name: Run Frontend Tests
+        run: npm test
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: 'http://mocked-api-for-tests.com/api'
 
       - name: Check for Node vulnerabilities
         # Can remove '|| true' to fail build on vulnerabilities
