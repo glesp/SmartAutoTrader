@@ -1,16 +1,37 @@
 // frontend/src/components/layout/Header.test.tsx
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import Header from './Header'; // Adjust path if your Header.tsx is located elsewhere
-import { AuthContext, AuthContextType, User } from '../../contexts/AuthContext'; // Adjust path
-import { vi } from 'vitest';
+import Header from './Header';
+import { AuthContext, AuthContextType, User } from '../../contexts/AuthContext';
+import { vi, type Mock } from 'vitest'; // Import Mock type from Vitest
 import '@testing-library/jest-dom';
 
-const initialMockAuthContextValue: AuthContextType = {
+// Define UserRegistration based on its usage in AuthContext or related components
+interface UserRegistration {
+  username: string;
+  email: string;
+  password?: string; // Make optional or required based on actual usage
+  firstName: string;
+  lastName: string;
+}
+
+// Define a type for the mock context value that uses Vitest's Mock type
+interface MockedAuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  // Corrected: Provide the full function signature as a single type argument to Mock
+  login: Mock<(email: string, password: string) => Promise<void>>;
+  register: Mock<(userData: UserRegistration) => Promise<void>>;
+  logout: Mock<() => void>;
+}
+
+const initialMockAuthContextValue: MockedAuthContextType = {
   isAuthenticated: false,
   user: null,
   token: null,
-  loading: false, // Default to not loading, tests can override
+  loading: false,
   login: vi.fn().mockResolvedValue(undefined),
   register: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn(),
@@ -18,14 +39,18 @@ const initialMockAuthContextValue: AuthContextType = {
 
 describe('Header Component', () => {
   const renderHeaderWithAuth = (
-    authProviderValue: Partial<AuthContextType>
+    authProviderValue: Partial<AuthContextType> // The provider itself still expects AuthContextType compatible values
   ) => {
+    // MockedAuthContextType is assignable to AuthContextType because Mock functions are callable.
     const currentContextValue = {
       ...initialMockAuthContextValue,
       ...authProviderValue,
     };
     return render(
-      <AuthContext.Provider value={currentContextValue}>
+      // Provide the context value, which is compatible with AuthContextType
+      <AuthContext.Provider
+        value={currentContextValue as unknown as AuthContextType}
+      >
         <MemoryRouter>
           <Header />
         </MemoryRouter>
@@ -34,11 +59,13 @@ describe('Header Component', () => {
   };
 
   beforeEach(() => {
-    // Reset mock function call counts and ensure default context state for each test
+    // Reset properties of the global mock object
     initialMockAuthContextValue.isAuthenticated = false;
     initialMockAuthContextValue.user = null;
     initialMockAuthContextValue.token = null;
     initialMockAuthContextValue.loading = false;
+
+    // These calls are now valid because initialMockAuthContextValue's functions are typed as Mocks
     initialMockAuthContextValue.logout.mockClear();
     initialMockAuthContextValue.login.mockClear();
     initialMockAuthContextValue.register.mockClear();
