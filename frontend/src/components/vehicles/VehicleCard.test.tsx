@@ -26,9 +26,13 @@ describe('VehicleCard Component', () => {
     vehicleType: 'Hatchback',
     transmission: 'Manual',
     description: 'A sporty hatchback.',
-    images: [{ id: 1, imageUrl: 'civic.jpg', isPrimary: true }] as
-      | VehicleImage[]
-      | ReferenceWrapper<VehicleImage>,
+    images: [
+      {
+        id: 1,
+        imageUrl: 'http://mocked.api.base/api/civic.jpg',
+        isPrimary: true,
+      },
+    ] as VehicleImage[] | ReferenceWrapper<VehicleImage>,
   };
 
   const renderVehicleCardInRouter = (vehicle: Vehicle) => {
@@ -73,13 +77,22 @@ describe('VehicleCard Component', () => {
   test('handles missing primary image gracefully', () => {
     const vehicleNoPrimary: Vehicle = {
       ...mockVehicle,
-      images: [{ id: 2, imageUrl: 'other-civic.jpg', isPrimary: false }],
+      images: [
+        {
+          id: 2,
+          imageUrl: 'http://mocked.api.base/api/other-civic.jpg',
+          isPrimary: false,
+        },
+      ],
     };
     renderVehicleCardInRouter(vehicleNoPrimary);
-    // Update this assertion based on your component's actual fallback behavior
-    // For example, if it uses the first image anyway:
-    // const image = screen.getByRole('img', { name: `${mockVehicle.make} ${mockVehicle.model}` });
-    // expect(image).toHaveAttribute('src', 'http://mocked.api.base/api/other-civic.jpg');
+    const image = screen.getByRole('img', {
+      name: `${mockVehicle.make} ${mockVehicle.model}`,
+    });
+    expect(image).toHaveAttribute(
+      'src',
+      'http://mocked.api.base/api/other-civic.jpg'
+    );
   });
 
   test('handles empty images array gracefully', () => {
