@@ -2,6 +2,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { authService } from '../services/api';
 import { AuthContext, User, UserRegistration } from './AuthContext';
+import { storage } from '../utils/storage';
 
 // Define a custom interface for the JWT payload that includes potential role claims
 interface JwtUserPayload extends JwtPayload {
@@ -49,39 +50,34 @@ const decodeToken = (
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem('token')
-  );
+  const [token, setToken] = useState<string | null>(storage.getToken());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token exists in localStorage and validate it
+    // Check if token exists in storage and validate it
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      const storedToken = storage.getToken();
+      const storedUser = storage.getUser();
 
       if (storedToken && storedUser) {
         // Decode token to get role information
         const decodedToken = decodeToken(storedToken);
 
-        // Parse stored user
-        const parsedUser = JSON.parse(storedUser) as User;
-
         // Update user with roles from token if available
         if (decodedToken?.roles) {
-          parsedUser.roles = decodedToken.roles;
+          storedUser.roles = decodedToken.roles;
 
           // Also keep singular role property for backward compatibility
           if (decodedToken.roles.length > 0) {
-            parsedUser.role = decodedToken.roles[0];
+            storedUser.role = decodedToken.roles[0];
           }
 
           // Update stored user with roles
-          localStorage.setItem('user', JSON.stringify(parsedUser));
+          storage.saveUser(storedUser);
         }
 
         setToken(storedToken);
-        setUser(parsedUser);
+        setUser(storedUser);
       }
 
       setLoading(false);
@@ -108,8 +104,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(response.token);
       setUser(enhancedUser);
 
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(enhancedUser));
+      storage.saveToken(response.token);
+      storage.saveUser(enhancedUser);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -130,8 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    storage.clearAuthData();
   };
 
   return (

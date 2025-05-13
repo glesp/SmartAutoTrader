@@ -256,21 +256,28 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
   // Reset all filters
   const handleResetFilters = () => {
     onFilterChange({
-      make: undefined,
-      model: undefined,
+      // Use empty strings instead of undefined for select inputs to avoid MUI warnings
+      make: '',
+      model: '',
+      // The rest can remain as undefined
       minYear: undefined,
       maxYear: undefined,
       minPrice: undefined,
       maxPrice: undefined,
-      fuelType: undefined,
-      transmission: undefined,
-      vehicleType: undefined,
+      fuelType: '', // Also change to empty string
+      transmission: '', // Also change to empty string
+      vehicleType: '', // Also change to empty string
       minEngineSize: undefined,
       maxEngineSize: undefined,
       minHorsepower: undefined,
       maxHorsepower: undefined,
       sortBy: 'DateListed',
       ascending: false,
+      // Be sure to include these for test expectations
+      rejectedMakes: undefined,
+      rejectedFuelTypes: undefined,
+      rejectedVehicleTypes: undefined,
+      rejectedFeatures: undefined,
     });
   };
 
@@ -310,6 +317,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         <Select
           labelId="make-label"
           id="make"
+          data-testid="make-select"
           value={filters.make || ''}
           label="Make"
           onChange={(e) =>
@@ -339,6 +347,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         <Select
           labelId="model-label"
           id="model"
+          data-testid="model-select"
           value={filters.model || ''}
           label="Model"
           onChange={(e) =>
@@ -429,6 +438,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             <Select
               labelId="fuel-type-label"
               id="fuel-type"
+              data-testid="fuel-type-select"
               value={filters.fuelType || ''}
               label="Fuel Type"
               onChange={(e) =>
@@ -450,6 +460,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             <Select
               labelId="transmission-label"
               id="transmission"
+              data-testid="transmission-select"
               value={filters.transmission || ''}
               label="Transmission"
               onChange={(e) =>
@@ -471,6 +482,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             <Select
               labelId="vehicle-type-label"
               id="vehicle-type"
+              data-testid="vehicle-type-select"
               value={filters.vehicleType || ''}
               label="Vehicle Type"
               onChange={(e) =>
@@ -545,8 +557,10 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         </Typography>
         <FormControl fullWidth size="small">
           <Select
+            data-testid="sort-by-select"
             value={filters.sortBy}
             onChange={(e) => onFilterChange({ sortBy: e.target.value })}
+            aria-label="Sort By"
             endAdornment={
               <IconButton
                 size="small"

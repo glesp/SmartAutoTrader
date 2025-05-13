@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext, useCallback } from 'react';
-import axios from 'axios';
+// Removed: import axios from 'axios'; // No longer needed for direct calls
 import { AuthContext } from '../../contexts/AuthContext';
 import { Vehicle, RecommendationParameters } from '../../types/models';
 import Box from '@mui/material/Box';
@@ -23,7 +23,15 @@ import AddIcon from '@mui/icons-material/Add';
 import Zoom from '@mui/material/Zoom';
 import Fade from '@mui/material/Fade';
 
-// Type definitions
+import chatService from '../../services/chatService'; // Adjust path if necessary
+import {
+  ChatResponse as ChatServiceResponse, // Alias to avoid naming conflict if necessary
+  ConversationInfo as ServiceConversationInfo,
+  ChatHistoryItem as ServiceChatHistoryItem,
+  ConversationResponse as ServiceNewConversationResponse,
+} from '../../services/chatService'; // Adjust path and import types if they are exported from service
+
+// Type definitions (keeping component-specific types for clarity if they differ subtly)
 interface ChatInterfaceProps {
   onRecommendationsUpdated: (
     vehicles: Vehicle[],
@@ -43,14 +51,8 @@ interface Message {
   conversationId?: string;
 }
 
-interface ChatHistoryItem {
-  id: number;
-  userMessage: string;
-  aiResponse: string;
-  timestamp: string;
-  conversationId?: string;
-}
-
+// This DTO seems to be what the component expects the service to ultimately return or be mapped to for the AI's turn.
+// It aligns well with ChatServiceResponse.
 interface ChatResponseDTO {
   message: string;
   recommendedVehicles?: Vehicle[];
@@ -62,7 +64,8 @@ interface ChatResponseDTO {
 }
 
 interface Conversation {
-  id: number;
+  // Component's internal state for conversations
+  id: string; // Ensure ID is string for consistency if service returns number
   createdAt: string;
   lastInteractionAt: string;
   messageCount: number;
@@ -101,85 +104,81 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
   const [conversationsMenuAnchor, setConversationsMenuAnchor] =
     useState<null | HTMLElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { token } = useContext(AuthContext);
+  const { token } = useContext(AuthContext); // Token is used by the Axios interceptor in the chatService
 
-  // Suggested prompts
   const suggestedPrompts = [
     'I need an SUV under €30,000',
     'Show me electric cars with good range',
     'Family cars with low mileage',
   ];
 
-  // Load conversations on component mount - callback reference
   const loadConversations = useCallback(async () => {
+    if (!token) return; // Ensure token exists before calling service
     try {
-      const response = await axios.get('/api/chat/conversations', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Use chatService
+      const serviceConversations: ServiceConversationInfo[] =
+        await chatService.getConversations();
 
-      if (response.data) {
-        const conversationsData = Array.isArray(response.data)
-          ? response.data
-          : response.data.$values || [];
+      const conversationsData: Conversation[] = serviceConversations.map(
+        (sc) => ({
+          id: sc.id.toString(), // Assuming service ID is number, component uses string
+          createdAt: sc.createdAt,
+          lastInteractionAt: sc.lastInteractionAt,
+          messageCount: sc.messageCount,
+        })
+      );
 
-        setConversations(conversationsData);
+      setConversations(conversationsData);
 
-        // If we have conversations but none selected, select the most recent one
-        if (conversationsData.length > 0 && !currentConversationId) {
-          setCurrentConversationId(conversationsData[0].id.toString());
+      if (conversationsData.length > 0 && !currentConversationId) {
+        // Automatically select the most recent existing conversation
+        // Assuming serviceConversations are sorted most recent first or component sorts them
+        const sortedConversations = [...conversationsData].sort(
+          (a, b) =>
+            new Date(b.lastInteractionAt).getTime() -
+            new Date(a.lastInteractionAt).getTime()
+        );
+        if (sortedConversations.length > 0) {
+          setCurrentConversationId(sortedConversations[0].id);
         }
       }
     } catch (error) {
       console.error('Failed to load conversations:', error);
     }
-  }, [token, currentConversationId]);
+  }, [token, currentConversationId]); // currentConversationId dependency might be re-evaluated
 
-  // Load chat history for a specific conversation - callback reference
   const loadChatHistory = useCallback(
     async (conversationId: string) => {
+      if (!token || !conversationId) return;
       try {
-        const response = await axios.get(
-          `/api/chat/history?conversationId=${conversationId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+        // Use chatService
+        const historyData: ServiceChatHistoryItem[] =
+          await chatService.getChatHistory(conversationId);
 
-        if (response.data) {
-          const historyData = Array.isArray(response.data)
-            ? response.data
-            : response.data.$values || [];
-
-          const formattedHistory = historyData
-            .map((msg: ChatHistoryItem) => ({
-              id: msg.id,
+        const formattedHistory: Message[] = historyData
+          .flatMap((msg: ServiceChatHistoryItem) => [
+            // Use flatMap for cleaner structure
+            {
+              id: `user-${msg.id}`, // Ensure unique IDs
               content: msg.userMessage,
               sender: 'user' as const,
               timestamp: new Date(msg.timestamp),
               conversationId: msg.conversationId,
-            }))
-            .concat(
-              historyData.map((msg: ChatHistoryItem) => ({
-                id: `ai-${msg.id}`,
-                content: msg.aiResponse,
-                sender: 'ai' as const,
-                timestamp: new Date(msg.timestamp),
-                conversationId: msg.conversationId,
-              }))
-            )
-            .sort(
-              (a: Message, b: Message) =>
-                a.timestamp.getTime() - b.timestamp.getTime()
-            );
-
-          setMessages(formattedHistory);
-        }
+            },
+            {
+              id: `ai-${msg.id}`, // Ensure unique IDs
+              content: msg.aiResponse,
+              sender: 'ai' as const,
+              timestamp: new Date(msg.timestamp), // AI response might have slightly different timestamp in reality
+              conversationId: msg.conversationId,
+              // Potentially map other fields from aiResponse if they exist in ServiceChatHistoryItem
+            },
+          ])
+          .sort(
+            (a: Message, b: Message) =>
+              a.timestamp.getTime() - b.timestamp.getTime()
+          );
+        setMessages(formattedHistory);
       } catch (error) {
         console.error('Failed to load chat history:', error);
       }
@@ -187,86 +186,70 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     [token]
   );
 
-  // Use the callback references in useEffect hooks
   useEffect(() => {
     if (token) {
       loadConversations();
     }
-  }, [token, loadConversations]);
+  }, [token, loadConversations]); // loadConversations is stable due to useCallback
 
   useEffect(() => {
     if (token && currentConversationId) {
       loadChatHistory(currentConversationId);
     } else {
-      // Clear messages if no conversation is selected
       setMessages([]);
     }
-  }, [token, currentConversationId, loadChatHistory]);
+  }, [token, currentConversationId, loadChatHistory]); // loadChatHistory is stable
 
-  // Scroll to bottom of messages when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Start a new conversation
-  const startNewConversation = async () => {
+  const startNewConversationLocal = async () => {
+    // Renamed to avoid conflict if service has same name
+    if (!token) return;
     try {
-      const response = await axios.post(
-        '/api/chat/conversation/new',
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // Use chatService
+      const responseData: ServiceNewConversationResponse =
+        await chatService.startNewConversation();
 
-      if (response.data?.conversationId && response.data?.welcomeMessage) {
-        const newConversationId = response.data.conversationId.toString();
-        const welcomeMessageContent = response.data.welcomeMessage;
+      if (responseData?.conversationId) {
+        // Assuming welcome message is part of the first AI response or handled differently
+        const newConversationId = responseData.conversationId.toString();
 
-        setMessages([]); // Clear current messages
-
-        const welcomeAiMessage: Message = {
-          id: `welcome-${newConversationId}`,
-          content: welcomeMessageContent,
-          sender: 'ai',
-          timestamp: new Date(),
-          conversationId: newConversationId,
-        };
-
-        setMessages([welcomeAiMessage]); // Set the welcome message
+        setMessages([]);
         setCurrentConversationId(newConversationId);
 
-        // Reset any ongoing clarification
-        setClarificationState({
-          awaiting: false,
-          originalUserInput: '',
-        });
-        setInput(''); // Clear the input field
+        // Optionally, add a welcome message from the service if provided
+        if (responseData.welcomeMessage) {
+          const welcomeAiMessage: Message = {
+            id: `welcome-${newConversationId}`,
+            content: responseData.welcomeMessage,
+            sender: 'ai',
+            timestamp: new Date(),
+            conversationId: newConversationId,
+          };
+          setMessages([welcomeAiMessage]);
+        }
 
-        // Refresh the conversations list
-        loadConversations();
+        setClarificationState({ awaiting: false, originalUserInput: '' });
+        setInput('');
+        loadConversations(); // Refresh the conversations list
       }
     } catch (error) {
       console.error('Failed to start new conversation:', error);
     }
   };
 
-  // Open conversations menu
   const handleConversationsMenuOpen = (
     event: React.MouseEvent<HTMLElement>
   ) => {
     setConversationsMenuAnchor(event.currentTarget);
   };
 
-  // Close conversations menu
   const handleConversationsMenuClose = () => {
     setConversationsMenuAnchor(null);
   };
 
-  // Select a conversation
   const selectConversation = (conversationId: string) => {
     setCurrentConversationId(conversationId);
     handleConversationsMenuClose();
@@ -277,49 +260,53 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     promptText: string | null = null
   ) => {
     if (e) e.preventDefault();
+    if (!token) return;
 
     const messageText = promptText || input;
     if (!messageText.trim()) return;
 
-    // Track the conversation ID that will be used for this specific message
-    // This ensures we use the most up-to-date ID even with rapid message sending
     let messageConversationId = currentConversationId;
 
-    // If no conversation is selected, start a new one first
     if (!messageConversationId) {
       try {
-        const response = await axios.post(
-          '/api/chat/conversation/new',
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (response.data?.conversationId) {
-          // Store the ID both in component state and in our local variable
-          const newConversationId = response.data.conversationId.toString();
+        // Use chatService
+        const newConvoResponse: ServiceNewConversationResponse =
+          await chatService.startNewConversation();
+        if (newConvoResponse?.conversationId) {
+          const newConversationId = newConvoResponse.conversationId.toString();
           setCurrentConversationId(newConversationId);
           messageConversationId = newConversationId;
+          // If there's a welcome message, display it
+          if (newConvoResponse.welcomeMessage) {
+            const welcomeAiMessage: Message = {
+              id: `welcome-${newConversationId}`,
+              content: newConvoResponse.welcomeMessage,
+              sender: 'ai',
+              timestamp: new Date(),
+              conversationId: newConversationId,
+            };
+            setMessages([welcomeAiMessage]); // Start with welcome message
+          } else {
+            setMessages([]); // Clear messages for new conversation if no welcome message
+          }
+          loadConversations(); // Refresh list
         } else {
           console.error('Failed to get new conversation ID');
           return;
         }
       } catch (error) {
         console.error('Failed to start new conversation:', error);
+        setIsLoading(false); // Ensure loading is reset
         return;
       }
     }
 
     const userMessage: Message = {
-      id: Date.now(),
+      id: Date.now(), // Consider more robust ID generation (e.g., uuid)
       content: messageText,
       sender: 'user',
       timestamp: new Date(),
-      conversationId: messageConversationId, // Use our local tracking variable
+      conversationId: messageConversationId,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -327,117 +314,91 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
     setIsLoading(true);
 
     try {
-      // Prepare the message payload with conversation context
-      const payload = {
-        content: messageText,
-        originalUserInput: clarificationState.awaiting
-          ? clarificationState.originalUserInput
-          : undefined,
-        isClarification: clarificationState.awaiting,
-        isFollowUp: messages.length > 0,
-        conversationId: messageConversationId, // Use our local tracking variable
+      // Use chatService
+      // The parameters for chatService.sendMessage are:
+      // message, originalUserInput, isClarification, isFollowUp, conversationId
+      const serviceResponse: ChatServiceResponse =
+        await chatService.sendMessage(
+          messageText,
+          clarificationState.awaiting
+            ? clarificationState.originalUserInput
+            : undefined,
+          clarificationState.awaiting,
+          messages.length > 1, // isFollowUp if more than just the user message exists
+          messageConversationId
+        );
+
+      // Map serviceResponse to component's ChatResponseDTO expectations
+      const responseData: ChatResponseDTO = {
+        message: serviceResponse.message,
+        recommendedVehicles: serviceResponse.recommendedVehicles,
+        parameters: serviceResponse.parameters,
+        clarificationNeeded: serviceResponse.clarificationNeeded,
+        conversationId: serviceResponse.conversationId || messageConversationId,
+        // originalUserInput and matchedCategory might need to be part of ChatServiceResponse if they are expected
       };
 
-      // Debug conversationId tracking in POST request
-      console.log(
-        'Sending payload with conversationId:',
-        messageConversationId,
-        payload
-      );
+      const isConfused =
+        responseData.parameters?.intent === 'CONFUSED_FALLBACK';
+      const messageContent = isConfused
+        ? responseData.message
+        : responseData.message;
 
-      const response = await axios.post('/api/chat/message', payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      if (isConfused)
+        console.log('CONFUSED_FALLBACK detected, displaying fallback message.');
 
-      if (response.data) {
-        const responseData: ChatResponseDTO = response.data;
+      const aiMessage: Message = {
+        id: `ai-${Date.now()}`, // Consider more robust ID
+        content: messageContent,
+        sender: 'ai',
+        timestamp: new Date(),
+        vehicles: !isConfused ? responseData.recommendedVehicles : undefined,
+        parameters: !isConfused ? responseData.parameters : undefined,
+        clarificationNeeded: responseData.clarificationNeeded,
+        conversationId: responseData.conversationId || messageConversationId,
+      };
 
-        // Check if the backend signaled a confused state
-        const isConfused =
-          responseData.parameters?.intent === 'CONFUSED_FALLBACK'; // Adjust if DTO uses a different flag
+      setMessages((prev) => [...prev, aiMessage]);
 
-        // Use a specific fallback message if confused, otherwise use the normal message
-        const messageContent = isConfused
-          ? responseData.message // Should contain the fallback prompt
-          : responseData.message;
+      if (
+        responseData.conversationId &&
+        responseData.conversationId !== messageConversationId
+      ) {
+        setCurrentConversationId(responseData.conversationId);
+        if (messageConversationId) loadConversations(); // Refresh if ID changed from existing
+      }
 
-        // Log if confused state detected
-        if (isConfused) {
-          console.log(
-            'CONFUSED_FALLBACK detected, displaying fallback message.'
-          );
-        }
+      if (isConfused || !responseData.clarificationNeeded) {
+        setClarificationState({ awaiting: false, originalUserInput: '' });
+      } else {
+        setClarificationState({
+          awaiting: true,
+          originalUserInput: clarificationState.awaiting
+            ? clarificationState.originalUserInput
+            : messageText,
+        });
+      }
 
-        // Now create the aiMessage using messageContent
-        const aiMessage: Message = {
-          id: `ai-${Date.now()}`,
-          content: messageContent, // Use the potentially modified content
-          sender: 'ai',
-          timestamp: new Date(),
-          // Only include vehicles/params if NOT confused
-          vehicles: !isConfused ? responseData.recommendedVehicles : undefined,
-          parameters: !isConfused ? responseData.parameters : undefined,
-          clarificationNeeded: responseData.clarificationNeeded,
-          conversationId: responseData.conversationId || messageConversationId,
-        };
-
-        setMessages((prev) => [...prev, aiMessage]);
-
-        // If we got a new conversation ID, update it
-        if (
-          responseData.conversationId &&
-          responseData.conversationId !== messageConversationId
-        ) {
-          setCurrentConversationId(responseData.conversationId);
-          loadConversations(); // Refresh the list
-        }
-
-        // Reset clarification state if confused or if clarification is no longer needed
-        if (isConfused || !responseData.clarificationNeeded) {
-          setClarificationState({ awaiting: false, originalUserInput: '' });
-        } else {
-          // Existing logic to set clarificationState if responseData.clarificationNeeded is true
-          setClarificationState({
-            awaiting: true,
-            originalUserInput: clarificationState.awaiting
-              ? clarificationState.originalUserInput
-              : messageText,
-          });
-        }
-
-        // Prevent recommendations update if confused
-        if (
-          !isConfused &&
-          onRecommendationsUpdated &&
-          responseData.recommendedVehicles
-        ) {
-          // Show updating indicator
-          setUpdatingRecommendations(true);
-
-          // Add this console log to inspect parameters
-          console.log(
-            'Parameters received from backend before calling onRecommendationsUpdated:',
-            JSON.stringify(responseData.parameters, null, 2)
-          );
-
-          // Update recommendations
-          onRecommendationsUpdated(
-            responseData.recommendedVehicles,
-            responseData.parameters || {}
-          );
-
-          // Hide indicator after a delay
-          setTimeout(() => {
-            setUpdatingRecommendations(false);
-          }, 1500);
-        }
+      if (
+        !isConfused &&
+        onRecommendationsUpdated &&
+        responseData.recommendedVehicles
+      ) {
+        setUpdatingRecommendations(true);
+        console.log(
+          'Parameters received from backend before calling onRecommendationsUpdated:',
+          JSON.stringify(responseData.parameters, null, 2)
+        );
+        onRecommendationsUpdated(
+          responseData.recommendedVehicles,
+          responseData.parameters || {}
+        );
+        setTimeout(() => {
+          setUpdatingRecommendations(false);
+        }, 1500);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         content:
@@ -446,25 +407,19 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         timestamp: new Date(),
         conversationId: messageConversationId,
       };
-
       setMessages((prev) => [...prev, errorMessage]);
-
-      // Reset clarification state on error
-      setClarificationState({
-        awaiting: false,
-        originalUserInput: '',
-      });
+      setClarificationState({ awaiting: false, originalUserInput: '' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle clicking a suggested prompt
   const handleSuggestedPrompt = (prompt: string) => {
-    setInput(prompt);
+    setInput(prompt); // Set input for visual feedback, though promptText is used
     handleSendMessage(null, prompt);
   };
 
+  // JSX remains largely the same, only the data fetching logic changes
   return (
     <Box
       sx={{
@@ -540,7 +495,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             size="small"
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={startNewConversation}
+            onClick={startNewConversationLocal} // Use the renamed local function
             sx={{
               fontSize: '0.75rem',
               textTransform: 'none',
@@ -591,7 +546,9 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                 />
               </MenuItem>
             )}
-            <MenuItem onClick={startNewConversation}>
+            <MenuItem onClick={startNewConversationLocal}>
+              {' '}
+              {/* Use the renamed local function */}
               <ListItemIcon>
                 <AddIcon fontSize="small" />
               </ListItemIcon>
@@ -612,9 +569,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           display: 'flex',
           flexDirection: 'column',
           gap: 1.5,
-          '&::-webkit-scrollbar': {
-            width: '6px',
-          },
+          '&::-webkit-scrollbar': { width: '6px' },
           '&::-webkit-scrollbar-track': {
             backgroundColor: '#f1f1f1',
             borderRadius: '10px',
@@ -623,9 +578,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             backgroundColor: '#c1c1c1',
             borderRadius: '10px',
           },
-          '&::-webkit-scrollbar-thumb:hover': {
-            backgroundColor: '#a8a8a8',
-          },
+          '&::-webkit-scrollbar-thumb:hover': { backgroundColor: '#a8a8a8' },
         }}
       >
         {messages.length === 0 && (
@@ -654,18 +607,12 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                 ? 'This conversation is empty. Start chatting!'
                 : 'Welcome to Smart Auto Assistant!'}
             </Typography>
-
             <Typography
               variant="caption"
-              sx={{
-                mb: 2,
-                color: 'text.primary', // Slightly darker than text.secondary for better contrast
-                fontSize: '0.8rem', // Slightly larger caption text
-              }}
+              sx={{ mb: 2, color: 'text.primary', fontSize: '0.8rem' }}
             >
               Ask me questions or try these:
             </Typography>
-
             <Box
               sx={{
                 display: 'flex',
@@ -715,7 +662,6 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                 >
                   {message.content}
                 </Typography>
-
                 {message.vehicles && message.vehicles.length > 0 && (
                   <Box sx={{ mt: 1, display: 'flex', alignItems: 'center' }}>
                     <Typography
@@ -741,84 +687,6 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                     </Tooltip>
                   </Box>
                 )}
-
-                {/* Commented out section for displaying vehicles in chat
-                {message.vehicles && message.vehicles.length > 0 && (
-                  <Box sx={{ 
-                    mt: 2, 
-                    display: 'flex', 
-                    flexWrap: 'wrap', 
-                    gap: 1,
-                    maxWidth: '100%',
-                    overflowX: 'auto'
-                  }}>
-                    {message.vehicles.slice(0, 5).map((vehicle) => {
-                      const primaryImage = Array.isArray(vehicle.images)
-                        ? vehicle.images.find((img) => img.isPrimary)
-                        : vehicle.images?.$values?.find((img) => img.isPrimary);
-                      
-                      return (
-                        <Box
-                          key={vehicle.id}
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            borderRadius: 1,
-                            overflow: 'hidden',
-                            border: '1px solid #eee',
-                            width: 80,
-                          }}
-                        >
-                          {primaryImage ? (
-                            <Box
-                              component="img"
-                              src={primaryImage.imageUrl}
-                              alt={`${vehicle.make} ${vehicle.model}`}
-                              sx={{
-                                width: '100%',
-                                height: 50,
-                                objectFit: 'cover',
-                              }}
-                            />
-                          ) : (
-                            <Box
-                              sx={{
-                                width: '100%',
-                                height: 50,
-                                bgcolor: '#f0f0f0',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                sx={{ color: '#999' }}
-                              >
-                                No image
-                              </Typography>
-                            </Box>
-                          )}
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontSize: '0.7rem',
-                              p: 0.5,
-                              textAlign: 'center',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            {vehicle.make} {vehicle.model}
-                          </Typography>
-                        </Box>
-                      )
-                    })}
-                  </Box>
-                )}
-                */}
-
                 {message.clarificationNeeded && message.sender === 'ai' && (
                   <>
                     {message.parameters?.matchedCategory && (
@@ -844,7 +712,6 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                     </Typography>
                   </>
                 )}
-
                 <Typography
                   variant="caption"
                   sx={{
@@ -891,18 +758,13 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             </Paper>
           </Box>
         )}
-
         <div ref={messagesEndRef} />
       </Box>
 
       <Box
         component="form"
         onSubmit={handleSendMessage}
-        sx={{
-          p: 1.5,
-          borderTop: 1,
-          borderColor: 'divider',
-        }}
+        sx={{ p: 1.5, borderTop: 1, borderColor: 'divider' }}
       >
         <TextField
           fullWidth
@@ -924,6 +786,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
                   color="primary"
                   disabled={isLoading || !input.trim()}
                   type="submit"
+                  aria-label="Send message" // Add aria-label here
                 >
                   <SendIcon />
                 </IconButton>
@@ -932,15 +795,10 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
           }}
           sx={{ mb: clarificationState.awaiting ? 0.5 : 0 }}
         />
-
         {clarificationState.awaiting && (
           <Typography
             variant="caption"
-            sx={{
-              display: 'block',
-              color: 'primary.main',
-              mt: 0.5,
-            }}
+            sx={{ display: 'block', color: 'primary.main', mt: 0.5 }}
           >
             I'm asking follow-up questions to better understand your needs
           </Typography>

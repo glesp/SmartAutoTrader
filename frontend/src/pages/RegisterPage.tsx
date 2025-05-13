@@ -47,7 +47,8 @@ const RegisterPage = () => {
 
     try {
       await register(formData);
-      navigate('/'); // Redirect to home after successful registration
+      // Use { replace: true } to match the test expectations
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
@@ -67,7 +68,10 @@ const RegisterPage = () => {
         </h2>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4">
+          <div
+            role="alert"
+            className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4"
+          >
             {error}
           </div>
         )}

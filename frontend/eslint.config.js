@@ -6,39 +6,100 @@ import tseslint from 'typescript-eslint';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 
 export default tseslint.config(
-  // --- Global Ignores ---
-  { ignores: ['dist'] }, // Ignore build directory
+  {
+    ignores: [
+      'node_modules/**/*',
+      'dist/**/*',
+      'build/**/*',
+      '.vite/**/*',
+      '.vitest_cache/**/*',
+      'coverage/**/*',
+      '*.log',
+    ],
+  },
 
-  // --- Shared Configurations  ---
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  eslintPluginPrettierRecommended, // ** Prettier integration (Disables conflicting ESLint style rules & enables Prettier plugin) **
+  eslintPluginPrettierRecommended,
 
-  // --- Configuration Specific to TS/TSX files ---
   {
-    files: ['**/*.{ts,tsx}'], // Target TS and TSX files
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser, // Set browser environment globals
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        project: './tsconfig.app.json', // Changed to tsconfig.app.json
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+      },
     },
     plugins: {
-      // Enable specific plugins
+      '@typescript-eslint': tseslint.plugin,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
-      // 'prettier' plugin is automatically enabled by eslintPluginPrettierRecommended
     },
     rules: {
-      // --- React Hooks Rules ---
-      ...reactHooks.configs.recommended.rules, // Apply recommended React Hooks rules
-
-      // --- React Refresh Rule ---
+      ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
+      'react/prop-types': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-expressions': 'warn',
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+  },
 
-      'react/prop-types': 'off', // Turns off prop-types rule (common in TypeScript projects)
-      '@typescript-eslint/no-unused-vars': 'warn', // Warns about unused variables (helps clean up code)
+  {
+    files: ['src/**/*.test.{ts,tsx}', 'src/**/*.spec.{ts,tsx}'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2020,
+        sourceType: 'module',
+        project: './tsconfig.app.json', // Changed to tsconfig.app.json for tests too
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.es2021,
+        ...globals.vitest,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
+
+  {
+    files: ['*.config.{js,cjs,mjs,ts}', 'vite.config.{js,ts}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-var-requires': 'off',
     },
   }
 );

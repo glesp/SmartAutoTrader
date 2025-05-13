@@ -34,5 +34,9 @@ export default defineConfig({
         'src/components/chat/index.tsx',
       ],
     },
+    reporters: ['default', 'junit'], // Keep default console output AND generate JUnit XML
+    outputFile: {
+      junit: './vitest-report/results.xml', // Path where the JUnit report will be saved
+    },
   },
 });
