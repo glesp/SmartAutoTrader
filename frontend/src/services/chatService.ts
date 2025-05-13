@@ -47,7 +47,7 @@ export const chatService = {
       conversationId,
     };
     // Corrected URL for sending a message
-    const response = await api.post('/api/chat/send', payload);
+    const response = await api.post('/api/chat/message', payload);
     return response.data;
   },
 
@@ -68,7 +68,7 @@ export const chatService = {
 
   startNewConversation: async (): Promise<ConversationResponse> => {
     // Corrected URL for starting a new conversation
-    const response = await api.post('/api/chat/start', {});
+    const response = await api.post('/api/chat/conversation/new', {});
     return response.data;
   },
 
