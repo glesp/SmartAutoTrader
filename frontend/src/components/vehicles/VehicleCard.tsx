@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { VehicleProps } from '../../types/models';
-import API_URL from '../../services/api';
 import Card from '@mui/material/Card';
 
 // Define image type to avoid type errors
@@ -39,14 +38,19 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
   // Get primary image URL
   const getImageUrl = () => {
     const images = extractArray<VehicleImage>(vehicle.images);
-    if (!images || images.length === 0) return '/images/placeholder.jpg';
 
-    const primary = images.find((img) => img.isPrimary) || images[0];
-    const path = primary.imageUrl;
+    if (!images || images.length === 0) {
+      return '/images/placeholder.jpg'; // Local frontend placeholder
+    }
 
-    return path
-      ? `${API_URL}/${path.replace(/^\/+/, '')}`
-      : '/images/placeholder.jpg';
+    const primaryImage = images.find((img) => img.isPrimary);
+    const imageToUse = primaryImage || images[0]; // Fallback to the first image
+
+    if (imageToUse && imageToUse.imageUrl) {
+      return imageToUse.imageUrl; // This is now the full public URL
+    }
+
+    return '/images/placeholder.jpg'; // Fallback placeholder if no valid URL found
   };
 
   return (

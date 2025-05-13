@@ -1,19 +1,39 @@
 namespace SmartAutoTrader.API.Controllers
 {
+    using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.EntityFrameworkCore;
+    using Microsoft.Extensions.Logging;
     using SmartAutoTrader.API.Data;
     using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
+    using SmartAutoTrader.API.Services;
 
     [Route("api/[controller]")]
     [ApiController]
-    public class VehiclesController(ApplicationDbContext context) : ControllerBase
+    public class VehiclesController : ControllerBase
     {
-        private readonly ApplicationDbContext context = context;
+        private readonly ApplicationDbContext _context;
+        private readonly IBlobStorageService _blobStorageService;
+        private readonly ILogger<VehiclesController> _logger;
+
+        public VehiclesController(
+            ApplicationDbContext context,
+            IBlobStorageService blobStorageService,
+            ILogger<VehiclesController> logger)
+        {
+            this._context = context;
+            this._blobStorageService = blobStorageService;
+            this._logger = logger;
+        }
 
         // GET: api/Vehicles
         [HttpGet]
@@ -38,7 +58,7 @@ namespace SmartAutoTrader.API.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
-            IQueryable<Vehicle> query = this.context.Vehicles
+            IQueryable<Vehicle> query = this._context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .Where(v => v.Status == VehicleStatus.Available);
@@ -150,7 +170,7 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
-            Vehicle? vehicle = await this.context.Vehicles
+            Vehicle? vehicle = await this._context.Vehicles
                 .Include(v => v.Images)
                 .Include(v => v.Features)
                 .FirstOrDefaultAsync(v => v.Id == id);
@@ -177,8 +197,8 @@ namespace SmartAutoTrader.API.Controllers
                     ViewDurationSeconds = 0,
                 };
 
-                _ = this.context.BrowsingHistory.Add(history);
-                _ = await this.context.SaveChangesAsync();
+                _ = this._context.BrowsingHistory.Add(history);
+                _ = await this._context.SaveChangesAsync();
             }
 
             return vehicle;
@@ -194,11 +214,11 @@ namespace SmartAutoTrader.API.Controllers
                 return this.BadRequest();
             }
 
-            this.context.Entry(vehicle).State = EntityState.Modified;
+            this._context.Entry(vehicle).State = EntityState.Modified;
 
             try
             {
-                _ = await this.context.SaveChangesAsync();
+                _ = await this._context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -213,38 +233,120 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
+        [HttpPost("{vehicleId}/images")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UploadVehicleImage(int vehicleId, IFormFile imageFile)
+        {
+            this._logger.LogInformation("Attempting to upload image for vehicle ID: {VehicleId}", vehicleId);
+
+            // Validate imageFile
+            if (imageFile == null || imageFile.Length == 0)
+            {
+                this._logger.LogWarning("Image file is null or empty for vehicle ID: {VehicleId}", vehicleId);
+                return this.BadRequest("Image file is required.");
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+            var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                this._logger.LogWarning("Invalid image file extension '{Extension}' for vehicle ID: {VehicleId}", extension, vehicleId);
+                return this.BadRequest("Invalid file type. Only .jpg, .jpeg, .png are allowed.");
+            }
+
+            long maxFileSize = 5 * 1024 * 1024; // 5MB
+            if (imageFile.Length > maxFileSize)
+            {
+                this._logger.LogWarning("Image file size {FileSize} exceeds maximum of {MaxFileSize} for vehicle ID: {VehicleId}", imageFile.Length, maxFileSize, vehicleId);
+                return this.BadRequest($"File size exceeds the limit of {maxFileSize / (1024 * 1024)}MB.");
+            }
+
+            try
+            {
+                var vehicle = await this._context.Vehicles
+                    .Include(v => v.Images)
+                    .FirstOrDefaultAsync(v => v.Id == vehicleId);
+
+                if (vehicle == null)
+                {
+                    this._logger.LogWarning("Vehicle not found with ID: {VehicleId} for image upload", vehicleId);
+                    return this.NotFound($"Vehicle with ID {vehicleId} not found.");
+                }
+
+                var blobName = $"vehicles/{vehicleId}/{Guid.NewGuid()}{extension}";
+                string imageUrl;
+
+                await using (var stream = imageFile.OpenReadStream())
+                {
+                    imageUrl = await this._blobStorageService.UploadFileToBlobAsync(blobName, imageFile.ContentType, stream);
+                }
+
+                this._logger.LogInformation("Image uploaded to blob storage for vehicle ID: {VehicleId}. URL: {ImageUrl}", vehicleId, imageUrl);
+
+                // Database logic
+                var existingPrimaryImage = vehicle.Images?.FirstOrDefault(img => img.IsPrimary);
+                if (existingPrimaryImage != null)
+                {
+                    existingPrimaryImage.IsPrimary = false;
+                }
+
+                var newVehicleImage = new VehicleImage
+                {
+                    ImageUrl = imageUrl,
+                    IsPrimary = true,
+                    VehicleId = vehicleId,
+                };
+
+                this._context.VehicleImages.Add(newVehicleImage);
+                await this._context.SaveChangesAsync();
+
+                this._logger.LogInformation("New vehicle image record saved to database for vehicle ID: {VehicleId}. Image ID: {ImageId}", vehicleId, newVehicleImage.Id);
+
+                return this.Ok(new
+                {
+                    vehicleId,
+                    imageId = newVehicleImage.Id,
+                    imageUrl = newVehicleImage.ImageUrl,
+                    isPrimary = newVehicleImage.IsPrimary,
+                });
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, "Error uploading image for vehicle ID: {VehicleId}", vehicleId);
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while uploading the image.");
+            }
+        }
+
         // DELETE: api/Vehicles/5
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteVehicle(int id)
         {
-            Vehicle? vehicle = await this.context.Vehicles.FindAsync(id);
+            Vehicle? vehicle = await this._context.Vehicles.FindAsync(id);
             if (vehicle == null)
             {
                 return this.NotFound();
             }
 
-            _ = this.context.Vehicles.Remove(vehicle);
-            _ = await this.context.SaveChangesAsync();
+            _ = this._context.Vehicles.Remove(vehicle);
+            _ = await this._context.SaveChangesAsync();
 
             return this.NoContent();
         }
 
         private bool VehicleExists(int id)
         {
-            return this.context.Vehicles.Any(e => e.Id == id);
+            return this._context.Vehicles.Any(e => e.Id == id);
         }
 
         [HttpGet("available-makes")]
         public IActionResult GetAvailableMakes()
         {
-            List<string> makes =
-            [
-                .. this.context.Vehicles
-                    .Select(v => v.Make)
-                    .Distinct()
-                    .OrderBy(m => m)
-            ];
+            List<string> makes = this._context.Vehicles
+                .Select(v => v.Make)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
 
             return this.Ok(makes);
         }
@@ -252,14 +354,12 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("available-models")]
         public IActionResult GetAvailableModels([FromQuery] string make)
         {
-            List<string> models =
-            [
-                .. this.context.Vehicles
-                    .Where(v => v.Make == make)
-                    .Select(v => v.Model)
-                    .Distinct()
-                    .OrderBy(m => m)
-            ];
+            List<string> models = this._context.Vehicles
+                .Where(v => v.Make == make)
+                .Select(v => v.Model)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToList();
 
             return this.Ok(models);
         }
@@ -267,8 +367,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("year-range")]
         public IActionResult GetYearRange()
         {
-            int minYear = this.context.Vehicles.Min(v => v.Year);
-            int maxYear = this.context.Vehicles.Max(v => v.Year);
+            if (!this._context.Vehicles.Any())
+            {
+                return this.Ok(new { min = 0, max = 0 });
+            }
+
+            int minYear = this._context.Vehicles.Min(v => v.Year);
+            int maxYear = this._context.Vehicles.Max(v => v.Year);
 
             return this.Ok(new { min = minYear, max = maxYear });
         }
@@ -276,8 +381,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("engine-size-range")]
         public IActionResult GetEngineSizeRange()
         {
-            double minEngineSize = this.context.Vehicles.Min(v => v.EngineSize);
-            double maxEngineSize = this.context.Vehicles.Max(v => v.EngineSize);
+            if (!this._context.Vehicles.Any())
+            {
+                return this.Ok(new { min = 0.0, max = 0.0 });
+            }
+
+            double minEngineSize = this._context.Vehicles.Min(v => v.EngineSize);
+            double maxEngineSize = this._context.Vehicles.Max(v => v.EngineSize);
 
             return this.Ok(new { min = minEngineSize, max = maxEngineSize });
         }
@@ -285,8 +395,13 @@ namespace SmartAutoTrader.API.Controllers
         [HttpGet("horsepower-range")]
         public IActionResult GetHorsepowerRange()
         {
-            int minHorsepower = this.context.Vehicles.Min(v => v.HorsePower);
-            int maxHorsepower = this.context.Vehicles.Max(v => v.HorsePower);
+            if (!this._context.Vehicles.Any())
+            {
+                return this.Ok(new { min = 0, max = 0 });
+            }
+
+            int minHorsepower = this._context.Vehicles.Min(v => v.HorsePower);
+            int maxHorsepower = this._context.Vehicles.Max(v => v.HorsePower);
 
             return this.Ok(new { min = minHorsepower, max = maxHorsepower });
         }

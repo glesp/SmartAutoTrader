@@ -2,7 +2,6 @@ import { useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { Vehicle } from '../../types/models.ts';
 import { VehicleRecommendationsProps } from '../../types/models.ts';
-import API_URL from '../../services/api';
 import {
   Box,
   Typography,
@@ -18,7 +17,7 @@ import { Link } from 'react-router-dom';
 const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
   if (!data) return [];
   if (Array.isArray(data)) return data;
-  if (data && '$values' in data) return data.$values;
+  if (data && '$values' in data) return (data as { $values: T[] }).$values;
   return [];
 };
 
@@ -36,7 +35,7 @@ const VehicleRecommendations = ({
 
     // If it has $values property
     if (recommendedVehicles && '$values' in recommendedVehicles) {
-      return recommendedVehicles.$values;
+      return (recommendedVehicles as { $values: Vehicle[] }).$values;
     }
 
     return [];
@@ -47,17 +46,21 @@ const VehicleRecommendations = ({
 
   // Helper function to get primary image URL or fallback
   const getImageUrl = (vehicle: Vehicle) => {
-    const images = extractArray(vehicle.images);
-    if (images.length === 0) return '/images/placeholder.jpg';
+    const images = extractArray<{ imageUrl: string; isPrimary: boolean }>(
+      vehicle.images
+    ); // Ensure VehicleImage type if defined elsewhere
+    if (!images || images.length === 0) {
+      return '/images/placeholder.jpg'; // Local frontend placeholder
+    }
 
-    // Find primary image
     const primaryImage = images.find((img) => img.isPrimary);
-    const path = primaryImage?.imageUrl || images[0]?.imageUrl;
+    const imageToUse = primaryImage || images[0]; // Fallback to the first image
 
-    // Use API_URL instead of hardcoded URL
-    return path
-      ? `${API_URL}/${path.replace(/^\/+/, '')}`
-      : '/images/placeholder.jpg';
+    if (imageToUse && imageToUse.imageUrl) {
+      return imageToUse.imageUrl; // This is now the full public URL
+    }
+
+    return '/images/placeholder.jpg'; // Fallback placeholder if no valid URL found
   };
 
   // Map fuel type numbers to strings

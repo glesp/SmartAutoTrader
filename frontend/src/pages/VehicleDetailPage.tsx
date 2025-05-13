@@ -3,7 +3,6 @@ import { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { vehicleService, favoriteService } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
-import API_URL from '../services/api';
 // Add Material-UI imports
 import {
   Box,
@@ -151,17 +150,19 @@ const VehicleDetailPage = () => {
     } else if (
       typeof vehicle.images === 'object' &&
       vehicle.images !== null &&
-      '$values' in vehicle.images
+      '$values' in vehicle.images &&
+      Array.isArray((vehicle.images as ReferenceWrapper).$values)
     ) {
-      const imagesWithValues = vehicle.images as { $values: VehicleImage[] };
-      return imagesWithValues.$values;
+      return (vehicle.images as ReferenceWrapper).$values;
     }
     return [];
   };
 
   const getImageUrl = (image: VehicleImage | undefined) => {
-    if (!image || !image.imageUrl) return '/images/placeholder.jpg';
-    return `${API_URL}/${image.imageUrl.replace(/^\/+/, '')}`;
+    if (!image || !image.imageUrl) {
+      return '/images/placeholder.jpg'; // Local frontend placeholder
+    }
+    return image.imageUrl; // This is now the full public URL
   };
 
   if (loading) {
