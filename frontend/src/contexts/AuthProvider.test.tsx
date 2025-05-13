@@ -16,7 +16,7 @@ import { useContext } from 'react';
 // Import modules that will be mocked to access their mock types
 import { authService } from '../services/api';
 import { storage } from '../utils/storage';
-import { tokenUtils } from '../utils/tokenUtils';
+import { decodeTokenAndExtractRoles } from '../utils/tokenUtils'; // rename import
 
 // Mock the API service
 vi.mock('../services/api', () => ({
@@ -50,9 +50,7 @@ vi.mock('jwt-decode', () => ({
 
 // Mock tokenUtils
 vi.mock('../utils/tokenUtils', () => ({
-  tokenUtils: {
-    decodeTokenAndExtractRoles: vi.fn(),
-  },
+  decodeTokenAndExtractRoles: vi.fn(),
 }));
 
 const TestConsumer = () => {
@@ -116,15 +114,6 @@ describe('AuthProvider', () => {
     phoneNumber: '0123456789',
   };
 
-  const mockDecodedTokenPayload = {
-    exp: Date.now() / 1000 + 3600,
-    nameid: mockUser.id.toString(),
-    unique_name: mockUser.username,
-    email: mockUser.email,
-    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role':
-      mockUser.roles,
-  };
-
   beforeEach(() => {
     localStorage.clear();
     // Correct way to clear and reset the mocked functions:
@@ -138,7 +127,7 @@ describe('AuthProvider', () => {
     (storage.saveToken as Mock).mockReset();
     (storage.saveUser as Mock).mockReset();
     (storage.clearAuthData as Mock).mockReset();
-    (tokenUtils.decodeTokenAndExtractRoles as Mock).mockReset();
+    (decodeTokenAndExtractRoles as Mock).mockReset();
   });
 
   afterEach(() => {
@@ -179,7 +168,7 @@ describe('AuthProvider', () => {
     });
 
     // Setup token decode mock for this specific test
-    (tokenUtils.decodeTokenAndExtractRoles as Mock).mockReturnValueOnce({
+    (decodeTokenAndExtractRoles as Mock).mockReturnValueOnce({
       nameid: '1',
       unique_name: 'testuser',
       email: 'test@example.com',
@@ -191,9 +180,6 @@ describe('AuthProvider', () => {
     const { result } = renderHook(() => useContext(AuthContext), {
       wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
     });
-
-    // Store the initial state to verify changes
-    const initialState = { ...result.current };
 
     // Call the login function inside act
     await act(async () => {
@@ -238,7 +224,9 @@ describe('AuthProvider', () => {
       try {
         fireEvent.click(loginButton);
         await waitFor(() => expect(authService.login).toHaveBeenCalled());
-      } catch (e) {}
+      } catch {
+        // Handle error if needed
+      }
     });
 
     expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
@@ -276,7 +264,7 @@ describe('AuthProvider', () => {
     });
 
     // Mock the token decoding to return expected roles
-    (tokenUtils.decodeTokenAndExtractRoles as Mock).mockReturnValueOnce({
+    (decodeTokenAndExtractRoles as Mock).mockReturnValueOnce({
       nameid: '1',
       unique_name: 'testuser',
       email: 'test@example.com',
@@ -288,9 +276,6 @@ describe('AuthProvider', () => {
     const { result } = renderHook(() => useContext(AuthContext), {
       wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
     });
-
-    // Store the initial state for later comparison
-    const initialState = { ...result.current };
 
     // Use act to wrap the registration process that will trigger state updates
     await act(async () => {

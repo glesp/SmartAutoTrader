@@ -554,14 +554,6 @@ describe('LoginPage', () => {
       expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
     });
 
-    // Create the expected enhanced user object that should be saved to storage
-    // This includes the roles from the token decode
-    const expectedEnhancedUser = {
-      ...mockUser,
-      roles: ['User'],
-      role: 'User', // If AuthProvider adds a singular role property for backward compatibility
-    };
-
     // Verify token and user were saved with the enhanced user object
     expect(storage.saveToken).toHaveBeenCalledWith(mockToken);
     expect(storage.saveUser).toHaveBeenCalledWith(
