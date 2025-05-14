@@ -50,7 +50,7 @@ const decodeToken = (
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(storage.getToken());
+  const [token, setToken] = useState<string | null>(storage.getToken() || null); // Ensure null instead of undefined
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -108,6 +108,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       storage.saveUser(enhancedUser);
     } catch (error) {
       console.error('Login error:', error);
+      setUser(null); // Ensure user is null on failed login
+      setToken(null); // Ensure token is null on failed login
       throw error;
     }
   };
@@ -119,6 +121,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await login(userData.email, userData.password);
     } catch (error) {
       console.error('Registration error:', error);
+      setUser(null); // Ensure user is null on failed registration
+      setToken(null); // Ensure token is null on failed registration
       throw error;
     }
   };

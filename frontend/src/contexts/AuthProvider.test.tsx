@@ -210,26 +210,34 @@ describe('AuthProvider', () => {
     );
   });
 
-  test.skip('login: failed login does not update context and authProvider.login re-throws the error', async () => {
+  test('login: failed login does not update context and re-throws the error', async () => {
+    // Define the loginError and render hook to get AuthContext
     const loginError = new Error('Invalid credentials');
+
+    // Set up the mock to reject with our error
     (authService.login as Mock).mockRejectedValueOnce(loginError);
-    renderAuthProviderWithConsumer();
-    await waitFor(() =>
-      expect(screen.getByTestId('isLoading')).toHaveTextContent('false')
-    );
 
-    const loginButton = screen.getByRole('button', { name: /Attempt Login/i });
-
-    await act(async () => {
-      try {
-        fireEvent.click(loginButton);
-        await waitFor(() => expect(authService.login).toHaveBeenCalled());
-      } catch {
-        // Handle error if needed
-      }
+    // Use renderHook to get access to the AuthContext
+    const { result } = renderHook(() => useContext(AuthContext), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
     });
 
-    expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
+    // Wait for initial loading to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Call login and expect it to throw with our error message
+    await expect(
+      result.current.login('test@example.com', 'password123')
+    ).rejects.toThrow('Invalid credentials');
+
+    // Verify auth state remains unchanged
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(result.current.token).toBeNull();
+
+    // Verify storage functions were not called
     expect(storage.saveToken).not.toHaveBeenCalled();
     expect(storage.saveUser).not.toHaveBeenCalled();
   });
@@ -311,26 +319,38 @@ describe('AuthProvider', () => {
     );
   });
 
-  test.skip('register: failed registration does not call login or update context and authProvider.register re-throws error', async () => {
+  test('register: failed registration does not call login or update context and re-throws error', async () => {
+    // Define the registerError and render hook to get AuthContext
     const registerError = new Error('Email already exists');
-    (authService.register as Mock).mockRejectedValueOnce(registerError);
-    renderAuthProviderWithConsumer();
-    await waitFor(() =>
-      expect(screen.getByTestId('isLoading')).toHaveTextContent('false')
-    );
 
-    const registerButton = screen.getByRole('button', {
-      name: /Attempt Register/i,
+    // Set up the mock to reject with our error
+    (authService.register as Mock).mockRejectedValueOnce(registerError);
+
+    // Use renderHook to get access to the AuthContext
+    const { result } = renderHook(() => useContext(AuthContext), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>,
     });
 
-    await expect(
-      act(async () => {
-        await fireEvent.click(registerButton);
-        await vi.waitFor(() => expect(authService.register).toHaveBeenCalled());
-      })
-    ).rejects.toThrow(registerError.message);
+    // Wait for initial loading to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
+    // Call register and expect it to throw with our error message
+    await expect(
+      result.current.register(mockUserRegistrationData)
+    ).rejects.toThrow('Email already exists');
+
+    // Verify login was not called
     expect(authService.login).not.toHaveBeenCalled();
-    expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
+
+    // Verify auth state remains unchanged
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(result.current.token).toBeNull();
+
+    // Verify storage functions were not called
+    expect(storage.saveToken).not.toHaveBeenCalled();
+    expect(storage.saveUser).not.toHaveBeenCalled();
   });
 });

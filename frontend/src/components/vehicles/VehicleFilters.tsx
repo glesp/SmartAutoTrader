@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
+  // Remove TextField since it's not used
   MenuItem,
   Select,
   FormControl,
@@ -14,7 +14,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  InputAdornment,
+  // Remove InputAdornment since it's not used
   IconButton,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -57,6 +57,8 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
   const [horsepowerRange, setHorsepowerRange] = useState<[number, number]>([
     0, 800,
   ]);
+  // Define the price slider bounds but prefix with underscore since setter is unused
+  const [priceSliderDefBounds] = useState<[number, number]>([0, 200000]);
 
   // --- Local slider states for debounced filter updates ---
   const [localYearRange, setLocalYearRange] = useState<[number, number]>([
@@ -82,6 +84,11 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     typeof filters.maxHorsepower === 'number'
       ? filters.maxHorsepower
       : horsepowerRange[1],
+  ]);
+  // Local state for price slider's current value
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
+    filters.minPrice ?? priceSliderDefBounds[0],
+    filters.maxPrice ?? priceSliderDefBounds[1],
   ]);
 
   // Sync local slider state with parent filter changes
@@ -114,10 +121,17 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     ]);
   }, [filters.minHorsepower, filters.maxHorsepower, horsepowerRange]);
 
+  // New useEffect for price range sync
+  useEffect(() => {
+    setLocalPriceRange([
+      filters.minPrice ?? priceSliderDefBounds[0],
+      filters.maxPrice ?? priceSliderDefBounds[1],
+    ]);
+  }, [filters.minPrice, filters.maxPrice, priceSliderDefBounds]);
+
   // Fetch available makes and ranges ONCE when component mounts
   useEffect(() => {
     const fetchFilterData = async () => {
-      // Renamed function
       try {
         // Fetch makes
         const makesResponse = await vehicleService.getAvailableMakes();
@@ -147,7 +161,6 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             engineSizeRangeResponse.min,
             engineSizeRangeResponse.max,
           ]);
-          // REMOVED the setLocalEngineSizeRange call from here
         }
 
         // Fetch horsepower range
@@ -162,15 +175,16 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
             horsepowerRangeResponse.min,
             horsepowerRangeResponse.max,
           ]);
-          // REMOVED the setLocalHorsepowerRange call from here
         }
+
+        // Note for future: Add vehicleService.getPriceRange() here when available
       } catch (error) {
         console.error('Error fetching vehicle specifications:', error);
       }
     };
 
     fetchFilterData();
-  }, []); // <-- THE FIX: Changed dependency array to empty []
+  }, []);
 
   // Fetch models when make changes
   useEffect(() => {
@@ -196,6 +210,7 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
   }, [filters.make]);
 
   // --- Slider handlers for debounced updates ---
+
   // Year Range
   const handleYearChange = (_event: Event, newValue: number | number[]) => {
     if (Array.isArray(newValue))
@@ -253,27 +268,45 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
     }
   };
 
+  // 3. Price Range slider handlers
+  const handlePriceSliderChange = (
+    _event: Event,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue))
+      setLocalPriceRange(newValue as [number, number]);
+  };
+
+  const handlePriceSliderChangeCommitted = (
+    _event: Event | React.SyntheticEvent,
+    newValue: number | number[]
+  ) => {
+    if (Array.isArray(newValue)) {
+      onFilterChange({
+        minPrice: newValue[0],
+        maxPrice: newValue[1],
+      });
+    }
+  };
+
   // Reset all filters
   const handleResetFilters = () => {
     onFilterChange({
-      // Use empty strings instead of undefined for select inputs to avoid MUI warnings
       make: '',
       model: '',
-      // The rest can remain as undefined
       minYear: undefined,
       maxYear: undefined,
       minPrice: undefined,
       maxPrice: undefined,
-      fuelType: '', // Also change to empty string
-      transmission: '', // Also change to empty string
-      vehicleType: '', // Also change to empty string
+      fuelType: '',
+      transmission: '',
+      vehicleType: '',
       minEngineSize: undefined,
       maxEngineSize: undefined,
       minHorsepower: undefined,
       maxHorsepower: undefined,
       sortBy: 'DateListed',
       ascending: false,
-      // Be sure to include these for test expectations
       rejectedMakes: undefined,
       rejectedFuelTypes: undefined,
       rejectedVehicleTypes: undefined,
@@ -380,43 +413,29 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
         />
       </Box>
 
-      {/* Price range */}
+      {/* Price range - Updated to use a slider */}
       <Box sx={{ mt: 4, mb: 2 }}>
         <Typography gutterBottom>Price Range (€)</Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <TextField
-            label="Min"
-            type="number"
-            size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">€</InputAdornment>
-              ),
-            }}
-            value={filters.minPrice || ''}
-            onChange={(e) =>
-              onFilterChange({
-                minPrice: e.target.value ? parseInt(e.target.value) : undefined,
-              })
-            }
-          />
-          <TextField
-            label="Max"
-            type="number"
-            size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">€</InputAdornment>
-              ),
-            }}
-            value={filters.maxPrice || ''}
-            onChange={(e) =>
-              onFilterChange({
-                maxPrice: e.target.value ? parseInt(e.target.value) : undefined,
-              })
-            }
-          />
-        </Box>
+        <Slider
+          value={localPriceRange}
+          onChange={handlePriceSliderChange}
+          onChangeCommitted={handlePriceSliderChangeCommitted}
+          valueLabelDisplay="auto"
+          min={priceSliderDefBounds[0]}
+          max={priceSliderDefBounds[1]}
+          step={1000}
+          marks={[
+            {
+              value: priceSliderDefBounds[0],
+              label: `€${priceSliderDefBounds[0].toLocaleString()}`,
+            },
+            {
+              value: priceSliderDefBounds[1],
+              label: `€${priceSliderDefBounds[1].toLocaleString()}`,
+            },
+          ]}
+          valueLabelFormat={(value) => `€${value.toLocaleString()}`}
+        />
       </Box>
 
       {/* Advanced filters in accordion */}
@@ -570,6 +589,11 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
                   toggleSortDirection();
                 }}
                 sx={{ mr: 2 }}
+                aria-label={
+                  filters.ascending
+                    ? 'Sort in descending order'
+                    : 'Sort in ascending order'
+                }
               >
                 {filters.ascending ? (
                   <ArrowUpwardIcon />
