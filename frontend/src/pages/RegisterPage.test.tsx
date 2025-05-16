@@ -93,7 +93,7 @@ describe('RegisterPage Component', () => {
 
   test('allows typing into form fields', () => {
     renderRegisterPageWithContext({});
-    const usernameInput = screen.getByRole('textbox', { name: /Username/i }); // NEW
+    const usernameInput = screen.getByRole('textbox', { name: /Username/i }) as HTMLInputElement; // NEW
     fireEvent.change(usernameInput, { target: { value: 'newuser123' } });
     expect(usernameInput.value).toBe('newuser123');
   });
