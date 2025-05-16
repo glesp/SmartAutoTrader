@@ -1,9 +1,8 @@
 // src/pages/VehicleDetailPage.tsx
 import { useState, useEffect, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { vehicleService, favoriteService } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
-// Add Material-UI imports
 import {
   Box,
   Typography,
@@ -20,6 +19,7 @@ import {
 } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import EditIcon from '@mui/icons-material/Edit';
 
 // Define what your API actually returns
 interface VehicleImage {
@@ -50,6 +50,8 @@ interface ApiVehicle {
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [vehicle, setVehicle] = useState<ApiVehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,6 @@ const VehicleDetailPage = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [checkingFavorite, setCheckingFavorite] = useState(false);
   const [favAnim, setFavAnim] = useState(false);
-  const { isAuthenticated } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -101,7 +102,7 @@ const VehicleDetailPage = () => {
 
   useEffect(() => {
     const checkFavorite = async () => {
-      if (!isAuthenticated || !id) return;
+      if (!id) return;
 
       setCheckingFavorite(true);
       try {
@@ -117,7 +118,7 @@ const VehicleDetailPage = () => {
     };
 
     checkFavorite();
-  }, [id, isAuthenticated]);
+  }, [id]);
 
   useEffect(() => {
     if (isFavorite !== undefined) {
@@ -128,7 +129,7 @@ const VehicleDetailPage = () => {
   }, [isFavorite]);
 
   const handleToggleFavorite = async () => {
-    if (!isAuthenticated || !id) return;
+    if (!id) return;
 
     try {
       if (isFavorite) {
@@ -210,7 +211,7 @@ const VehicleDetailPage = () => {
   const imageArray = getImageArray();
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="lg" sx={{ py: 8 }}>
       {/* Breadcrumbs */}
       <Breadcrumbs sx={{ mb: 3 }}>
         <MuiLink component={Link} to="/" underline="hover" color="inherit">
@@ -228,6 +229,20 @@ const VehicleDetailPage = () => {
           {vehicle.year} {vehicle.make} {vehicle.model}
         </Typography>
       </Breadcrumbs>
+
+      {/* Edit button for Admins */}
+      {user && user.role === 'Admin' && vehicle && (
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<EditIcon />}
+            onClick={() => navigate(`/admin/vehicles/edit/${vehicle.id}`)}
+          >
+            Edit Vehicle
+          </Button>
+        </Box>
+      )}
 
       {/* Main content Grid container */}
       <Grid container spacing={4}>
@@ -367,7 +382,7 @@ const VehicleDetailPage = () => {
               Send Inquiry
             </Button>
 
-            {isAuthenticated ? (
+            {user ? (
               <IconButton
                 onClick={handleToggleFavorite}
                 disabled={checkingFavorite} // Disable button while checking favorite status

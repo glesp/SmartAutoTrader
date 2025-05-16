@@ -12,6 +12,7 @@ namespace SmartAutoTrader.API.Controllers
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Logging;
     using SmartAutoTrader.API.Data;
+    using SmartAutoTrader.API.DTOs;
     using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Helpers;
     using SmartAutoTrader.API.Models;
@@ -204,21 +205,142 @@ namespace SmartAutoTrader.API.Controllers
             return vehicle;
         }
 
-        // PUT: api/Vehicles/5
-        [HttpPut("{id}")]
-        [Authorize]
-        public async Task<IActionResult> PutVehicle(int id, Vehicle vehicle)
+        // POST: api/Vehicles
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<Vehicle>> PostVehicle([FromBody] CreateVehicleDto createDto)
         {
-            if (id != vehicle.Id)
+            if (!this.ModelState.IsValid)
             {
-                return this.BadRequest();
+                return this.BadRequest(this.ModelState);
             }
 
-            this._context.Entry(vehicle).State = EntityState.Modified;
+            if (!Enum.TryParse<FuelType>(createDto.FuelType, true, out FuelType parsedFuelType))
+            {
+                this.ModelState.AddModelError(nameof(createDto.FuelType), $"Invalid fuel type: {createDto.FuelType}.");
+            }
+
+            if (!Enum.TryParse<TransmissionType>(createDto.Transmission, true, out TransmissionType parsedTransmissionType))
+            {
+                this.ModelState.AddModelError(nameof(createDto.Transmission), $"Invalid transmission type: {createDto.Transmission}.");
+            }
+
+            if (!Enum.TryParse<VehicleType>(createDto.VehicleType, true, out VehicleType parsedVehicleType))
+            {
+                this.ModelState.AddModelError(nameof(createDto.VehicleType), $"Invalid vehicle type: {createDto.VehicleType}.");
+            }
+
+            if (!this.ModelState.IsValid)
+            {
+                return this.BadRequest(this.ModelState);
+            }
+
+            var newVehicle = new Vehicle
+            {
+                Make = createDto.Make,
+                Model = createDto.Model,
+                Year = createDto.Year,
+                Price = createDto.Price,
+                Mileage = createDto.Mileage ?? 0,
+                FuelType = parsedFuelType,
+                Transmission = parsedTransmissionType,
+                VehicleType = parsedVehicleType,
+                EngineSize = createDto.EngineSize ?? 0,
+                HorsePower = createDto.HorsePower ?? 0,
+                Country = createDto.Country,
+                Description = createDto.Description,
+                DateListed = DateTime.UtcNow,
+                Status = VehicleStatus.Available,
+                Images = new List<VehicleImage>(),
+                Features = createDto.VehicleFeatures.Select(f => new VehicleFeature { Name = f.Name }).ToList(), // Changed from createDto.Features
+            };
+
+            this._context.Vehicles.Add(newVehicle);
+            await this._context.SaveChangesAsync();
+
+            return this.CreatedAtAction(nameof(this.GetVehicle), new { id = newVehicle.Id }, newVehicle);
+        }
+
+        // PUT: api/Vehicles/5
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> PutVehicle(int id, [FromBody] UpdateVehicleDto updateDto)
+        {
+            // We use the id from the route, no need to check against an id in updateDto
+            // if (id != updateDto.Id) // If you were to add Id to UpdateVehicleDto
+            // {
+            //     return BadRequest("Mismatched ID in route and body.");
+            // }
+            var existingVehicle = await this._context.Vehicles
+                                    .Include(v => v.Features)
+                                    .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (existingVehicle == null)
+            {
+                return this.NotFound($"Vehicle with ID {id} not found.");
+            }
+
+            // Validate and parse enums
+            if (!Enum.TryParse<FuelType>(updateDto.FuelType, true, out var parsedFuelType))
+            {
+                this.ModelState.AddModelError(nameof(updateDto.FuelType), $"Invalid fuel type: {updateDto.FuelType}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(FuelType)))}");
+            }
+
+            if (!Enum.TryParse<TransmissionType>(updateDto.Transmission, true, out var parsedTransmissionType))
+            {
+                this.ModelState.AddModelError(nameof(updateDto.Transmission), $"Invalid transmission type: {updateDto.Transmission}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(TransmissionType)))}");
+            }
+
+            if (!Enum.TryParse<VehicleType>(updateDto.VehicleType, true, out var parsedVehicleType))
+            {
+                this.ModelState.AddModelError(nameof(updateDto.VehicleType), $"Invalid vehicle type: {updateDto.VehicleType}. Valid options are: {string.Join(", ", Enum.GetNames(typeof(VehicleType)))}");
+            }
+
+            if (!this.ModelState.IsValid)
+            {
+                return this.BadRequest(this.ModelState);
+            }
+
+            // Update properties
+            existingVehicle.Make = updateDto.Make;
+            existingVehicle.Model = updateDto.Model;
+            existingVehicle.Year = updateDto.Year;
+            existingVehicle.Price = updateDto.Price;
+            existingVehicle.Mileage = updateDto.Mileage ?? existingVehicle.Mileage; // Keep existing if null
+            existingVehicle.FuelType = parsedFuelType;
+            existingVehicle.Transmission = parsedTransmissionType;
+            existingVehicle.VehicleType = parsedVehicleType;
+            existingVehicle.EngineSize = updateDto.EngineSize ?? existingVehicle.EngineSize; // Keep existing if null
+            existingVehicle.HorsePower = updateDto.HorsePower ?? existingVehicle.HorsePower; // Keep existing if null
+            existingVehicle.Country = updateDto.Country;
+            existingVehicle.Description = updateDto.Description;
+
+            // existingVehicle.DateModified = DateTime.UtcNow; // If you add a DateModified property
+
+            // Handle Features update: Remove existing and add new ones
+            if (existingVehicle.Features != null)
+            {
+                this._context.VehicleFeatures.RemoveRange(existingVehicle.Features); // EF Core tracks these removals
+                existingVehicle.Features.Clear(); // Clear the collection on the entity
+            }
+            else
+            {
+                existingVehicle.Features = new List<VehicleFeature>();
+            }
+
+            if (updateDto.Features != null && updateDto.Features.Any())
+            {
+                foreach (var featureDto in updateDto.Features)
+                {
+                    existingVehicle.Features.Add(new VehicleFeature { Name = featureDto.Name, VehicleId = existingVehicle.Id });
+                }
+            }
+
+            this._context.Entry(existingVehicle).State = EntityState.Modified;
 
             try
             {
-                _ = await this._context.SaveChangesAsync();
+                await this._context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -226,11 +348,13 @@ namespace SmartAutoTrader.API.Controllers
                 {
                     return this.NotFound();
                 }
-
-                throw;
+                else
+                {
+                    throw;
+                }
             }
 
-            return this.NoContent();
+            return this.NoContent(); // Or return Ok(existingVehicle) if you want to send back the updated entity
         }
 
         [HttpPost("{vehicleId}/images")]

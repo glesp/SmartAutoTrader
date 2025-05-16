@@ -228,11 +228,16 @@ describe('AuthProvider', () => {
     });
 
     // Call login and expect it to throw with our error message
-    await expect(
-      result.current.login('test@example.com', 'password123')
-    ).rejects.toThrow('Invalid credentials');
+    // Wrap the async call that might update state in act
+    await act(async () => {
+      await expect(
+        result.current.login('test@example.com', 'password123')
+      ).rejects.toThrow('Invalid credentials');
+    });
 
     // Verify auth state remains unchanged
+    // These assertions should be fine outside act if they are checking the final state
+    // after the awaited act block.
     expect(result.current.isAuthenticated).toBe(false);
     expect(result.current.user).toBeNull();
     expect(result.current.token).toBeNull();

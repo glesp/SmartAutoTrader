@@ -8,11 +8,52 @@ export interface Vehicle {
   year: number;
   price: number;
   mileage: number;
-  fuelType: string; // This is a string, not a number
-  transmission: string; // This is a string, not a number
-  vehicleType: string; // This is a string, not a number
+  fuelType: string; // Assuming this is already string from your frontend enum
+  transmission: string; // Assuming this is already string
+  vehicleType: string; // Assuming this is already string
   description: string;
   images: Array<{ id: number; imageUrl: string; isPrimary: boolean }>;
+  engineSize?: number;
+  horsePower?: number;
+  country?: string;
+  features?: Array<{ name: string }>; // Add if not present
+  // ... any other properties
+}
+
+export interface VehicleFeaturePayload {
+  name: string;
+}
+
+export interface VehicleCreatePayload {
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage?: number;
+  fuelType: string;
+  transmission: string;
+  vehicleType: string;
+  engineSize?: number;
+  horsePower?: number;
+  country?: string;
+  description: string;
+  features: VehicleFeaturePayload[];
+}
+
+export interface UpdateVehiclePayload {
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage?: number;
+  fuelType: string;
+  transmission: string;
+  vehicleType: string;
+  engineSize?: number;
+  horsePower?: number;
+  country?: string;
+  description: string;
+  features: VehicleFeaturePayload[];
 }
 
 // Simple params type for filtering
@@ -82,8 +123,42 @@ export const vehicleService = {
     }
   },
 
-  getVehicle: async (id: number) => {
+  getVehicle: async (id: number): Promise<Vehicle> => {
     const response = await api.get<Vehicle>(`/api/vehicles/${id}`);
+    return response.data;
+  },
+
+  createVehicle: async (
+    vehicleData: VehicleCreatePayload
+  ): Promise<Vehicle> => {
+    const response = await api.post<Vehicle>('/api/vehicles', vehicleData);
+    return response.data;
+  },
+
+  updateVehicle: async (
+    id: number,
+    vehicleData: UpdateVehiclePayload
+  ): Promise<void> => {
+    // Or Promise<Vehicle> if your backend returns the updated vehicle
+    await api.put(`/api/vehicles/${id}`, vehicleData);
+  },
+
+  uploadVehicleImage: async (
+    vehicleId: number,
+    imageFile: File
+  ): Promise<{ id: number; imageUrl: string; isPrimary: boolean }> => {
+    const formData = new FormData();
+    formData.append('imageFile', imageFile);
+    // The backend endpoint is /api/Vehicles/{vehicleId}/images
+    const response = await api.post<{
+      id: number;
+      imageUrl: string;
+      isPrimary: boolean;
+    }>(`/api/vehicles/${vehicleId}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 

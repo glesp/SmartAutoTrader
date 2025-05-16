@@ -71,18 +71,21 @@ describe('RegisterPage Component', () => {
 
   test('renders registration form with all fields and submit button', () => {
     renderRegisterPageWithContext({});
-    expect(screen.getByLabelText(/Username\*/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Email\*/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: /Username/i })
+    ).toBeInTheDocument(); // NEW
+    expect(
+      screen.getByRole('textbox', { name: /Email Address/i })
+    ).toBeInTheDocument(); // NEW
+    expect(
+      screen.getByRole('textbox', { name: /First Name/i })
+    ).toBeInTheDocument(); // NEW
+    expect(
+      screen.getByRole('textbox', { name: /Last Name/i })
+    ).toBeInTheDocument(); // NEW
     expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
-    // Use placeholder text instead of label text for password fields
-    expect(
-      screen.getByPlaceholderText('Create a password')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('Confirm your password')
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Password \*/i)).toBeInTheDocument(); // More specific for "Password"
+    expect(screen.getByLabelText(/Confirm Password \*/i)).toBeInTheDocument(); // Specific for "Confirm Password"
     expect(
       screen.getByRole('button', { name: /Register/i })
     ).toBeInTheDocument();
@@ -90,9 +93,7 @@ describe('RegisterPage Component', () => {
 
   test('allows typing into form fields', () => {
     renderRegisterPageWithContext({});
-    const usernameInput = screen.getByLabelText(
-      /Username\*/i
-    ) as HTMLInputElement;
+    const usernameInput = screen.getByRole('textbox', { name: /Username/i }); // NEW
     fireEvent.change(usernameInput, { target: { value: 'newuser123' } });
     expect(usernameInput.value).toBe('newuser123');
   });
@@ -110,26 +111,25 @@ describe('RegisterPage Component', () => {
       phoneNumber: '1234567890',
     };
 
-    fireEvent.change(screen.getByLabelText(/Username\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Username/i }), {
       target: { value: userData.username },
     });
-    fireEvent.change(screen.getByLabelText(/Email\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Email Address/i }), {
       target: { value: userData.email },
     });
-    fireEvent.change(screen.getByLabelText(/First Name/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /First Name/i }), {
       target: { value: userData.firstName },
     });
-    fireEvent.change(screen.getByLabelText(/Last Name/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Last Name/i }), {
       target: { value: userData.lastName },
     });
     fireEvent.change(screen.getByLabelText(/Phone Number/i), {
       target: { value: userData.phoneNumber },
     });
-    // Use getByPlaceholderText for password fields
-    fireEvent.change(screen.getByPlaceholderText('Create a password'), {
+    fireEvent.change(screen.getByLabelText(/^Password \*/i), {
       target: { value: userData.password },
     });
-    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+    fireEvent.change(screen.getByLabelText(/Confirm Password \*/i), {
       target: { value: userData.password },
     });
 
@@ -141,7 +141,6 @@ describe('RegisterPage Component', () => {
       expect(mockRegisterFn).toHaveBeenCalledWith(userData);
     });
 
-    // Fix: Update the assertion to match what RegisterPage does - navigate to '/' with { replace: true }
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
     });
@@ -151,27 +150,25 @@ describe('RegisterPage Component', () => {
     mockRegisterFn.mockRejectedValueOnce(new Error('Registration has failed'));
     renderRegisterPageWithContext({ register: mockRegisterFn });
 
-    // Fill form to ensure submission attempt
-    fireEvent.change(screen.getByLabelText(/Username\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Username/i }), {
       target: { value: 'failuser' },
     });
-    fireEvent.change(screen.getByLabelText(/Email\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Email Address/i }), {
       target: { value: 'fail@example.com' },
     });
-    fireEvent.change(screen.getByLabelText(/First Name/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /First Name/i }), {
       target: { value: 'Fail' },
     });
-    fireEvent.change(screen.getByLabelText(/Last Name/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Last Name/i }), {
       target: { value: 'User' },
     });
     fireEvent.change(screen.getByLabelText(/Phone Number/i), {
       target: { value: '000' },
     });
-    // Use getByPlaceholderText for password fields
-    fireEvent.change(screen.getByPlaceholderText('Create a password'), {
+    fireEvent.change(screen.getByLabelText(/^Password \*/i), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+    fireEvent.change(screen.getByLabelText(/Confirm Password \*/i), {
       target: { value: 'password123' },
     });
 
@@ -179,7 +176,6 @@ describe('RegisterPage Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Register/i }));
     });
 
-    // Fix: Use the correct text that appears in the component
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
         'Registration has failed'
@@ -190,7 +186,6 @@ describe('RegisterPage Component', () => {
 
   test('renders link to login page', () => {
     renderRegisterPageWithContext({});
-    // The link text is "Log In", contained within a paragraph.
     const loginLink = screen.getByRole('link', { name: /Log In/i });
     expect(loginLink).toBeInTheDocument();
     expect(loginLink).toHaveAttribute('href', '/login');
@@ -200,19 +195,16 @@ describe('RegisterPage Component', () => {
   test('password and confirm password validation: mismatch', async () => {
     renderRegisterPageWithContext({ register: mockRegisterFn });
 
-    // Fill required fields to pass initial validation
-    fireEvent.change(screen.getByLabelText(/Username\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Username/i }), {
       target: { value: 'testuser' },
     });
-    fireEvent.change(screen.getByLabelText(/Email\*/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Email Address/i }), {
       target: { value: 'test@example.com' },
     });
-
-    // Use getByPlaceholderText for password fields
-    fireEvent.change(screen.getByPlaceholderText('Create a password'), {
+    fireEvent.change(screen.getByLabelText(/^Password \*/i), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Confirm your password'), {
+    fireEvent.change(screen.getByLabelText(/Confirm Password \*/i), {
       target: { value: 'password456' },
     }); // Mismatch
 
@@ -220,7 +212,6 @@ describe('RegisterPage Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /Register/i }));
     });
 
-    // Use findByRole which waits for the element to appear
     const alertElement = await screen.findByRole('alert');
     expect(alertElement).toHaveTextContent(/passwords do not match/i);
 

@@ -1,7 +1,17 @@
-// src/pages/LoginPage.tsx (completing the component)
 import { useState, useContext } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
+import {
+  Container,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Link,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -42,83 +52,81 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="px-6 py-8">
-        <h2 className="text-2xl font-bold text-center mb-6">Log In</h2>
+    <Container component="main" maxWidth="xs" sx={{ mt: 8, mb: 4 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          padding: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+          Log In
+        </Typography>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4">
+          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
-
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <label
-                htmlFor="password"
-                className="block text-gray-700 font-medium"
-              >
-                Password
-              </label>
-              <Link
-                to="/forgot-password"
-                className="text-sm text-blue-600 hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
+        <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            {loading ? 'Logging in...' : 'Log In'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Register
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', my: 1 }}>
+            <Link component={RouterLink} to="/forgot-password" variant="body2">
+              Forgot Password?
             </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+          </Box>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            disabled={loading}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Log In'
+            )}
+          </Button>
+        </Box>
+
+        <Typography variant="body2" color="text.secondary" align="center">
+          Don't have an account?{' '}
+          <Link component={RouterLink} to="/register" variant="body2">
+            Register
+          </Link>
+        </Typography>
+      </Paper>
+    </Container>
   );
 };
 

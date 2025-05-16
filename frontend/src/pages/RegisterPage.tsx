@@ -1,8 +1,19 @@
 // src/pages/RegisterPage.tsx
 import { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
-import { UserRegistration } from '../contexts/AuthContext';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { AuthContext, UserRegistration } from '../contexts/AuthContext';
+import {
+  Container,
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Link,
+  CircularProgress,
+  Alert,
+  Grid,
+} from '@mui/material';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState<UserRegistration>({
@@ -31,9 +42,8 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
     if (!formData.username || !formData.email || !formData.password) {
-      setError('Username, email and password are required');
+      setError('Username, email, and password are required');
       return;
     }
 
@@ -47,8 +57,7 @@ const RegisterPage = () => {
 
     try {
       await register(formData);
-      // Use { replace: true } to match the test expectations
-      navigate('/', { replace: true });
+      navigate('/', { replace: true }); // Navigate to home or login page after successful registration
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
@@ -61,174 +70,145 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="px-6 py-8">
-        <h2 className="text-2xl font-bold text-center mb-6">
+    <Container component="main" maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+      <Paper
+        elevation={3}
+        sx={{
+          padding: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Typography component="h1" variant="h5" gutterBottom>
           Create an Account
-        </h2>
+        </Typography>
 
         {error && (
-          <div
-            role="alert"
-            className="bg-red-50 border border-red-200 text-red-800 rounded-md p-3 mb-4"
-          >
+          <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
             {error}
-          </div>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="username"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Username*
-            </label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Choose a username"
-              required
-            />
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Email*
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label
-                htmlFor="firstName"
-                className="block text-gray-700 font-medium mb-2"
-              >
-                First Name
-              </label>
-              <input
-                type="text"
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{ mt: 1, width: '100%' }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                id="username"
+                label="Username"
+                name="username"
+                autoComplete="username"
+                value={formData.username}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                id="email"
+                label="Email Address"
+                name="email"
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 id="firstName"
+                label="First Name"
                 name="firstName"
+                autoComplete="given-name"
                 value={formData.firstName}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="First name"
+                disabled={loading}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="lastName"
-                className="block text-gray-700 font-medium mb-2"
-              >
-                Last Name
-              </label>
-              <input
-                type="text"
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
                 id="lastName"
+                label="Last Name"
                 name="lastName"
+                autoComplete="family-name"
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Last name"
+                disabled={loading}
               />
-            </div>
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="phoneNumber"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              id="phoneNumber"
-              name="phoneNumber"
-              value={formData.phoneNumber}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Phone number"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label
-              htmlFor="password"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Password*
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Create a password"
-              required
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
-              htmlFor="confirmPassword"
-              className="block text-gray-700 font-medium mb-2"
-            >
-              Confirm Password*
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Confirm your password"
-              required
-            />
-          </div>
-
-          <button
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                id="phoneNumber"
+                label="Phone Number"
+                name="phoneNumber"
+                autoComplete="tel"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                name="password"
+                label="Password"
+                type="password"
+                id="password"
+                autoComplete="new-password"
+                value={formData.password}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                name="confirmPassword"
+                label="Confirm Password"
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+              />
+            </Grid>
+          </Grid>
+          <Button
             type="submit"
+            fullWidth
+            variant="contained"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
           >
-            {loading ? 'Creating Account...' : 'Register'}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Already have an account?{' '}
-            <Link
-              to="/login"
-              className="text-blue-600 hover:underline font-medium"
-            >
-              Log In
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Register'
+            )}
+          </Button>
+          <Grid container justifyContent="flex-end">
+            <Grid item>
+              <Link component={RouterLink} to="/login" variant="body2">
+                Already have an account? Log In
+              </Link>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 

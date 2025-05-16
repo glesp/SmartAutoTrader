@@ -1,3 +1,4 @@
+import { AuthContext } from '../../contexts/AuthContext';
 import { useContext, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
@@ -25,12 +26,12 @@ import {
   ExitToApp as LogoutIcon,
   Menu as MenuIcon,
   Home as HomeIcon,
-  Email as EmailIcon,
 } from '@mui/icons-material';
-import { AuthContext } from '../../contexts/AuthContext';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
 const Header = () => {
-  const { isAuthenticated, logout, user } = useContext(AuthContext);
+  const { isAuthenticated, user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
@@ -105,18 +106,35 @@ const Header = () => {
                 <ListItemText primary="Your Recommendations" />
               </ListItemButton>
             </ListItem>
-            {isAuthenticated && user?.roles?.includes('Admin') && (
-              <ListItem disablePadding>
-                <ListItemButton
-                  onClick={() => handleNavigation('/admin/inquiries')}
-                >
-                  <ListItemIcon>
-                    <EmailIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Admin Inquiries" />
-                </ListItemButton>
-              </ListItem>
-            )}
+            {/* Mobile navigation items */}
+            {isAuthenticated &&
+              user &&
+              user.roles &&
+              user.roles.includes('Admin') && (
+                <>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      onClick={() => handleNavigation('/admin/vehicles/create')}
+                    >
+                      <ListItemIcon>
+                        <AddCircleOutlineIcon /> {/* Or your preferred icon */}
+                      </ListItemIcon>
+                      <ListItemText primary="Create Vehicle" />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      onClick={() => handleNavigation('/admin/inquiries')}
+                    >
+                      <ListItemIcon>
+                        <AdminPanelSettingsIcon />{' '}
+                        {/* Or your preferred icon */}
+                      </ListItemIcon>
+                      <ListItemText primary="Admin Inquiries" />
+                    </ListItemButton>
+                  </ListItem>
+                </>
+              )}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
                 <ListItemIcon>
@@ -194,7 +212,7 @@ const Header = () => {
             </Button>
 
             {/* Auth Actions */}
-            {isAuthenticated ? (
+            {isAuthenticated && user ? (
               <>
                 <Button
                   color="inherit"
@@ -212,16 +230,25 @@ const Header = () => {
                 >
                   Your Recommendations
                 </Button>
-                {isAuthenticated && user?.roles?.includes('Admin') && (
-                  <Button
-                    color="inherit"
-                    component={RouterLink}
-                    to="/admin/inquiries"
-                    sx={{ ml: 2 }}
-                    startIcon={<EmailIcon />}
-                  >
-                    Admin Inquiries
-                  </Button>
+                {user.roles && user.roles.includes('Admin') && (
+                  <>
+                    <Button
+                      component={RouterLink}
+                      to="/admin/vehicles/create"
+                      color="inherit"
+                      startIcon={<AddCircleOutlineIcon />}
+                    >
+                      Create Vehicle
+                    </Button>
+                    <Button
+                      component={RouterLink}
+                      to="/admin/inquiries"
+                      color="inherit"
+                      startIcon={<AdminPanelSettingsIcon />}
+                    >
+                      Admin Inquiries
+                    </Button>
+                  </>
                 )}
                 <Button
                   color="inherit"
