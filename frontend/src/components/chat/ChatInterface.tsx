@@ -228,7 +228,7 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
             timestamp: new Date(),
             conversationId: newConversationId,
           };
-          setMessages([welcomeAiMessage]);
+          setMessages((prev) => [...prev, welcomeAiMessage]);
         }
 
         setClarificationState({ awaiting: false, originalUserInput: '' });
@@ -237,6 +237,20 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
       }
     } catch (error) {
       console.error('Failed to start new conversation:', error);
+      setIsLoading(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          content:
+            'Sorry, I encountered an error processing your request. Please try again.',
+          sender: 'ai',
+          timestamp: new Date(),
+          conversationId: undefined,
+        },
+      ]);
+      setClarificationState({ awaiting: false, originalUserInput: '' });
+      return;
     }
   };
 
@@ -285,10 +299,10 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
               timestamp: new Date(),
               conversationId: newConversationId,
             };
-            setMessages([welcomeAiMessage]); // Start with welcome message
-          } else {
-            setMessages([]); // Clear messages for new conversation if no welcome message
+            // Instead of setMessages([welcomeAiMessage]), do not reset messages here
+            setMessages((prev) => [...prev, welcomeAiMessage]);
           }
+          // Do not clear messages here, let the user message be appended after
           loadConversations(); // Refresh list
         } else {
           console.error('Failed to get new conversation ID');
@@ -296,7 +310,19 @@ const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
         }
       } catch (error) {
         console.error('Failed to start new conversation:', error);
-        setIsLoading(false); // Ensure loading is reset
+        setIsLoading(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            content:
+              'Sorry, I encountered an error processing your request. Please try again.',
+            sender: 'ai',
+            timestamp: new Date(),
+            conversationId: undefined,
+          },
+        ]);
+        setClarificationState({ awaiting: false, originalUserInput: '' });
         return;
       }
     }

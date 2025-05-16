@@ -162,6 +162,20 @@ export const vehicleService = {
     return response.data;
   },
 
+  deleteVehicleImage: async (
+    vehicleId: number,
+    imageId: number
+  ): Promise<void> => {
+    await api.delete(`/api/vehicles/${vehicleId}/images/${imageId}`);
+  },
+
+  setPrimaryVehicleImage: async (
+    vehicleId: number,
+    imageId: number
+  ): Promise<void> => {
+    await api.put(`/api/vehicles/${vehicleId}/images/${imageId}/primary`);
+  },
+
   getAvailableMakes: async (): Promise<string[]> => {
     try {
       const response = await api.get('/api/vehicles/available-makes');

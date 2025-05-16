@@ -4,6 +4,7 @@ import React, {
   useContext,
   ChangeEvent,
   FormEvent,
+  useRef,
 } from 'react';
 import {
   useNavigate,
@@ -28,16 +29,23 @@ import {
   SelectChangeEvent,
   Breadcrumbs,
   Link,
+  IconButton,
+  Card,
+  CardMedia,
+  CardActions,
 } from '@mui/material';
 import { AuthContext } from '../contexts/AuthContext';
 import {
   vehicleService,
-  UpdateVehiclePayload, // Use the new payload type
+  UpdateVehiclePayload,
   VehicleFeaturePayload,
-  Vehicle as VehicleModel, // Existing frontend Vehicle model
+  Vehicle as VehicleModel,
 } from '../services/api';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import StarIcon from '@mui/icons-material/Star';
 
-// Assuming these enums are defined as in AdminCreateVehiclePage.tsx
+// Enums definitions unchanged...
 enum FuelTypeFrontend {
   Petrol = 'Petrol',
   Diesel = 'Diesel',
@@ -45,11 +53,13 @@ enum FuelTypeFrontend {
   Hybrid = 'Hybrid',
   PluginHybrid = 'PluginHybrid',
 }
+
 enum TransmissionTypeFrontend {
   Manual = 'Manual',
   Automatic = 'Automatic',
   SemiAutomatic = 'SemiAutomatic',
 }
+
 enum VehicleTypeFrontend {
   Sedan = 'Sedan',
   SUV = 'SUV',
@@ -61,45 +71,58 @@ enum VehicleTypeFrontend {
   Van = 'Van',
 }
 
-// Helper to get image URL, assuming similar logic to VehicleCard or VehicleDetailPage
-// You might want to centralize this helper if used in multiple places.
 const getFullImageUrl = (imagePath?: string): string => {
-  if (!imagePath) return '/images/placeholder.jpg'; // Default placeholder
-  // Assuming imagePath is already a full URL from the backend
+  if (!imagePath) return '/images/placeholder.jpg';
   return imagePath;
 };
 
 const AdminEditVehiclePage: React.FC = () => {
   const { vehicleId } = useParams<{ vehicleId: string }>();
-  const navigate = useNavigate(); // Ensure navigate is initialized
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useContext(AuthContext);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Existing state variables
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<UpdateVehiclePayload | null>(null);
   const [featuresInput, setFeaturesInput] = useState<string>('');
-  // For displaying existing images (not for new uploads in this form)
-  const [existingImages, setExistingImages] = useState<
-    Array<{ id: number; imageUrl: string; isPrimary: boolean }>
-  >([]);
-
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<keyof UpdateVehiclePayload | 'features', string>>
+    Partial<Record<keyof UpdateVehiclePayload | 'features' | 'images', string>>
   >({});
 
+  // Add new state variables for image management
+  const [existingImages, setExistingImages] = useState<
+    Array<{ id: number; imageUrl: string; isPrimary: boolean }>
+  >([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [imageMessage, setImageMessage] = useState<{
+    text: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
+  // Auth check useEffect remains unchanged
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'Admin')) {
       navigate('/login', {
         state: { from: `/admin/vehicles/edit/${vehicleId}` },
-      }); // Use vehicleId here
+      });
     }
-  }, [user, authLoading, navigate, vehicleId]); // Use vehicleId here
+  }, [user, authLoading, navigate, vehicleId]);
 
+  // Clean up image preview URLs
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [imagePreviews]);
+
+  // Fetch vehicle data effect
   useEffect(() => {
     if (!vehicleId) {
-      // Use vehicleId here
       setError('Vehicle ID is missing.');
       setInitialLoading(false);
       return;
@@ -108,21 +131,21 @@ const AdminEditVehiclePage: React.FC = () => {
       try {
         const vehicleData: VehicleModel = await vehicleService.getVehicle(
           parseInt(vehicleId, 10)
-        ); // Use vehicleId here
+        );
         setFormData({
           make: vehicleData.make,
           model: vehicleData.model,
           year: vehicleData.year,
           price: vehicleData.price,
           mileage: vehicleData.mileage,
-          fuelType: vehicleData.fuelType, // Assuming backend returns string compatible with FuelTypeFrontend
-          transmission: vehicleData.transmission, // Assuming backend returns string compatible
-          vehicleType: vehicleData.vehicleType, // Assuming backend returns string compatible
+          fuelType: vehicleData.fuelType,
+          transmission: vehicleData.transmission,
+          vehicleType: vehicleData.vehicleType,
           engineSize: vehicleData.engineSize,
           horsePower: vehicleData.horsePower,
           country: vehicleData.country || '',
           description: vehicleData.description,
-          features: vehicleData.features || [], // Ensure features is an array
+          features: vehicleData.features || [],
         });
         setFeaturesInput(
           (vehicleData.features || []).map((f) => f.name).join(', ')
@@ -138,8 +161,9 @@ const AdminEditVehiclePage: React.FC = () => {
       }
     };
     fetchVehicleData();
-  }, [vehicleId]); // Use vehicleId here
+  }, [vehicleId]);
 
+  // Existing handlers
   const handleChange = (
     e: ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
@@ -174,7 +198,106 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
-  // Basic validation, adapt from AdminCreateVehiclePage or make more specific
+  // New image handlers
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !vehicleId) return;
+
+    setUploading(true);
+    setImageMessage(null);
+
+    try {
+      const file = files[0];
+
+      // Create a preview for the selected file
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews([...imagePreviews, previewUrl]);
+
+      // Upload the image file
+      const response = await vehicleService.uploadVehicleImage(
+        parseInt(vehicleId),
+        file
+      );
+
+      // Update the existing images list with the new image
+      if (response) {
+        setExistingImages([
+          ...existingImages,
+          {
+            id: response.id,
+            imageUrl: response.imageUrl,
+            isPrimary: response.isPrimary,
+          },
+        ]);
+        setImageMessage({
+          text: 'Image uploaded successfully',
+          type: 'success',
+        });
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setImageMessage({ text: 'Failed to upload image', type: 'error' });
+
+      // Remove the last preview if upload fails
+      if (imagePreviews.length > 0) {
+        const lastPreview = imagePreviews[imagePreviews.length - 1];
+        URL.revokeObjectURL(lastPreview);
+        setImagePreviews(imagePreviews.slice(0, -1));
+      }
+    } finally {
+      setUploading(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!vehicleId) return;
+
+    try {
+      await vehicleService.deleteVehicleImage(parseInt(vehicleId), imageId);
+
+      // Remove the deleted image from the state
+      setExistingImages(existingImages.filter((img) => img.id !== imageId));
+      setImageMessage({ text: 'Image deleted successfully', type: 'success' });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      setImageMessage({ text: 'Failed to delete image', type: 'error' });
+    }
+  };
+
+  const handleSetPrimaryImage = async (imageId: number) => {
+    if (!vehicleId) return;
+
+    try {
+      await vehicleService.setPrimaryVehicleImage(parseInt(vehicleId), imageId);
+
+      // Update the primary status in the local state
+      setExistingImages(
+        existingImages.map((img) => ({
+          ...img,
+          isPrimary: img.id === imageId,
+        }))
+      );
+      setImageMessage({
+        text: 'Primary image set successfully',
+        type: 'success',
+      });
+    } catch (error) {
+      console.error('Error setting primary image:', error);
+      setImageMessage({ text: 'Failed to set primary image', type: 'error' });
+    }
+  };
+
+  // Continue with existing form validation and submit handlers
   const validateForm = (): boolean => {
     if (!formData) return false;
     const newErrors: Partial<
@@ -207,7 +330,7 @@ const AdminEditVehiclePage: React.FC = () => {
     else if (Number(formData.price) <= 0)
       newErrors.price = 'Price must be greater than 0.';
     else if (Number(formData.price) > 10000000)
-      newErrors.price = 'Price seems to high (max 10,000,000).';
+      newErrors.price = 'Price seems too high (max 10,000,000).';
 
     if (
       formData.mileage !== undefined &&
@@ -296,18 +419,14 @@ const AdminEditVehiclePage: React.FC = () => {
         vehiclePayload
       );
       setSuccess(
-        `Vehicle "${vehiclePayload.make} ${vehiclePayload.model}" (ID: ${vehicleId}) updated successfully. Redirecting...`
+        `Vehicle "${vehiclePayload.make} ${vehiclePayload.model}" (ID: ${vehicleId}) updated successfully.`
       );
-
-      // Navigate to admin dashboard after a delay
-      setTimeout(() => {
-        navigate('/admin/dashboard');
-      }, 2500); // 2.5 second delay
     } catch (err: unknown) {
+      // Your existing error handling code...
       console.error('Error updating vehicle:', err);
       let errorMessage =
         'Failed to update vehicle. Please check console for details.';
-      // Basic error handling, can be expanded like in AdminCreateVehiclePage
+
       if (typeof err === 'object' && err !== null && 'response' in err) {
         const response = (
           err as {
@@ -342,6 +461,7 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
+  // Loading, auth check, and data check branches
   if (authLoading || initialLoading) {
     return (
       <Box
@@ -356,7 +476,6 @@ const AdminEditVehiclePage: React.FC = () => {
   }
 
   if (!user || user.role !== 'Admin') {
-    // This should be caught by the useEffect redirect, but as a fallback
     return <Navigate to="/" />;
   }
 
@@ -375,6 +494,7 @@ const AdminEditVehiclePage: React.FC = () => {
     );
   }
 
+  // Main form render
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
@@ -396,8 +516,7 @@ const AdminEditVehiclePage: React.FC = () => {
         </Link>
         <Typography color="text.primary">
           Edit Vehicle (ID: {vehicleId})
-        </Typography>{' '}
-        {/* Use vehicleId here */}
+        </Typography>
       </Breadcrumbs>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
@@ -416,7 +535,7 @@ const AdminEditVehiclePage: React.FC = () => {
 
         <Box component="form" onSubmit={handleSubmit} noValidate>
           <Grid container spacing={3}>
-            {/* Fields similar to AdminCreateVehiclePage, pre-filled with formData */}
+            {/* Vehicle details fields - unchanged */}
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -625,30 +744,97 @@ const AdminEditVehiclePage: React.FC = () => {
               )}
             </Grid>
 
+            {/* New image management section */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>
-                Existing Images
+              <Typography variant="h6" sx={{ mt: 2, mb: 2 }}>
+                Image Management
               </Typography>
-              <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-                Image uploads are handled separately. Use the "Upload Images"
-                feature on the vehicle detail page if needed.
-              </Typography>
-              <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+
+              {imageMessage && (
+                <Alert severity={imageMessage.type} sx={{ mb: 2 }}>
+                  {imageMessage.text}
+                </Alert>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+
+              {/* Upload button */}
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<CloudUploadIcon />}
+                onClick={handleImageSelect}
+                disabled={uploading}
+                sx={{ mb: 3 }}
+              >
+                {uploading ? 'Uploading...' : 'Upload New Image'}
+              </Button>
+
+              {/* Image Gallery */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
                 {existingImages.length > 0 ? (
-                  existingImages.map((image, index) => (
-                    <Box
-                      key={image.id || index}
-                      sx={{ border: '1px solid #ddd', p: 0.5 }}
+                  existingImages.map((image) => (
+                    <Card
+                      key={image.id}
+                      sx={{ width: 200, position: 'relative' }}
                     >
-                      <img
-                        src={getFullImageUrl(image.imageUrl)}
-                        alt={`vehicle ${index}`}
-                        style={{ width: 100, height: 100, objectFit: 'cover' }}
+                      <CardMedia
+                        component="img"
+                        height="140"
+                        image={getFullImageUrl(image.imageUrl)}
+                        alt="Vehicle image"
                       />
-                    </Box>
+                      <CardActions disableSpacing>
+                        <IconButton
+                          aria-label="set as primary"
+                          color={image.isPrimary ? 'primary' : 'default'}
+                          disabled={image.isPrimary}
+                          onClick={() => handleSetPrimaryImage(image.id)}
+                          title={
+                            image.isPrimary ? 'Primary Image' : 'Set as Primary'
+                          }
+                        >
+                          <StarIcon />
+                        </IconButton>
+                        <IconButton
+                          aria-label="delete"
+                          color="error"
+                          onClick={() => handleDeleteImage(image.id)}
+                          sx={{ marginLeft: 'auto' }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </CardActions>
+                      {image.isPrimary && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            backgroundColor: 'primary.main',
+                            color: 'white',
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: 1,
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          Primary
+                        </Box>
+                      )}
+                    </Card>
                   ))
                 ) : (
-                  <Typography>No images available.</Typography>
+                  <Typography color="textSecondary">
+                    No images uploaded yet
+                  </Typography>
                 )}
               </Box>
             </Grid>
