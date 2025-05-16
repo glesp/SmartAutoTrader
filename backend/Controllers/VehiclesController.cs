@@ -458,6 +458,103 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
+        // DELETE: api/Vehicles/5/images/10
+        [HttpDelete("{vehicleId}/images/{imageId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteVehicleImage(int vehicleId, int imageId)
+        {
+            var image = await this._context.VehicleImages.FirstOrDefaultAsync(img => img.Id == imageId && img.VehicleId == vehicleId);
+            if (image == null)
+            {
+                return this.NotFound();
+            }
+
+            // Extract blob name from ImageUrl
+            string? imageUrl = image.ImageUrl;
+            if (string.IsNullOrEmpty(imageUrl))
+            {
+                return this.BadRequest("Image URL is missing.");
+            }
+
+            try
+            {
+                // Example: https://account.blob.core.windows.net/vehicle-images/vehicles/123/abc.jpg
+                // or http://127.0.0.1:10000/devstoreaccount1/vehicle-images/vehicles/123/abc.jpg
+                var uri = new Uri(imageUrl);
+
+                // Blob name is everything after the container name
+                // Find "vehicle-images/" in the path and take the rest
+                var idx = uri.AbsolutePath.IndexOf("vehicle-images/", StringComparison.OrdinalIgnoreCase);
+                if (idx < 0)
+                {
+                    return this.BadRequest("Could not determine blob name from URL.");
+                }
+
+                string blobName = uri.AbsolutePath.Substring(idx).TrimStart('/');
+
+                await this._blobStorageService.DeleteBlobAsync(blobName);
+            }
+            catch (Exception ex)
+            {
+                this._logger.LogError(ex, "Failed to delete blob for image {ImageId}", imageId);
+
+                // Continue to remove DB record even if blob deletion fails
+            }
+
+            bool wasPrimary = image.IsPrimary;
+
+            this._context.VehicleImages.Remove(image);
+            await this._context.SaveChangesAsync();
+
+            // If deleted image was primary, set another as primary if any remain
+            if (wasPrimary)
+            {
+                var otherImage = await this._context.VehicleImages
+                    .Where(img => img.VehicleId == vehicleId)
+                    .OrderBy(img => img.Id)
+                    .FirstOrDefaultAsync();
+
+                if (otherImage != null)
+                {
+                    otherImage.IsPrimary = true;
+                    await this._context.SaveChangesAsync();
+                }
+            }
+
+            return this.NoContent();
+        }
+
+        [HttpPut("{vehicleId}/images/{imageId}/primary")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SetPrimaryVehicleImage(int vehicleId, int imageId)
+        {
+            var vehicle = await this._context.Vehicles
+                .Include(v => v.Images)
+                .FirstOrDefaultAsync(v => v.Id == vehicleId);
+
+            if (vehicle == null)
+            {
+                return this.NotFound();
+            }
+
+            var targetImage = vehicle.Images?.FirstOrDefault(img => img.Id == imageId);
+            if (targetImage == null)
+            {
+                return this.NotFound();
+            }
+
+            foreach (var img in vehicle.Images)
+            {
+                img.IsPrimary = false;
+            }
+
+            targetImage.IsPrimary = true;
+
+            await this._context.SaveChangesAsync();
+
+            return this.NoContent();
+        }
+
         private bool VehicleExists(int id)
         {
             return this._context.Vehicles.Any(e => e.Id == id);
