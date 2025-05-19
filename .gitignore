@@ -74,3 +74,9 @@ repomix-output.*
 
 # Protect API key
 *.env
+
+# Azurite local storage emulator files
+__azurite_db_*.json
+__blobstorage__/
+AzuriteConfig
+*.lock # Azurite sometimes creates lock files

@@ -182,26 +182,36 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        logger.LogInformation("Applying database migrations...");
-        context.Database.Migrate();
+        // Only migrate if we're using a relational database (not in-memory testing)
+        if (context.Database.IsRelational())
+        {
+            logger.LogInformation("Applying database migrations...");
+            context.Database.Migrate();
 
-        logger.LogInformation("Seeding vehicles...");
-        var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
-        vehicleSeeder.SeedVehicles(services);
+            logger.LogInformation("Seeding vehicles...");
+            var vehicleSeeder = services.GetRequiredService<VehicleSeeder>();
+            vehicleSeeder.SeedVehicles(services);
 
-        logger.LogInformation("Seeding admin user/roles...");
-        var userRoleSeeder = services.GetRequiredService<UserRoleSeeder>();
-        await userRoleSeeder.SeedAdminUserAsync(services);
+            logger.LogInformation("Seeding admin user/roles...");
+            var userRoleSeeder = services.GetRequiredService<UserRoleSeeder>();
+            await userRoleSeeder.SeedAdminUserAsync(services);
 
-        logger.LogInformation("Database seeding/migration check completed.");
+            logger.LogInformation("Database seeding/migration check completed.");
+        }
+        else
+        {
+            logger.LogInformation("Skipping migrations for non-relational database");
+        }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred during database seeding/migration.");
         throw; // Azure SQL migration debug info
-
-        // Consider re-throwing or shutting down if seeding is critical
     }
 }
 
 app.Run();
+
+public partial class Program
+{
+}
