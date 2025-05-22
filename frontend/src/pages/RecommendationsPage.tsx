@@ -1,9 +1,36 @@
-import { useContext, useState } from 'react';
+/**
+ * @file RecommendationsPage.tsx
+ * @summary Provides the `RecommendationsPage` component, which displays personalized vehicle recommendations and an AI assistant chat interface.
+ *
+ * @description The `RecommendationsPage` component allows authenticated users to view personalized vehicle recommendations based on their preferences.
+ * It includes two main tabs: one for viewing recommendations and another for interacting with an AI assistant via a chat interface. The component fetches
+ * recommendations from the backend and updates the UI dynamically based on user interactions. It also includes a floating chat widget for quick access
+ * to the AI assistant.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Tabs`, and `Grid`.
+ * - React Router is used for navigation, enabling redirection for unauthenticated users.
+ * - The `AuthContext` is used to check the user's authentication status.
+ * - The `VehicleRecommendations` and `ChatInterface` components are used to display recommendations and provide AI assistant functionality, respectively.
+ * - Error handling is implemented to gracefully handle API failures and display fallback content.
+ *
+ * @dependencies
+ * - React: `useState`, `useContext` for managing state and accessing the authentication context.
+ * - Material-UI: Components for layout, styling, and animations.
+ * - React Router: `Navigate` for redirection.
+ * - `AuthContext`: For managing user authentication and access control.
+ * - `VehicleRecommendations`: A reusable component for displaying vehicle recommendations.
+ * - `ChatInterface`: A reusable component for interacting with the AI assistant.
+ *
+ * @example
+ * <RecommendationsPage />
+ */
+
+import { JSX, useContext, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import VehicleRecommendations from '../components/vehicles/VehicleRecommendations';
 import ChatInterface from '../components/chat/ChatInterface';
-// Import Material-UI components
 import {
   Paper,
   Typography,
@@ -27,7 +54,22 @@ import ChatIcon from '@mui/icons-material/Chat';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { Vehicle, RecommendationParameters } from '../types/models';
 
-const RecommendationsPage = () => {
+/**
+ * @function RecommendationsPage
+ * @summary Renders the recommendations page, providing personalized vehicle recommendations and an AI assistant chat interface.
+ *
+ * @returns {JSX.Element} The rendered recommendations page component.
+ *
+ * @remarks
+ * - The component includes two main tabs: "Recommendations" for viewing vehicle recommendations and "AI Assistant" for interacting with the chat assistant.
+ * - It dynamically updates the recommendations based on user interactions with the AI assistant.
+ * - A floating chat widget provides quick access to the AI assistant, with a badge indicating new recommendations.
+ * - If the user is not authenticated, they are redirected to the login page.
+ *
+ * @example
+ * <RecommendationsPage />
+ */
+const RecommendationsPage = (): JSX.Element => {
   const theme = useTheme();
   const { isAuthenticated, loading } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState<'recommendations' | 'assistant'>(
@@ -38,10 +80,8 @@ const RecommendationsPage = () => {
   const [isChatMinimized, setIsChatMinimized] = useState(true);
   const [newRecommendationsFlag, setNewRecommendationsFlag] = useState(false);
   const [showChatBadge, setShowChatBadge] = useState(false);
-  const [isLoadingRecommendations /*, setIsLoadingRecommendations*/] =
-    useState(false);
+  const [isLoadingRecommendations] = useState(false);
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
@@ -52,12 +92,21 @@ const RecommendationsPage = () => {
     );
   }
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: '/recommendations' }} />;
   }
 
-  // Handle recommendations update from chat
+  /**
+   * @function handleRecommendationsUpdate
+   * @summary Updates the recommendations and parameters based on AI assistant interactions.
+   *
+   * @param {Vehicle[]} vehicles - The updated list of recommended vehicles.
+   * @param {RecommendationParameters} newParams - The updated recommendation parameters.
+   *
+   * @remarks
+   * - This function is triggered when the AI assistant provides new recommendations.
+   * - It sets a flag to trigger a visual animation and updates the badge on the chat widget.
+   */
   const handleRecommendationsUpdate = (
     vehicles: Vehicle[],
     newParams: RecommendationParameters
@@ -68,25 +117,27 @@ const RecommendationsPage = () => {
     setRecommendedVehicles(vehicles);
     setParameters(newParams);
 
-    // Set flag for animation
     setNewRecommendationsFlag(true);
 
-    // Show badge on minimized chat to indicate new recommendations
     if (isChatMinimized) {
       setShowChatBadge(true);
     }
 
-    // Reset flag after animation completes
     setTimeout(() => {
       setNewRecommendationsFlag(false);
     }, 2000);
   };
 
-  // Toggle chat minimized state
+  /**
+   * @function toggleChat
+   * @summary Toggles the minimized state of the chat widget.
+   *
+   * @remarks
+   * - When the chat widget is minimized, the badge indicating new recommendations is cleared.
+   */
   const toggleChat = () => {
     setIsChatMinimized(!isChatMinimized);
     if (!isChatMinimized) {
-      // When minimizing, clear any badge notification
       setShowChatBadge(false);
     }
   };
@@ -94,7 +145,7 @@ const RecommendationsPage = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4, pb: { xs: 24, md: 20 } }}>
       <Grid container spacing={3}>
-        {/* Page Header - Full width */}
+        {/* Page Header */}
         <Grid item xs={12}>
           <Stack spacing={2}>
             <Typography variant="h3" component="h1" fontWeight="bold">
@@ -108,7 +159,7 @@ const RecommendationsPage = () => {
           </Stack>
         </Grid>
 
-        {/* Tabs Navigation - Full width */}
+        {/* Tabs Navigation */}
         <Grid item xs={12}>
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
             <Tabs
@@ -135,9 +186,8 @@ const RecommendationsPage = () => {
           </Box>
         </Grid>
 
-        {/* Main Content Area - Full width */}
+        {/* Main Content Area */}
         <Grid item xs={12}>
-          {/* Background effect for new recommendations */}
           <Fade in={newRecommendationsFlag}>
             <Box
               sx={{
@@ -192,7 +242,7 @@ const RecommendationsPage = () => {
           </Paper>
         </Grid>
 
-        {/* Assistant Promo - Shown conditionally */}
+        {/* Assistant Promo */}
         {activeTab === 'recommendations' &&
           recommendedVehicles.length === 0 && (
             <Grid item xs={12}>
@@ -215,7 +265,7 @@ const RecommendationsPage = () => {
           )}
       </Grid>
 
-      {/* Chat Widget - Fixed position */}
+      {/* Chat Widget */}
       {activeTab === 'recommendations' && (
         <Paper
           elevation={4}

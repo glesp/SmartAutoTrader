@@ -1,4 +1,34 @@
-import { useState, useRef, useEffect, useContext, useCallback } from 'react';
+/**
+ * @file ChatInterface.tsx
+ * @summary This file defines the `ChatInterface` React component, which serves as the main chat interface for the Smart Auto Assistant frontend.
+ *
+ * @description The `ChatInterface` component provides a conversational interface for users to interact with an AI-powered assistant.
+ * It supports features such as starting new conversations, loading conversation history, sending and receiving messages,
+ * and displaying vehicle recommendations based on user queries.
+ *
+ * @remarks
+ * - The component uses Material-UI for styling and UI components.
+ * - It relies on a `chatService` module for backend communication and an `AuthContext` for authentication tokens.
+ * - The component manages its state using React hooks (`useState`, `useEffect`, `useCallback`, etc.).
+ * - Scroll behavior, message rendering, and conversation management are handled dynamically based on user interactions.
+ *
+ * @dependencies
+ * - React hooks: `useState`, `useRef`, `useEffect`, `useContext`, `useCallback`
+ * - Material-UI components: `Box`, `TextField`, `Typography`, `Paper`, `CircularProgress`, `Button`, `Menu`, `MenuItem`, etc.
+ * - Icons: `SendIcon`, `ChatIcon`, `AddIcon`, `HistoryIcon`
+ * - Context: `AuthContext` for authentication
+ * - Services: `chatService` for backend API calls
+ * - Types: `Vehicle`, `RecommendationParameters`, `ChatResponse`, `ConversationInfo`, `ChatHistoryItem`, `ConversationResponse`
+ */
+
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useContext,
+  useCallback,
+  JSX,
+} from 'react'; // Import React for JSX support
 // Removed: import axios from 'axios'; // No longer needed for direct calls
 import { AuthContext } from '../../contexts/AuthContext';
 import { Vehicle, RecommendationParameters } from '../../types/models';
@@ -87,7 +117,24 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-const ChatInterface = ({ onRecommendationsUpdated }: ChatInterfaceProps) => {
+/**
+ * @function ChatInterface
+ * @summary The main chat interface component for the Smart Auto Assistant.
+ *
+ * @param {ChatInterfaceProps} props - The props for the component.
+ * @returns {JSX.Element} The rendered chat interface.
+ *
+ * @remarks
+ * - This component manages the state of the chat, including messages, conversations, and user input.
+ * - It interacts with the backend via the `chatService` module to fetch conversations, send messages, and receive responses.
+ * - The component dynamically updates the UI based on the state and user interactions.
+ *
+ * @example
+ * <ChatInterface onRecommendationsUpdated={(vehicles, params) => console.log(vehicles, params)} />
+ */
+const ChatInterface = ({
+  onRecommendationsUpdated,
+}: ChatInterfaceProps): JSX.Element => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);

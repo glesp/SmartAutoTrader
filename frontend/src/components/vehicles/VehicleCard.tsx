@@ -1,3 +1,23 @@
+/**
+ * @file VehicleCard.tsx
+ * @summary Defines the `VehicleCard` component, which displays a card representation of a vehicle with its details.
+ *
+ * @description The `VehicleCard` component is a reusable UI element that displays information about a vehicle, including its image, make, model, year, price, mileage, and fuel type.
+ * It also provides an "Edit" button for admin users to navigate to the vehicle editing page. The component is styled using Material-UI and is designed to be responsive and visually appealing.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including `Card` and `Button` components.
+ * - React Router is used for navigation, enabling seamless routing to vehicle details or editing pages.
+ * - The `AuthContext` is used to determine the user's role and conditionally render admin-specific actions.
+ * - The component handles edge cases such as missing images or invalid fuel type values gracefully.
+ *
+ * @dependencies
+ * - Material-UI components: `Card`, `Button`
+ * - Material-UI icons: `EditIcon`
+ * - React Router: `Link`, `useNavigate` for navigation
+ * - Context: `AuthContext` for user authentication and role management
+ */
+
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { VehicleProps } from '../../types/models';
@@ -6,13 +26,34 @@ import Button from '@mui/material/Button';
 import EditIcon from '@mui/icons-material/Edit';
 import { AuthContext } from '../../contexts/AuthContext';
 
-// Define image type to avoid type errors
+/**
+ * @interface VehicleImage
+ * @summary Represents an image associated with a vehicle.
+ *
+ * @property {string} imageUrl - The URL of the image.
+ * @property {boolean} isPrimary - Indicates whether the image is the primary image for the vehicle.
+ */
 interface VehicleImage {
   imageUrl: string;
   isPrimary: boolean;
 }
 
-// Helper function to extract arrays from ASP.NET response format
+/**
+ * @function extractArray
+ * @summary Extracts an array from various possible ASP.NET response formats.
+ *
+ * @template T
+ * @param {T[] | { $values: T[] } | undefined | Record<string, unknown>} data - The data to extract the array from.
+ * @returns {T[]} The extracted array.
+ *
+ * @remarks
+ * - This function handles different formats of array-like data, including ASP.NET's `$values` format.
+ * - If the input is undefined or not an array, it returns an empty array.
+ *
+ * @example
+ * const data = { $values: [1, 2, 3] };
+ * const result = extractArray(data); // [1, 2, 3]
+ */
 const extractArray = <T,>(
   data: T[] | { $values: T[] } | undefined | Record<string, unknown>
 ): T[] => {
@@ -23,7 +64,20 @@ const extractArray = <T,>(
   return [];
 };
 
-// Map fuel type numbers to strings
+/**
+ * @function getFuelTypeName
+ * @summary Maps a fuel type number or string to its corresponding name.
+ *
+ * @param {number | string | undefined} fuelType - The fuel type to map.
+ * @returns {string} The name of the fuel type, or "Unknown" if the value is invalid.
+ *
+ * @remarks
+ * - This function supports both numeric and string representations of fuel types.
+ * - If the input is undefined or invalid, it returns an empty string or "Unknown".
+ *
+ * @example
+ * const fuelTypeName = getFuelTypeName(2); // "Electric"
+ */
 const getFuelTypeName = (fuelType?: number | string): string => {
   if (!fuelType) return '';
   if (typeof fuelType === 'string') return fuelType;
@@ -38,12 +92,36 @@ const getFuelTypeName = (fuelType?: number | string): string => {
   return fuelTypes[fuelType] || 'Unknown';
 };
 
+/**
+ * @function VehicleCard
+ * @summary Renders a card displaying details of a vehicle.
+ *
+ * @param {VehicleProps} props - The props for the component, including the `vehicle` object.
+ * @returns {JSX.Element} The rendered vehicle card component.
+ *
+ * @remarks
+ * - The card includes an image, make, model, year, price, mileage, and fuel type of the vehicle.
+ * - Admin users see an "Edit" button that navigates to the vehicle editing page.
+ * - The component gracefully handles missing images and invalid data.
+ *
+ * @example
+ * <VehicleCard vehicle={{ id: 1, make: 'Toyota', model: 'Corolla', year: 2020, price: 20000, mileage: 15000, fuelType: 0, images: [] }} />
+ */
 const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Get primary image URL
-  const getImageUrl = () => {
+  /**
+   * @function getImageUrl
+   * @summary Retrieves the URL of the primary image for the vehicle.
+   *
+   * @returns {string} The URL of the primary image, or a placeholder URL if no valid image is found.
+   *
+   * @remarks
+   * - If the vehicle has no images, a placeholder image is used.
+   * - If no primary image is found, the first image in the list is used as a fallback.
+   */
+  const getImageUrl = (): string => {
     const images = extractArray<VehicleImage>(vehicle.images);
 
     if (!images || images.length === 0) {
@@ -60,7 +138,18 @@ const VehicleCard: React.FC<VehicleProps> = ({ vehicle }) => {
     return '/images/placeholder.jpg'; // Fallback placeholder if no valid URL found
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
+  /**
+   * @function handleEdit
+   * @summary Handles the "Edit" button click for admin users.
+   *
+   * @param {React.MouseEvent} e - The mouse event triggered by the button click.
+   * @returns {void}
+   *
+   * @remarks
+   * - Prevents the default link navigation behavior and stops event propagation.
+   * - Navigates to the vehicle editing page.
+   */
+  const handleEdit = (e: React.MouseEvent): void => {
     e.preventDefault(); // Prevent link navigation if button is inside Link
     e.stopPropagation(); // Prevent link navigation
     navigate(`/admin/vehicles/edit/${vehicle.id}`);

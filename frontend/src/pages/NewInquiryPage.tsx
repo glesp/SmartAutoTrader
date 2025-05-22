@@ -1,4 +1,37 @@
-import { useState, useEffect, useContext, ChangeEvent, FormEvent } from 'react';
+/**
+ * @file NewInquiryPage.tsx
+ * @summary Provides the `NewInquiryPage` component, which allows users to send inquiries about specific vehicles.
+ *
+ * @description The `NewInquiryPage` component renders a form for users to submit inquiries about a specific vehicle.
+ * It fetches vehicle details based on the `vehicleId` query parameter, validates the form inputs, and sends the inquiry to the backend API.
+ * The component ensures that only authenticated users can access the page and redirects unauthenticated users to the login page.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `TextField`, and `Button`.
+ * - React Router is used for navigation, enabling redirection to the login page for unauthenticated users and navigation after successful inquiry submission.
+ * - The `AuthContext` is used to check the user's authentication status.
+ * - Error handling is implemented to display appropriate messages for missing vehicle details, invalid form inputs, or failed API requests.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect`, `useContext` for managing state and accessing the authentication context.
+ * - Material-UI: Components for layout, styling, and form controls.
+ * - React Router: `useNavigate`, `useSearchParams`, `Link` for navigation and query parameter handling.
+ * - `AuthContext`: For managing user authentication and access control.
+ * - `inquiryService`: For sending inquiries to the backend API.
+ * - `vehicleService`: For fetching vehicle details from the backend API.
+ *
+ * @example
+ * <NewInquiryPage />
+ */
+
+import {
+  useState,
+  useEffect,
+  useContext,
+  ChangeEvent,
+  FormEvent,
+  JSX,
+} from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { inquiryService, vehicleService } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -15,12 +48,34 @@ import {
 } from '@mui/material';
 import { Vehicle } from '../types/models';
 
+/**
+ * @interface FormData
+ * @summary Represents the structure of the inquiry form data.
+ *
+ * @property {string} subject - The subject of the inquiry.
+ * @property {string} message - The message content of the inquiry.
+ */
 interface FormData {
   subject: string;
   message: string;
 }
 
-const NewInquiryPage = () => {
+/**
+ * @function NewInquiryPage
+ * @summary Renders the page for submitting a new inquiry about a specific vehicle.
+ *
+ * @returns {JSX.Element} The rendered new inquiry page component.
+ *
+ * @remarks
+ * - The component fetches vehicle details based on the `vehicleId` query parameter and displays them at the top of the form.
+ * - It validates the form inputs and ensures that all required fields are filled before submission.
+ * - If the user is not authenticated, they are redirected to the login page with the intended destination preserved in the state.
+ * - Upon successful submission, the user is redirected to their profile page with a success message.
+ *
+ * @example
+ * <NewInquiryPage />
+ */
+const NewInquiryPage = (): JSX.Element => {
   const [searchParams] = useSearchParams();
   const vehicleId = searchParams.get('vehicleId');
   const navigate = useNavigate();
@@ -42,6 +97,12 @@ const NewInquiryPage = () => {
       return;
     }
 
+    /**
+     * @function fetchVehicle
+     * @summary Fetches the details of the vehicle associated with the inquiry.
+     *
+     * @throws Will set an error message if the vehicle details cannot be fetched.
+     */
     const fetchVehicle = async () => {
       try {
         const data = await vehicleService.getVehicle(parseInt(vehicleId));
@@ -66,6 +127,12 @@ const NewInquiryPage = () => {
     }
   }, [isAuthenticated, authLoading, navigate, vehicleId]);
 
+  /**
+   * @function handleChange
+   * @summary Handles changes to the form input fields.
+   *
+   * @param {ChangeEvent<HTMLInputElement | HTMLTextAreaElement>} e - The change event triggered by the input field.
+   */
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -73,6 +140,18 @@ const NewInquiryPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * @function handleSubmit
+   * @summary Handles the form submission for sending an inquiry.
+   *
+   * @param {FormEvent<HTMLFormElement>} e - The form submission event.
+   *
+   * @throws Will set an error message if the form inputs are invalid or the API request fails.
+   *
+   * @remarks
+   * - The function validates the form inputs and ensures that the `vehicleId` is present.
+   * - Upon successful submission, the user is redirected to their profile page with a success message.
+   */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 

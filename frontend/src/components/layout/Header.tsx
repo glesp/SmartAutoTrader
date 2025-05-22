@@ -1,5 +1,26 @@
+/**
+ * @file Header.tsx
+ * @summary Defines the `Header` component, which serves as the header and navigation bar for the Smart Auto Trader application.
+ *
+ * @description The `Header` component provides a responsive navigation bar that includes links to various sections of the application,
+ * user authentication actions (login, logout, register), and admin-specific actions. It adapts to different screen sizes by displaying
+ * a drawer-based menu on mobile devices and a horizontal menu on larger screens.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including `AppBar`, `Toolbar`, `Drawer`, and other components.
+ * - React Router is used for navigation, enabling seamless routing between different pages.
+ * - The `AuthContext` is used to manage user authentication state and roles.
+ * - The component dynamically adjusts its layout and available options based on the user's authentication status and roles.
+ *
+ * @dependencies
+ * - Material-UI components: `AppBar`, `Toolbar`, `Drawer`, `Button`, `Typography`, `IconButton`, `List`, `ListItem`, etc.
+ * - Material-UI icons: `MenuIcon`, `HomeIcon`, `CarIcon`, `PersonIcon`, `LogoutIcon`, `StarIcon`, `AdminPanelSettingsIcon`, etc.
+ * - React Router: `Link` and `useNavigate` for navigation.
+ * - Context: `AuthContext` for authentication state.
+ */
+
 import { AuthContext } from '../../contexts/AuthContext';
-import { useContext, useState } from 'react';
+import { JSX, useContext, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   AppBar,
@@ -30,28 +51,75 @@ import {
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
-const Header = () => {
+/**
+ * @function Header
+ * @summary Renders the header and navigation bar for the Smart Auto Trader application.
+ *
+ * @returns {JSX.Element} The rendered header component.
+ *
+ * @remarks
+ * - The header includes a logo, navigation links, and user-specific actions (e.g., login, logout, profile).
+ * - On mobile devices, a drawer-based menu is used for navigation.
+ * - Admin-specific actions are conditionally displayed based on the user's roles.
+ * - The component uses the `AuthContext` to determine the user's authentication state and roles.
+ *
+ * @example
+ * <Header />
+ */
+const Header = (): JSX.Element => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleLogout = () => {
+  /**
+   * @function handleLogout
+   * @summary Logs the user out and navigates to the home page.
+   *
+   * @returns {void}
+   *
+   * @remarks
+   * - This function calls the `logout` method from the `AuthContext` to clear the user's session.
+   * - It also closes the navigation drawer if it is open.
+   */
+  const handleLogout = (): void => {
     logout();
     navigate('/');
     setDrawerOpen(false);
   };
 
-  const toggleDrawer = (open: boolean) => () => {
+  /**
+   * @function toggleDrawer
+   * @summary Toggles the state of the navigation drawer.
+   *
+   * @param {boolean} open - Whether the drawer should be opened or closed.
+   * @returns {() => void} A function to toggle the drawer state.
+   */
+  const toggleDrawer = (open: boolean) => (): void => {
     setDrawerOpen(open);
   };
 
-  const handleNavigation = (path: string) => {
+  /**
+   * @function handleNavigation
+   * @summary Navigates to a specified path and closes the drawer.
+   *
+   * @param {string} path - The path to navigate to.
+   * @returns {void}
+   */
+  const handleNavigation = (path: string): void => {
     navigate(path);
     setDrawerOpen(false);
   };
 
+  /**
+   * @constant drawerContent
+   * @summary Defines the content of the navigation drawer for mobile devices.
+   *
+   * @remarks
+   * - The drawer includes links to various sections of the application.
+   * - Links are conditionally rendered based on the user's authentication state and roles.
+   */
   const drawerContent = (
     <Box
       sx={{ width: 250 }}
@@ -107,34 +175,30 @@ const Header = () => {
               </ListItemButton>
             </ListItem>
             {/* Mobile navigation items */}
-            {isAuthenticated &&
-              user &&
-              user.roles &&
-              user.roles.includes('Admin') && (
-                <>
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      onClick={() => handleNavigation('/admin/vehicles/create')}
-                    >
-                      <ListItemIcon>
-                        <AddCircleOutlineIcon /> {/* Or your preferred icon */}
-                      </ListItemIcon>
-                      <ListItemText primary="Create Vehicle" />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                    <ListItemButton
-                      onClick={() => handleNavigation('/admin/inquiries')}
-                    >
-                      <ListItemIcon>
-                        <AdminPanelSettingsIcon />{' '}
-                        {/* Or your preferred icon */}
-                      </ListItemIcon>
-                      <ListItemText primary="Admin Inquiries" />
-                    </ListItemButton>
-                  </ListItem>
-                </>
-              )}
+            {user?.roles?.includes('Admin') && (
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleNavigation('/admin/vehicles/create')}
+                  >
+                    <ListItemIcon>
+                      <AddCircleOutlineIcon /> {/* Or your preferred icon */}
+                    </ListItemIcon>
+                    <ListItemText primary="Create Vehicle" />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleNavigation('/admin/inquiries')}
+                  >
+                    <ListItemIcon>
+                      <AdminPanelSettingsIcon /> {/* Or your preferred icon */}
+                    </ListItemIcon>
+                    <ListItemText primary="Admin Inquiries" />
+                  </ListItemButton>
+                </ListItem>
+              </>
+            )}
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout}>
                 <ListItemIcon>
@@ -230,7 +294,7 @@ const Header = () => {
                 >
                   Your Recommendations
                 </Button>
-                {user.roles && user.roles.includes('Admin') && (
+                {user.roles?.includes('Admin') && (
                   <>
                     <Button
                       component={RouterLink}

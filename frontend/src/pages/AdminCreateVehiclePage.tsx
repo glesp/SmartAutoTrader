@@ -1,3 +1,29 @@
+/**
+ * @file AdminCreateVehiclePage.tsx
+ * @summary Provides the `AdminCreateVehiclePage` component, which allows administrators to create new vehicle listings.
+ *
+ * @description The `AdminCreateVehiclePage` component is a form-based interface for administrators to create new vehicle listings.
+ * It includes fields for vehicle details such as make, model, year, price, mileage, fuel type, transmission, and more.
+ * The component also supports image uploads, feature management, and form validation. It interacts with the backend API to create vehicles
+ * and upload images, and it handles error and success states gracefully.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `TextField`, `Select`, and `Button`.
+ * - React Router is used for navigation, enabling redirection based on user roles and authentication status.
+ * - The `AuthContext` is used to determine if the user is authenticated and has the required admin role.
+ * - The component includes extensive form validation and error handling to ensure data integrity.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect`, `useContext` for managing state and side effects.
+ * - Material-UI: Components for layout, styling, and form controls.
+ * - React Router: `useNavigate`, `Navigate` for navigation and redirection.
+ * - `AuthContext`: For managing user authentication and role-based access control.
+ * - `vehicleService`: For interacting with the backend API to create vehicles and upload images.
+ *
+ * @example
+ * <AdminCreateVehiclePage />
+ */
+
 import React, {
   useState,
   useEffect,
@@ -21,7 +47,7 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  SelectChangeEvent, // Import SelectChangeEvent
+  SelectChangeEvent,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { AuthContext } from '../contexts/AuthContext';
@@ -30,8 +56,12 @@ import {
   VehicleCreatePayload,
   VehicleFeaturePayload,
 } from '../services/api';
-import { Vehicle } from '../types/models'; // Your existing frontend Vehicle model
+import { Vehicle } from '../types/models';
 
+/**
+ * @enum FuelTypeFrontend
+ * @summary Enum for fuel types used in the frontend.
+ */
 enum FuelTypeFrontend {
   Petrol = 'Petrol',
   Diesel = 'Diesel',
@@ -39,11 +69,21 @@ enum FuelTypeFrontend {
   Hybrid = 'Hybrid',
   PluginHybrid = 'PluginHybrid',
 }
+
+/**
+ * @enum TransmissionTypeFrontend
+ * @summary Enum for transmission types used in the frontend.
+ */
 enum TransmissionTypeFrontend {
   Manual = 'Manual',
   Automatic = 'Automatic',
   SemiAutomatic = 'SemiAutomatic',
 }
+
+/**
+ * @enum VehicleTypeFrontend
+ * @summary Enum for vehicle types used in the frontend.
+ */
 enum VehicleTypeFrontend {
   Sedan = 'Sedan',
   SUV = 'SUV',
@@ -55,10 +95,29 @@ enum VehicleTypeFrontend {
   Van = 'Van',
 }
 
+/**
+ * @function AdminCreateVehiclePage
+ * @summary Renders a page for administrators to create new vehicle listings.
+ *
+ * @returns {JSX.Element} The rendered admin create vehicle page component.
+ *
+ * @remarks
+ * - The component includes form fields for vehicle details, image uploads, and feature management.
+ * - It validates form inputs and displays error messages for invalid fields.
+ * - The component interacts with the backend API to create vehicles and upload images.
+ * - Only users with the "Admin" role can access this page.
+ *
+ * @example
+ * <AdminCreateVehiclePage />
+ */
 const AdminCreateVehiclePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useContext(AuthContext);
 
+  /**
+   * @constant initialFormData
+   * @summary The initial state for the vehicle creation form.
+   */
   const initialFormData: VehicleCreatePayload = {
     make: '',
     model: '',
@@ -100,6 +159,12 @@ const AdminCreateVehiclePage: React.FC = () => {
     };
   }, [imagePreviews]);
 
+  /**
+   * @function handleChange
+   * @summary Handles changes to form input fields.
+   *
+   * @param {ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }>} e - The change event.
+   */
   const handleChange = (
     e: ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
@@ -115,17 +180,29 @@ const AdminCreateVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleSelectChange
+   * @summary Handles changes to select dropdown fields.
+   *
+   * @param {SelectChangeEvent<string>} e - The select change event.
+   * @param {keyof VehicleCreatePayload} fieldName - The name of the field being updated.
+   */
   const handleSelectChange = (
     e: SelectChangeEvent<string>,
     fieldName: keyof VehicleCreatePayload
   ) => {
-    // Changed type of 'e' here
     setFormData((prev) => ({ ...prev, [fieldName]: e.target.value as string }));
     if (fieldErrors[fieldName]) {
       setFieldErrors((prev) => ({ ...prev, [fieldName]: undefined }));
     }
   };
 
+  /**
+   * @function handleFeatureInputChange
+   * @summary Handles changes to the features input field.
+   *
+   * @param {ChangeEvent<HTMLInputElement>} e - The change event.
+   */
   const handleFeatureInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFeaturesInput(e.target.value);
     if (fieldErrors.features) {
@@ -133,6 +210,12 @@ const AdminCreateVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleFileChange
+   * @summary Handles file selection for image uploads.
+   *
+   * @param {ChangeEvent<HTMLInputElement>} e - The file input change event.
+   */
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -146,6 +229,12 @@ const AdminCreateVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleRemoveImage
+   * @summary Removes an image from the selected files and previews.
+   *
+   * @param {number} index - The index of the image to remove.
+   */
   const handleRemoveImage = (index: number) => {
     URL.revokeObjectURL(imagePreviews[index]);
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
@@ -336,13 +425,18 @@ const AdminCreateVehiclePage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * @function handleSubmit
+   * @summary Handles form submission to create a new vehicle.
+   *
+   * @param {FormEvent<HTMLFormElement>} e - The form submission event.
+   */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
 
     if (!validateForm()) {
-      // Call the new validateForm
       setError('Please correct the errors in the form.');
       return;
     }
@@ -471,7 +565,7 @@ const AdminCreateVehiclePage: React.FC = () => {
     );
   }
   if (user?.role !== 'Admin') {
-    return <Navigate to="/" />; // Or a dedicated "Access Denied" page
+    return <Navigate to="/" />;
   }
 
   return (

@@ -1,3 +1,28 @@
+/**
+ * @file AdminEditVehiclePage.tsx
+ * @summary Provides the `AdminEditVehiclePage` component, which allows administrators to edit existing vehicle listings.
+ *
+ * @description The `AdminEditVehiclePage` component is a form-based interface for administrators to update vehicle details, manage images, and modify features.
+ * It fetches the existing vehicle data from the backend, pre-fills the form fields, and allows administrators to make changes. The component also supports image uploads,
+ * deletion, and setting a primary image. It includes extensive form validation and error handling to ensure data integrity.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `TextField`, `Select`, and `Button`.
+ * - React Router is used for navigation, enabling redirection based on user roles and authentication status.
+ * - The `AuthContext` is used to determine if the user is authenticated and has the required admin role.
+ * - The component includes image management features such as uploading, deleting, and setting a primary image.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect`, `useContext`, `useRef` for managing state and side effects.
+ * - Material-UI: Components for layout, styling, and form controls.
+ * - React Router: `useNavigate`, `useParams`, `Navigate` for navigation and redirection.
+ * - `AuthContext`: For managing user authentication and role-based access control.
+ * - `vehicleService`: For interacting with the backend API to fetch, update, and manage vehicle data and images.
+ *
+ * @example
+ * <AdminEditVehiclePage />
+ */
+
 import React, {
   useState,
   useEffect,
@@ -45,7 +70,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import StarIcon from '@mui/icons-material/Star';
 
-// Enums definitions unchanged...
+/**
+ * @enum FuelTypeFrontend
+ * @summary Enum for fuel types used in the frontend.
+ */
 enum FuelTypeFrontend {
   Petrol = 'Petrol',
   Diesel = 'Diesel',
@@ -54,12 +82,20 @@ enum FuelTypeFrontend {
   PluginHybrid = 'PluginHybrid',
 }
 
+/**
+ * @enum TransmissionTypeFrontend
+ * @summary Enum for transmission types used in the frontend.
+ */
 enum TransmissionTypeFrontend {
   Manual = 'Manual',
   Automatic = 'Automatic',
   SemiAutomatic = 'SemiAutomatic',
 }
 
+/**
+ * @enum VehicleTypeFrontend
+ * @summary Enum for vehicle types used in the frontend.
+ */
 enum VehicleTypeFrontend {
   Sedan = 'Sedan',
   SUV = 'SUV',
@@ -71,18 +107,44 @@ enum VehicleTypeFrontend {
   Van = 'Van',
 }
 
+/**
+ * @function getFullImageUrl
+ * @summary Constructs the full URL for a vehicle image.
+ *
+ * @param {string | undefined} imagePath - The relative path of the image.
+ * @returns {string} The full URL of the image, or a placeholder URL if the path is undefined.
+ *
+ * @example
+ * const imageUrl = getFullImageUrl('/images/vehicle.jpg');
+ * console.log(imageUrl); // Outputs the full URL
+ */
 const getFullImageUrl = (imagePath?: string): string => {
   if (!imagePath) return '/images/placeholder.jpg';
   return imagePath;
 };
 
+/**
+ * @function AdminEditVehiclePage
+ * @summary Renders a page for administrators to edit existing vehicle listings.
+ *
+ * @returns {JSX.Element} The rendered admin edit vehicle page component.
+ *
+ * @remarks
+ * - The component fetches the existing vehicle data and pre-fills the form fields.
+ * - It includes features for managing images, such as uploading, deleting, and setting a primary image.
+ * - Extensive form validation ensures that all required fields are filled correctly.
+ * - Only users with the "Admin" role can access this page.
+ *
+ * @example
+ * <AdminEditVehiclePage />
+ */
 const AdminEditVehiclePage: React.FC = () => {
   const { vehicleId } = useParams<{ vehicleId: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useContext(AuthContext);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Existing state variables
+  // State variables for form data, images, and error handling
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
   const [formData, setFormData] = useState<UpdateVehiclePayload | null>(null);
   const [featuresInput, setFeaturesInput] = useState<string>('');
@@ -92,8 +154,6 @@ const AdminEditVehiclePage: React.FC = () => {
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<keyof UpdateVehiclePayload | 'features' | 'images', string>>
   >({});
-
-  // Add new state variables for image management
   const [existingImages, setExistingImages] = useState<
     Array<{ id: number; imageUrl: string; isPrimary: boolean }>
   >([]);
@@ -163,7 +223,12 @@ const AdminEditVehiclePage: React.FC = () => {
     fetchVehicleData();
   }, [vehicleId]);
 
-  // Existing handlers
+  /**
+   * @function handleChange
+   * @summary Handles changes to form input fields.
+   *
+   * @param {ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }>} e - The change event.
+   */
   const handleChange = (
     e: ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }
@@ -179,6 +244,13 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleSelectChange
+   * @summary Handles changes to select dropdown fields.
+   *
+   * @param {SelectChangeEvent<string>} e - The select change event.
+   * @param {keyof UpdateVehiclePayload} fieldName - The name of the field being updated.
+   */
   const handleSelectChange = (
     e: SelectChangeEvent<string>,
     fieldName: keyof UpdateVehiclePayload
@@ -191,6 +263,12 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleFeatureInputChange
+   * @summary Handles changes to the features input field.
+   *
+   * @param {ChangeEvent<HTMLInputElement>} e - The change event.
+   */
   const handleFeatureInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFeaturesInput(e.target.value);
     if (fieldErrors.features) {
@@ -198,11 +276,21 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
-  // New image handlers
+  /**
+   * @function handleImageSelect
+   * @summary Triggers the file input click to select an image for upload.
+   */
   const handleImageSelect = () => {
     fileInputRef.current?.click();
   };
 
+  /**
+   * @function handleImageUpload
+   * @summary Handles the upload of new vehicle images.
+   *
+   * @param {React.ChangeEvent<HTMLInputElement>} event - The file input change event.
+   * @throws Will display an error message if the upload fails.
+   */
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -259,6 +347,13 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleDeleteImage
+   * @summary Deletes a vehicle image by its ID.
+   *
+   * @param {number} imageId - The ID of the image to be deleted.
+   * @throws Will display an error message if the deletion fails.
+   */
   const handleDeleteImage = async (imageId: number) => {
     if (!vehicleId) return;
 
@@ -274,6 +369,13 @@ const AdminEditVehiclePage: React.FC = () => {
     }
   };
 
+  /**
+   * @function handleSetPrimaryImage
+   * @summary Sets a vehicle image as the primary image.
+   *
+   * @param {number} imageId - The ID of the image to be set as primary.
+   * @throws Will display an error message if the operation fails.
+   */
   const handleSetPrimaryImage = async (imageId: number) => {
     if (!vehicleId) return;
 
@@ -380,6 +482,13 @@ const AdminEditVehiclePage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * @function handleSubmit
+   * @summary Handles the form submission for updating a vehicle listing.
+   *
+   * @param {FormEvent<HTMLFormElement>} e - The form submit event.
+   * @throws Will display an error message if the submission fails.
+   */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);

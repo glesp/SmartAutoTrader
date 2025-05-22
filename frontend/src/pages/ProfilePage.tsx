@@ -1,10 +1,36 @@
-// src/pages/ProfilePage.tsx
-import { useState, useEffect, useContext } from 'react';
+/**
+ * @file ProfilePage.tsx
+ * @summary Provides the `ProfilePage` component, which displays the user's profile, including their favorite vehicles and inquiries.
+ *
+ * @description The `ProfilePage` component allows authenticated users to view and manage their profile data. It includes two main sections:
+ * a list of favorite vehicles and a list of inquiries sent by the user. The component fetches data from the backend API and displays it in a
+ * tabbed interface. Users can mark inquiries as closed and navigate to other parts of the application.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Tabs`, and `Grid`.
+ * - React Router is used for navigation, enabling redirection for unauthenticated users and navigation to other pages.
+ * - The `AuthContext` is used to check the user's authentication status and retrieve user details.
+ * - The `favoriteService` and `inquiryService` are used to fetch and manage user data from the backend API.
+ * - Error handling is implemented to gracefully handle API failures and display fallback content.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect`, `useContext` for managing state and accessing the authentication context.
+ * - Material-UI: Components for layout, styling, and tabs.
+ * - React Router: `Link`, `Navigate` for navigation and redirection.
+ * - `AuthContext`: For managing user authentication and access control.
+ * - `favoriteService`: For fetching the user's favorite vehicles.
+ * - `inquiryService`: For fetching and managing the user's inquiries.
+ * - `VehicleCard`: A reusable component for displaying individual vehicle details.
+ *
+ * @example
+ * <ProfilePage />
+ */
+
+import { useState, useEffect, useContext, JSX } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import { favoriteService, inquiryService } from '../services/api';
 import VehicleCard from '../components/vehicles/VehicleCard';
-// Add Material UI imports
 import {
   Box,
   Typography,
@@ -16,11 +42,22 @@ import {
   Container,
   Chip,
 } from '@mui/material';
-
-// Import the types from your models file
 import { Vehicle, ReferenceWrapper } from '../types/models';
 
-// Define Inquiry interface
+/**
+ * @interface Inquiry
+ * @summary Represents a user inquiry about a vehicle.
+ *
+ * @property {number} id - The unique identifier for the inquiry.
+ * @property {number} vehicleId - The ID of the vehicle associated with the inquiry.
+ * @property {string} subject - The subject of the inquiry.
+ * @property {string} message - The message content of the inquiry.
+ * @property {string} [response] - The administrator's response to the inquiry.
+ * @property {string} dateSent - The date the inquiry was sent.
+ * @property {string} [dateReplied] - The date the inquiry was replied to.
+ * @property {string} status - The current status of the inquiry (e.g., "New", "Read", "Replied", "Closed").
+ * @property {Vehicle} [vehicle] - The vehicle associated with the inquiry.
+ */
 interface Inquiry {
   id: number;
   vehicleId: number;
@@ -33,10 +70,25 @@ interface Inquiry {
   vehicle?: Vehicle;
 }
 
-// Define what the arrays might look like with ASP.NET serialization
+/**
+ * @typedef SerializedData
+ * @summary Represents data that may be serialized in ASP.NET reference format.
+ *
+ * @template T - The type of the data.
+ */
 type SerializedData<T> = T[] | ReferenceWrapper<T> | undefined | null;
 
-// Helper function to extract arrays from ASP.NET reference format
+/**
+ * @function extractArray
+ * @summary Extracts an array from ASP.NET reference-wrapped data.
+ *
+ * @template T - The type of the data.
+ * @param {SerializedData<T>} data - The serialized data to extract.
+ * @returns {T[]} The extracted array.
+ *
+ * @example
+ * const vehicles = extractArray<Vehicle>(serializedVehicles);
+ */
 const extractArray = <T,>(data: SerializedData<T>): T[] => {
   if (!data) return [];
 
@@ -49,7 +101,22 @@ const extractArray = <T,>(data: SerializedData<T>): T[] => {
   return [];
 };
 
-const ProfilePage = () => {
+/**
+ * @function ProfilePage
+ * @summary Renders the user's profile page, including their favorite vehicles and inquiries.
+ *
+ * @returns {JSX.Element} The rendered profile page component.
+ *
+ * @remarks
+ * - The component includes a tabbed interface for switching between favorite vehicles and inquiries.
+ * - It fetches data from the backend API based on the active tab and displays it in a responsive grid layout.
+ * - Users can mark inquiries as closed and navigate to other parts of the application.
+ * - If the user is not authenticated, they are redirected to the login page.
+ *
+ * @example
+ * <ProfilePage />
+ */
+const ProfilePage = (): JSX.Element => {
   const {
     user,
     isAuthenticated,
@@ -63,6 +130,12 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    /**
+     * @function fetchUserData
+     * @summary Fetches the user's data based on the active tab.
+     *
+     * @throws Will log an error if the API request fails.
+     */
     const fetchUserData = async () => {
       if (!isAuthenticated) return;
 
@@ -86,7 +159,6 @@ const ProfilePage = () => {
     fetchUserData();
   }, [isAuthenticated, activeTab]);
 
-  // Redirect if not authenticated
   if (!authLoading && !isAuthenticated) {
     return <Navigate to="/login" state={{ from: '/profile' }} />;
   }
@@ -95,7 +167,6 @@ const ProfilePage = () => {
     return <div className="text-center py-12">Loading profile...</div>;
   }
 
-  // Extract arrays from potentially reference-wrapped data
   const favoritesArray = extractArray<Vehicle>(favoriteVehicles);
   const inquiriesArray = extractArray<Inquiry>(inquiries);
 
@@ -133,9 +204,8 @@ const ProfilePage = () => {
           />
         </Tabs>
 
-        {/* Tab content - Refactored with Grid */}
+        {/* Tab content */}
         <Box sx={{ p: 3 }}>
-          {/* Favorites tab */}
           {activeTab === 'favorites' && (
             <Grid container spacing={3}>
               {loading ? (
@@ -156,7 +226,6 @@ const ProfilePage = () => {
                   </Box>
                 </Grid>
               ) : (
-                // Use the same responsive sizing as VehicleListingPage
                 favoritesArray.map((vehicle: Vehicle) => (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={vehicle.id}>
                     <VehicleCard vehicle={vehicle} />
@@ -166,7 +235,6 @@ const ProfilePage = () => {
             </Grid>
           )}
 
-          {/* Inquiries tab - Refactored with Grid */}
           {activeTab === 'inquiries' && (
             <Grid container spacing={3}>
               {loading ? (

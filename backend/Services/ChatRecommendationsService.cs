@@ -1069,7 +1069,18 @@ namespace SmartAutoTrader.API.Services
             return clarification.ToString().Trim();
         }
 
-        // Generate a personalized response message based on context
+        /// <summary>
+        /// Generate a response message based on the number of recommendations found and the parameters used.
+        /// </summary>
+        /// <param name="parameters">The parameters used for the recommendation.</param>
+        /// <param name="recommendationCount">The number of recommendations found.</param>
+        /// <param name="context">The conversation context.</param>
+        /// <returns>A string containing the response message.</returns>
+        /// <remarks>
+        /// This method generates a response message based on the number of recommendations found and the parameters used.
+        /// It provides feedback to the user, including suggestions for adjusting their criteria if no recommendations are found.
+        /// It also includes details about the criteria used for the search and contextual messages based on the conversation context.
+        /// </remarks>
         private static string GenerateResponseMessage(
             RecommendationParameters parameters,
             int recommendationCount,
@@ -1080,26 +1091,154 @@ namespace SmartAutoTrader.API.Services
             if (recommendationCount == 0)
             {
                 // No matching vehicles found - create response explaining why
-                _ = response.Append("Unfortunately, I couldn't find any vehicles matching all your criteria. ");
+                response.Append("Unfortunately, I couldn't find any vehicles matching all your criteria. ");
 
-                // Rest of the "no results" code...
+                // Suggest relaxing constraints based on context
+                List<string> suggestions = new List<string>();
+                if (parameters.MinPrice.HasValue || parameters.MaxPrice.HasValue)
+                {
+                    suggestions.Add("broadening your price range");
+                }
+
+                if (parameters.PreferredMakes?.Any() == true && parameters.PreferredMakes.Count < 3)
+                {
+                    suggestions.Add("including more manufacturers");
+                }
+
+                if (parameters.PreferredVehicleTypes?.Any() == true && parameters.PreferredVehicleTypes.Count < 2)
+                {
+                    suggestions.Add("exploring different vehicle types");
+                }
+
+                if (parameters.MinYear.HasValue || parameters.MaxYear.HasValue)
+                {
+                    suggestions.Add("adjusting the year range");
+                }
+
+                if (parameters.MaxMileage.HasValue)
+                {
+                    suggestions.Add("increasing the maximum mileage");
+                }
+
+                if (suggestions.Any())
+                {
+                    response.Append("You might consider ");
+                    for (int i = 0; i < suggestions.Count; i++)
+                    {
+                        response.Append(suggestions[i]);
+                        if (i < suggestions.Count - 2)
+                        {
+                            response.Append(", ");
+                        }
+                        else if (i == suggestions.Count - 2)
+                        {
+                            response.Append(" or ");
+                        }
+                    }
+
+                    response.Append(". ");
+                }
+
+                response.Append("Would you like to adjust your criteria or try something else?");
             }
             else
             {
                 // Vehicles found - create response with appropriate intro based on conversation context
                 if (context.MessageCount > 1)
                 {
-                    _ = response.Append("Based on our conversation, ");
+                    response.Append("Based on our conversation, ");
                 }
                 else
                 {
-                    _ = response.Append("Great! ");
+                    response.Append("Great! ");
                 }
 
-                // Rest of the "vehicles found" code...
+                response.Append($"I found {recommendationCount} vehicle{(recommendationCount > 1 ? "s" : string.Empty)} that match");
+
+                // Add details about the criteria used for search
+                List<string> criteriaDetails = new List<string>();
+
+                if (parameters.PreferredVehicleTypes?.Any() == true)
+                {
+                    criteriaDetails.Add($"of type{(parameters.PreferredVehicleTypes.Count > 1 ? "s" : string.Empty)} {string.Join(", ", parameters.PreferredVehicleTypes)}");
+                }
+
+                if (parameters.PreferredMakes?.Any() == true)
+                {
+                    criteriaDetails.Add($"from {string.Join(", ", parameters.PreferredMakes)}");
+                }
+
+                if (parameters.MinPrice.HasValue && parameters.MaxPrice.HasValue)
+                {
+                    criteriaDetails.Add($"priced between €{parameters.MinPrice:N0} and €{parameters.MaxPrice:N0}");
+                }
+                else if (parameters.MinPrice.HasValue)
+                {
+                    criteriaDetails.Add($"priced above €{parameters.MinPrice:N0}");
+                }
+                else if (parameters.MaxPrice.HasValue)
+                {
+                    criteriaDetails.Add($"priced under €{parameters.MaxPrice:N0}");
+                }
+
+                if (parameters.MinYear.HasValue && parameters.MaxYear.HasValue)
+                {
+                    criteriaDetails.Add($"from {parameters.MinYear} to {parameters.MaxYear}");
+                }
+                else if (parameters.MinYear.HasValue)
+                {
+                    criteriaDetails.Add($"from {parameters.MinYear} onwards");
+                }
+                else if (parameters.MaxYear.HasValue)
+                {
+                    criteriaDetails.Add($"up to {parameters.MaxYear}");
+                }
+
+                if (parameters.MaxMileage.HasValue)
+                {
+                    criteriaDetails.Add($"with mileage up to {parameters.MaxMileage:N0} km");
+                }
+
+                if (parameters.PreferredFuelTypes?.Any() == true)
+                {
+                    criteriaDetails.Add($"with {string.Join("/", parameters.PreferredFuelTypes)} fuel");
+                }
+
+                if (parameters.Transmission.HasValue)
+                {
+                    criteriaDetails.Add($"with {parameters.Transmission.Value} transmission");
+                }
+
+                // Add the criteria details to the response
+                if (criteriaDetails.Any())
+                {
+                    response.Append(" ");
+                    response.Append(string.Join(", ", criteriaDetails));
+                }
+
+                response.Append(".");
+
+                // Add details about desired features if any
+                if (parameters.DesiredFeatures?.Any() == true)
+                {
+                    response.Append($" These vehicles include features like {string.Join(", ", parameters.DesiredFeatures.Take(3))}{(parameters.DesiredFeatures.Count > 3 ? ", and more" : string.Empty)}.");
+                }
+
+                // Add contextual messages based on conversation context
+                if (context.TopicContext.ContainsKey("discussing_family_needs"))
+                {
+                    response.Append(" These options should provide good space and safety features for your family needs.");
+                }
+
+                if (context.TopicContext.ContainsKey("discussing_fuel_economy"))
+                {
+                    response.Append(" I've focused on vehicles with good fuel efficiency based on your requirements.");
+                }
+
+                response.Append(" Here are the recommendations:");
             }
 
-            return response.ToString();
+            return response.ToString().Trim();
         }
 
         // Extract parameters from message using the Python parameter extraction service

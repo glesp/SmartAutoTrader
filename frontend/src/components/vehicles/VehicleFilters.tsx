@@ -1,9 +1,27 @@
-// src/components/vehicles/VehicleFilters.tsx
-import { useState, useEffect } from 'react';
+/**
+ * @file VehicleFilters.tsx
+ * @summary Defines the `VehicleFilters` component, which provides a user interface for filtering vehicle search results.
+ *
+ * @description The `VehicleFilters` component allows users to filter vehicles based on various criteria such as make, model, year, price, fuel type, transmission, and more.
+ * It includes sliders, dropdowns, and other input elements to dynamically update the filters. The component is styled using Material-UI and is designed to be responsive and user-friendly.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Box`, `Slider`, `Select`, and `Accordion`.
+ * - It fetches available filter options (e.g., makes, models, year ranges) from the backend using the `vehicleService`.
+ * - The component synchronizes its local state with the parent component's filter state and provides debounced updates for sliders.
+ * - It includes a reset functionality to clear all filters and a sort functionality to order results by various criteria.
+ *
+ * @dependencies
+ * - Material-UI components: `Box`, `Typography`, `Slider`, `Select`, `Accordion`, `Button`, etc.
+ * - Material-UI icons: `ExpandMoreIcon`, `ArrowUpwardIcon`, `ArrowDownwardIcon`, `RestartAltIcon`.
+ * - Services: `vehicleService` for fetching filter data.
+ * - Types: `FilterState` for defining the structure of the filter state.
+ */
+
+import { useState, useEffect, JSX } from 'react';
 import {
   Box,
   Typography,
-  // Remove TextField since it's not used
   MenuItem,
   Select,
   FormControl,
@@ -14,7 +32,6 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  // Remove InputAdornment since it's not used
   IconButton,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -24,14 +41,34 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { vehicleService } from '../../services/api';
 import { FilterState } from '../../types/models';
 
+/**
+ * @interface VehicleFiltersProps
+ * @summary Defines the props for the `VehicleFilters` component.
+ *
+ * @property {FilterState} filters - The current filter state.
+ * @property {(filters: Partial<FilterState>) => void} onFilterChange - Callback function to update the filter state.
+ */
 interface VehicleFiltersProps {
   filters: FilterState;
   onFilterChange: (filters: Partial<FilterState>) => void;
 }
 
-// These will be fetched from API but we include fallbacks
+/**
+ * @constant fuelTypes
+ * @summary A list of available fuel types for filtering.
+ */
 const fuelTypes = ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Plugin Hybrid'];
+
+/**
+ * @constant transmissionTypes
+ * @summary A list of available transmission types for filtering.
+ */
 const transmissionTypes = ['Manual', 'Automatic', 'Semi-Automatic'];
+
+/**
+ * @constant vehicleTypes
+ * @summary A list of available vehicle types for filtering.
+ */
 const vehicleTypes = [
   'Sedan',
   'SUV',
@@ -43,8 +80,28 @@ const vehicleTypes = [
   'Truck',
 ];
 
-const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
-  // State for available makes and models from database
+/**
+ * @function VehicleFilters
+ * @summary Renders the vehicle filters UI for filtering search results.
+ *
+ * @param {VehicleFiltersProps} props - The props for the component.
+ * @returns {JSX.Element} The rendered vehicle filters component.
+ *
+ * @remarks
+ * - The component fetches filter options (e.g., makes, models, ranges) from the backend on mount.
+ * - It synchronizes local state with the parent filter state and provides debounced updates for sliders.
+ * - Includes advanced filters in an expandable accordion and a reset button to clear all filters.
+ *
+ * @example
+ * <VehicleFilters
+ *   filters={currentFilters}
+ *   onFilterChange={(updatedFilters) => setFilters(updatedFilters)}
+ * />
+ */
+const VehicleFilters = ({
+  filters,
+  onFilterChange,
+}: VehicleFiltersProps): JSX.Element => {
   const [availableMakes, setAvailableMakes] = useState<string[]>([]);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [yearRange, setYearRange] = useState<[number, number]>([
@@ -57,10 +114,8 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
   const [horsepowerRange, setHorsepowerRange] = useState<[number, number]>([
     0, 800,
   ]);
-  // Define the price slider bounds but prefix with underscore since setter is unused
   const [priceSliderDefBounds] = useState<[number, number]>([0, 200000]);
 
-  // --- Local slider states for debounced filter updates ---
   const [localYearRange, setLocalYearRange] = useState<[number, number]>([
     filters.minYear ?? yearRange[0],
     filters.maxYear ?? yearRange[1],
@@ -85,7 +140,6 @@ const VehicleFilters = ({ filters, onFilterChange }: VehicleFiltersProps) => {
       ? filters.maxHorsepower
       : horsepowerRange[1],
   ]);
-  // Local state for price slider's current value
   const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([
     filters.minPrice ?? priceSliderDefBounds[0],
     filters.maxPrice ?? priceSliderDefBounds[1],

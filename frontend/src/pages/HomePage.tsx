@@ -1,9 +1,33 @@
-import { useEffect, useState } from 'react';
+/**
+ * @file HomePage.tsx
+ * @summary Provides the `HomePage` component, which serves as the main landing page for the Smart Auto Trader application.
+ *
+ * @description The `HomePage` component is the main entry point for users visiting the application. It includes a hero section with a welcome message,
+ * a featured vehicles section showcasing the latest vehicle listings, and a features section highlighting the application's key benefits.
+ * The component fetches featured vehicles from the backend API and displays them in a responsive grid layout.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Box`, `Container`, `Typography`, `Grid`, and `Paper`.
+ * - React Router is used for navigation, enabling seamless routing to other pages such as the vehicle listing and AI recommendations pages.
+ * - The `vehicleService` is used to fetch featured vehicles from the backend API.
+ * - Error handling is implemented to gracefully handle API failures and display fallback content.
+ *
+ * @dependencies
+ * - React: `useEffect`, `useState` for managing state and side effects.
+ * - Material-UI: Components for layout, styling, and buttons.
+ * - React Router: `Link` for navigation between pages.
+ * - `vehicleService`: For interacting with the backend API to fetch vehicle data.
+ * - `VehicleCard`: A reusable component for displaying individual vehicle details.
+ *
+ * @example
+ * <HomePage />
+ */
+
+import { JSX, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { vehicleService } from '../services/api';
 import VehicleCard from '../components/vehicles/VehicleCard';
 import { Vehicle } from '../types/models';
-// Import Material UI components
 import {
   Box,
   Button,
@@ -17,15 +41,40 @@ import {
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import RecommendIcon from '@mui/icons-material/Recommend';
 
-const HomePage = () => {
+/**
+ * @function HomePage
+ * @summary Renders the main landing page for the application.
+ *
+ * @returns {JSX.Element} The rendered home page component.
+ *
+ * @remarks
+ * - The component includes three main sections: a hero section, a featured vehicles section, and a features section.
+ * - The featured vehicles section fetches data from the backend API and displays it in a responsive grid layout.
+ * - The features section highlights the application's key benefits, such as AI-powered recommendations and expert support.
+ * - Error handling ensures that fallback content is displayed if the API request fails.
+ *
+ * @example
+ * <HomePage />
+ */
+const HomePage = (): JSX.Element => {
   const [featuredVehicles, setFeaturedVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadFeaturedVehicles = async () => {
+    /**
+     * @function loadFeaturedVehicles
+     * @summary Fetches the latest featured vehicles from the backend API.
+     *
+     * @returns {Promise<void>} A promise that resolves when the data is fetched and the state is updated.
+     *
+     * @throws Will log an error to the console if the API request fails.
+     *
+     * @remarks
+     * - The function fetches the latest 4 vehicles sorted by their listing date in descending order.
+     * - If the API response is not an array, an error is logged, and the state is set to an empty array.
+     */
+    const loadFeaturedVehicles = async (): Promise<void> => {
       try {
-        // Get the latest 4 vehicles
-        console.log('Fetching vehicles...');
         const response = await vehicleService.getVehicles({
           pageSize: 4,
           sortBy: 'DateListed',
@@ -41,7 +90,7 @@ const HomePage = () => {
           setFeaturedVehicles(response);
         } else {
           console.error('Response is not an array:', response);
-          setFeaturedVehicles([]); // Use empty array as fallback
+          setFeaturedVehicles([]);
         }
       } catch (error) {
         console.error('Error loading featured vehicles:', error);
@@ -180,7 +229,7 @@ const HomePage = () => {
         </Box>
       </Container>
 
-      {/* Features Section (New) */}
+      {/* Features Section */}
       <Box sx={{ bgcolor: 'background.paper', py: 8, mt: 4 }}>
         <Container maxWidth="lg">
           <Box textAlign="center" mb={5}>
@@ -313,7 +362,6 @@ const HomePage = () => {
                     mx: 'auto',
                   }}
                 >
-                  {/* You can add another icon here */}
                   <span style={{ fontSize: '32px' }}>🛠️</span>
                 </Box>
                 <Typography

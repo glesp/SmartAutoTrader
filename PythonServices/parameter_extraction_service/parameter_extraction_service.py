@@ -1,4 +1,38 @@
-#!/usr/bin/env python3
+"""
+Parameter Extraction Service for Smart Auto Trader.
+
+This Flask application serves as a microservice to extract structured vehicle search
+parameters from natural language user queries. It leverages Large Language Models (LLMs)
+via the OpenRouter API and a local RAG (Retrieval Augmented Generation) system
+for intent classification and parameter extraction.
+
+The service aims to understand user intent (e.g., new search, refinement, clarification)
+and extract key vehicle attributes such as make, model, price range, year, mileage,
+fuel type, vehicle type, and desired features. It also handles off-topic queries
+and requests for clarification when input is ambiguous.
+
+Notes:
+    - Configuration: Relies on environment variables for API keys (e.g., OPENROUTER_API_KEY).
+    - LLM Interaction: Uses specific models (e.g., Llama, Gemma, Mistral) for different tasks
+      like fast extraction, refinement, and clarification.
+    - Intent Classification: Employs a zero-shot classification approach using precomputed
+      embeddings for intent labels.
+    - RAG System: Utilizes a local retriever component (assumed to be in a 'retriever'
+      subdirectory) for matching queries to predefined vehicle categories.
+    - Context Management: The service can process conversation history and confirmed/rejected
+      context to improve extraction accuracy in multi-turn dialogues.
+    - Error Handling: Includes fallbacks and default responses for API failures,
+      invalid extractions, or low-confidence results.
+    - Validation: Extracted parameters are validated against predefined lists (e.g.,
+      valid makes, fuel types) and logical constraints (e.g., minPrice <= maxPrice).
+
+Dependencies:
+    - Standard Library: datetime, json, logging, os, re, sys, typing
+    - Third-party: numpy, requests, dotenv, Flask
+    - Local: retriever.retriever (for cosine_sim, get_query_embedding, find_best_match,
+      initialize_retriever)
+"""
+# !/usr/bin/env python3
 # Standard library imports first
 import datetime
 import json
@@ -33,17 +67,21 @@ except ImportError as ie:
     )
 
     def initialize_retriever():
+        """Placeholder for initialize_retriever if import fails."""
         logger.error("retriever.initialize_retriever failed to import!")
 
     def get_query_embedding(text):
+        """Placeholder for get_query_embedding if import fails."""
         logger.error("retriever.get_query_embedding failed to import!")
         return None
 
     def cosine_sim(a, b):
+        """Placeholder for cosine_sim if import fails."""
         logger.error("retriever.cosine_sim failed to import!")
         return 0.0
 
     def find_best_match(text):
+        """Placeholder for find_best_match if import fails."""
         logger.error("retriever.find_best_match failed to import!")
         return "error", 0.0
 
@@ -161,15 +199,46 @@ conjunctions = [" or ", " and ", ", "]
 
 
 def word_count_clean(query: str) -> int:
-    """Counts meaningful words in a cleaned-up user query."""
+    """Counts meaningful words in a cleaned-up user query.
+
+    This function removes punctuation and converts the query to lowercase
+    before splitting it into words and counting them.
+
+    Args:
+        query: The user query string.
+
+    Returns:
+        The number of words in the cleaned query.
+
+    Example:
+        >>> word_count_clean("Hello, world!")
+        2
+        >>> word_count_clean("  Find me a car.  ")
+        4
+    """
     cleaned = re.sub(r"[^a-zA-Z0-9 ]+", "", query).lower()
     return len(cleaned.strip().split())
 
 
 def extract_newest_user_fragment(query: str) -> str:
     """
-    For follow-up queries like "Original - Additional info: blah",
-    return only the latest user input.
+    Extracts the latest user input from a potentially compound query string.
+
+    For follow-up queries that might be formatted like "Original Query - Additional info: New Input",
+    this function aims to return only the "New Input" part. If the specific
+    " - Additional info:" pattern is not found, the original query is returned.
+
+    Args:
+        query: The user query string, which might contain historical context.
+
+    Returns:
+        The newest fragment of the user's input, stripped of leading/trailing whitespace.
+
+    Example:
+        >>> extract_newest_user_fragment("SUV - Additional info: with a sunroof")
+        'with a sunroof'
+        >>> extract_newest_user_fragment("Just a red car")
+        'Just a red car'
     """
     # Use rsplit to handle multiple occurrences, splitting only once from the right
     parts = query.rsplit(" - Additional info:", 1)
@@ -180,7 +249,21 @@ def extract_newest_user_fragment(query: str) -> str:
 
 
 def initialize_app_components():
-    """Initialize retriever and precompute intent embeddings."""
+    """
+    Initializes necessary components for the application.
+
+    This function performs two main tasks:
+    1. Initializes the RAG (Retrieval Augmented Generation) retriever by calling
+       `initialize_retriever()`. This typically involves loading language models
+       and precomputed embeddings for vehicle categories.
+    2. Precomputes embeddings for the intent labels defined in `INTENT_LABELS`.
+       These embeddings are stored in the global `PRECOMPUTED_LABEL_EMBEDDINGS`
+       dictionary and are used for zero-shot intent classification.
+
+    If any part of the initialization fails, appropriate error messages are logged,
+    and `PRECOMPUTED_LABEL_EMBEDDINGS` might be left empty, potentially disabling
+    or degrading intent classification.
+    """
     global PRECOMPUTED_LABEL_EMBEDDINGS
     logger.info("Initializing app components...")
     try:
@@ -221,7 +304,29 @@ def initialize_app_components():
 def classify_intent_zero_shot(
     query_embedding: np.ndarray, threshold: float = 0.6
 ) -> Optional[str]:
-    """Classifies intent using cosine similarity against precomputed label embeddings."""
+    """
+    Classifies user query intent using zero-shot learning with cosine similarity.
+
+    Compares the embedding of the user query against precomputed embeddings of
+    intent labels (e.g., "SPECIFIC_SEARCH", "VAGUE_INQUIRY"). The intent with the
+    highest cosine similarity score is chosen, provided it meets the specified
+    threshold.
+
+    Includes fallback logic: if the best score is below threshold, it might default
+    to "VAGUE_INQUIRY" if that was the highest scoring (but below threshold) or if
+    both scores are very low. Otherwise, it might default to "SPECIFIC_SEARCH".
+
+    Args:
+        query_embedding: A NumPy array representing the embedding of the user's query.
+        threshold: A float representing the minimum cosine similarity score required
+                   to confidently classify an intent. Defaults to 0.6.
+
+    Returns:
+        The classified intent label (e.g., "SPECIFIC_SEARCH", "VAGUE_INQUIRY") as a string
+        if classification is successful and meets the threshold or fallback criteria.
+        Returns `None` if label embeddings are not available, the query embedding is None,
+        no similarities can be calculated, or an unexpected error occurs.
+    """
     if not PRECOMPUTED_LABEL_EMBEDDINGS:
         logger.warning(
             "Label embeddings not available, skipping intent classification."
@@ -295,7 +400,31 @@ def classify_intent_zero_shot(
 
 
 def is_car_related(query: str) -> bool:
-    """Simple check if the query seems car-related."""
+    """
+    Performs a simple heuristic check to determine if a user query is car-related.
+
+    The function checks for the presence of common automotive keywords, including
+    vehicle types, makes, fuel types, and terms related to buying/selling cars.
+    It also tries to identify and filter out common off-topic greetings or
+    general questions not containing car keywords. Very short queries are also
+    scrutinized.
+
+    Args:
+        query: The user query string.
+
+    Returns:
+        True if the query is deemed car-related, False otherwise.
+
+    Example:
+        >>> is_car_related("I want to buy a Toyota SUV")
+        True
+        >>> is_car_related("What's the weather like?")
+        False
+        >>> is_car_related("BMW")
+        True
+        >>> is_car_related("Hi")
+        False
+    """
     if not query:
         return False
     query_lower = query.lower()
@@ -418,7 +547,28 @@ def create_default_parameters(
     retriever_suggestion: Optional[str] = None,
     matched_category: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Returns a fallback or default set of parameters."""
+    """
+    Creates a dictionary with a default set of vehicle search parameters.
+
+    This function is used to initialize the parameter structure or to provide
+    a fallback when extraction fails or specific conditions are met (e.g.,
+    off-topic query, need for clarification).
+
+    Args:
+        intent: The determined intent of the query (e.g., "new_query", "clarify").
+        is_off_topic: Boolean flag indicating if the query is off-topic.
+        off_topic_response: A string response for off-topic queries.
+        clarification_needed: Boolean flag indicating if clarification is needed.
+        clarification_needed_for: A list of strings specifying what parameters
+                                  need clarification.
+        retriever_suggestion: A suggestion string, often from the RAG system or
+                              for clarification prompts.
+        matched_category: The vehicle category matched by the RAG system, if any.
+
+    Returns:
+        A dictionary containing all standard search parameters, initialized to
+        None or empty lists, along with the provided metadata (intent, flags, etc.).
+    """
     return {
         "minPrice": None,
         "maxPrice": None,
@@ -458,8 +608,36 @@ def build_enhanced_system_prompt(
     rejected_context: Optional[Dict] = None,
 ) -> str:
     """
-    Builds an enhanced system prompt for LLM that includes conversation history,
-    available options, and confirmed/rejected context.
+    Constructs a detailed system prompt for the LLM parameter extraction task.
+
+    The prompt includes:
+    - Instructions for the LLM on its role and expected JSON output format.
+    - Conversation history (last few turns).
+    - Matched vehicle category from RAG (if any).
+    - Confirmed preferences from previous interactions.
+    - Rejected preferences from previous interactions.
+    - The latest user query.
+    - Core extraction rules, negation handling rules, parameter handling rules.
+    - Intent determination guidelines.
+    - Contextual interpretation rules (especially for clarification intents).
+    - Lists of valid makes, fuel types, vehicle types, and transmission types.
+    - Examples of input and expected JSON output.
+
+    Args:
+        user_query: The latest query from the user.
+        conversation_history: A list of previous turns in the conversation,
+                              where each turn is a dictionary with 'role' and 'content'.
+        matched_category: The vehicle category matched by the RAG system, if any.
+        valid_makes: A list of valid manufacturer names.
+        valid_fuels: A list of valid fuel types.
+        valid_vehicles: A list of valid vehicle types (including aliases).
+        confirmed_context: A dictionary of parameters confirmed by the user in
+                           previous turns.
+        rejected_context: A dictionary of parameters explicitly rejected by the
+                          user in previous turns.
+
+    Returns:
+        A string representing the complete system prompt to be sent to the LLM.
     """
     # Format conversation history as clear context
     history_context = ""
@@ -733,7 +911,28 @@ Respond ONLY with the JSON object.
 def try_extract_with_model(
     model: str, system_prompt: str, user_query: str
 ) -> Optional[Dict[str, Any]]:
-    """Attempt to get valid JSON from an LLM model via OpenRouter."""
+    """
+    Attempts to extract parameters by calling an LLM via the OpenRouter API.
+
+    Sends the system prompt and user query to the specified LLM model.
+    It then tries to parse the LLM's response as a JSON object.
+    Handles API errors, timeouts, and JSON decoding issues.
+
+    Args:
+        model: The identifier of the LLM model to use (e.g., "meta-llama/llama-3.1-8b-instruct:free").
+        system_prompt: The system prompt guiding the LLM's behavior.
+        user_query: The user's query to extract parameters from.
+
+    Returns:
+        A dictionary containing the extracted parameters if the API call and
+        JSON parsing are successful and the JSON has the expected structure.
+        Returns `None` otherwise.
+
+    Raises:
+        This function catches common exceptions (requests.exceptions.Timeout,
+        requests.exceptions.RequestException, json.JSONDecodeError, general Exception)
+        and logs them, returning None instead of re-raising.
+    """
     if not OPENROUTER_API_KEY:
         logger.error("OpenRouter API Key is not configured. Cannot make API call.")
         return None
@@ -844,7 +1043,21 @@ def try_extract_with_model(
 
 
 def is_valid_extraction(params: Dict[str, Any]) -> bool:
-    """Decide if the extracted JSON seems plausible."""
+    """
+    Validates if the extracted parameters dictionary is plausible for a vehicle search.
+
+    Checks for:
+    - Correct type (dictionary).
+    - Valid off-topic or clarificationNeeded states.
+    - For "refine_criteria" intent, allows if only negations were extracted.
+    - Presence of at least one meaningful search criterion (price, year, make, etc.).
+
+    Args:
+        params: A dictionary of parameters extracted by the LLM.
+
+    Returns:
+        True if the parameters are considered valid, False otherwise.
+    """
     if not isinstance(params, dict):
         return False
 
@@ -944,8 +1157,30 @@ def process_parameters(
     params: Dict[str, Any],
 ) -> Dict[str, Any]:
     """
-    Cleans and validates the structure of parameters extracted by the LLM.
-    Uses globally defined VALID_ lists for validation.
+    Cleans, validates, and standardizes the structure of parameters extracted by the LLM.
+
+    This function takes the raw dictionary output from the LLM and performs several operations:
+    - Ensures all expected fields are present by starting with a default structure.
+    - Validates and converts numeric fields (price, year, mileage, engine size, horsepower)
+      to their correct types (float or int) and checks if they are within reasonable ranges.
+    - Validates list fields (preferredMakes, preferredFuelTypes, preferredVehicleTypes)
+      against predefined lists of valid values (case-insensitively) and standardizes
+      their casing.
+    - Validates desiredFeatures to ensure they are non-empty strings.
+    - Validates boolean flags (isOffTopic, clarificationNeeded).
+    - Validates string fields (offTopicResponse, retrieverSuggestion, matchedCategory).
+    - Validates and normalizes the 'intent' field.
+    - Ensures 'clarificationNeededFor' is a list of strings.
+    - Validates 'transmission' against "Automatic" or "Manual".
+    - Populates 'explicitly_negated_*' lists.
+
+    Args:
+        params: The dictionary of parameters as extracted by the LLM.
+
+    Returns:
+        A dictionary containing the processed and validated parameters. If a critical
+        error occurs during processing, a default parameter structure with 'intent'
+        set to "error" is returned.
     """
     # Start with default structure to ensure all fields exist
     result = create_default_parameters()
@@ -1130,7 +1365,31 @@ def process_parameters(
 
 
 def find_negated_terms(text: str, valid_items: List[str]) -> Set[str]:
-    """Simpler check for negated items"""
+    """
+    Identifies items from a valid list that are explicitly negated in the given text.
+
+    This function iterates through a list of `negation_triggers` (e.g., "no ", "not ",
+    "don't want ") and checks if any of the `valid_items` follow these triggers
+    in the text. It handles simple conjunctions (like "or", "and", ",") within
+    the negated phrase.
+
+    Args:
+        text: The input text string (e.g., user query) to search for negations.
+        valid_items: A list of canonical string items to check for negation
+                     (e.g., list of valid makes, fuel types).
+
+    Returns:
+        A set of strings, where each string is an item from `valid_items`
+        that was found to be explicitly negated in the text. The items in the
+        returned set will have the original casing from `valid_items`.
+
+    Example:
+        >>> find_negated_terms("I want a car, no Toyota or Honda, and not a diesel.",
+        ...                    ["Toyota", "Honda", "BMW", "Diesel", "Petrol"])
+        {'Toyota', 'Honda', 'Diesel'}
+        >>> find_negated_terms("Anything but an SUV.", ["SUV", "Sedan"])
+        {'SUV'}
+    """
     negated = set()
     text_lower = text.lower()
     valid_items_lower_map = {item.lower(): item for item in valid_items}
@@ -1174,7 +1433,31 @@ def find_negated_terms(text: str, valid_items: List[str]) -> Set[str]:
 def find_positive_terms(
     text: str, valid_items: List[str], negated_terms: Set[str]
 ) -> Set[str]:
-    """Finds valid items mentioned that are NOT in the negated set"""
+    """
+    Identifies items from a valid list that are mentioned positively in the text.
+
+    "Positively mentioned" means the item is found in the text and is *not*
+    present in the `negated_terms` set. This helps distinguish explicit
+    preferences from rejections.
+
+    Args:
+        text: The input text string (e.g., user query).
+        valid_items: A list of canonical string items to check for positive mentions.
+        negated_terms: A set of strings representing items that have already been
+                       identified as explicitly negated.
+
+    Returns:
+        A set of strings, where each string is an item from `valid_items`
+        that was found in the text and not in `negated_terms`. The items
+        in the returned set will have the original casing from `valid_items`.
+
+    Example:
+        >>> valid = ["Toyota", "Honda", "BMW", "Diesel", "Petrol"]
+        >>> negated = {"Toyota", "Diesel"}
+        >>> find_positive_terms("I like Honda and Petrol cars, but not Toyota or Diesel.",
+        ...                     valid, negated)
+        {'Honda', 'Petrol'}
+    """
     positive = set()
     text_lower = text.lower()
     valid_items_lower_map = {item.lower(): item for item in valid_items}
@@ -1200,9 +1483,41 @@ def merge_list_param_corrected(
     confirmed_context,
 ):
     """
-    Merges LLM and context lists for a parameter, handling simple negation and robust union logic.
-    - If simple negation applies to this param (negated_set non-empty, positive_set empty), return [].
-    - Otherwise, return union of LLM and context lists, minus any negated items.
+    Merges list-based parameters from LLM output, positive/negated term analysis, and confirmed context.
+
+    This function implements the logic for combining preferences for list-based
+    parameters like `preferredMakes`, `preferredVehicleTypes`, and `preferredFuelTypes`.
+
+    The merging strategy is:
+    - If `is_simple_negation` is true for this parameter (meaning the query only
+      contained negations for this parameter type and no positive mentions),
+      the resulting list for this parameter will be empty.
+    - Otherwise, it takes the union of what the LLM extracted (`llm_list`) and
+      what was previously confirmed in the context (`confirmed_context`).
+    - From this union, any items present in the `negated_set` (terms explicitly
+      negated in the current query) are removed.
+
+    Args:
+        param_name (str): The name of the parameter being merged (e.g., "preferredMakes").
+                          Used for logging.
+        context_key (str): The key used to retrieve this parameter's list from
+                           the `confirmed_context` dictionary (e.g., "confirmedMakes").
+        llm_list (List[str]): The list of items for this parameter as extracted by the LLM
+                              from the current query.
+        positive_set (Set[str]): A set of items for this parameter type that were
+                                 positively identified in the current query.
+                                 (Note: This arg seems unused in the current implementation
+                                 in favor of direct llm_list and context merge).
+        negated_set (Set[str]): A set of items for this parameter type that were
+                                explicitly negated in the current query.
+        is_simple_negation (bool): A flag indicating if the current query was a
+                                   "simple negation" for this parameter type (i.e.,
+                                   only negations mentioned, no positive preferences).
+        confirmed_context (Optional[Dict]): The dictionary of previously confirmed
+                                            parameters from the conversation.
+
+    Returns:
+        List[str]: The final merged list for the parameter.
     """
     if is_simple_negation and negated_set and not positive_set:
         logger.info(
@@ -1221,14 +1536,24 @@ def merge_list_param_corrected(
 
 def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
     """
-    Try to extract parameter name and value from RAG category and query.
+    Attempts to extract a single parameter name and value using RAG category and query.
+
+    This function tries to infer a specific search parameter (like maxPrice, maxMileage,
+    minYear, or maxYear) if the RAG system matched the query to a category that
+    implies such a parameter (e.g., "budget cars", "low mileage SUVs", "newer vehicles").
+    It uses regular expressions to find numeric values in the user query that might
+    correspond to the parameter implied by the category.
 
     Args:
-        category_name: The matched category name from RAG
-        user_query: The user's query text
+        category_name: The name of the vehicle category matched by the RAG system
+                       (e.g., "Family SUVs under €30000").
+        user_query: The original user query string.
 
     Returns:
-        tuple: (param_name, param_value) if extraction succeeds, else (None, None)
+        A tuple `(param_name, param_value)`.
+        - `param_name` (str): The name of the extracted parameter (e.g., "maxPrice").
+        - `param_value` (Union[float, int]): The extracted value.
+        Returns `(None, None)` if no parameter can be confidently extracted.
     """
     logger.info(
         f"Attempting parameter extraction from RAG category: '{category_name}' and query: '{user_query}'"
@@ -1309,13 +1634,26 @@ def try_extract_param_from_rag(category_name: str, user_query: str) -> tuple:
 
 def try_extract_param_from_rag_category(category_name: str) -> tuple:
     """
-    Extract a single parameter and value from a RAG category name.
+    Extracts a single parameter and its value directly from a RAG category name.
+
+    This function is used when a user query is vague but the RAG system
+    matches it to a descriptive category (e.g., "SUVs under €20000",
+    "Low mileage hatchbacks", "Petrol cars newer than 2019"). It attempts
+    to parse parameters like price, mileage, year, vehicle type, fuel type,
+    or make directly from the category name string itself.
 
     Args:
-        category_name: The matched category name from RAG
+        category_name: The name of the vehicle category matched by the RAG system.
 
     Returns:
-        tuple: (param_name, param_value) if extraction succeeds, else (None, None)
+        A tuple `(param_name, param_value)`.
+        - `param_name` (str): The name of the extracted parameter (e.g., "maxPrice",
+          "preferredVehicleTypes").
+        - `param_value` (Union[float, int, List[str]]): The extracted value. For list
+          parameters like "preferredMakes", this will be a list containing the single
+          extracted item.
+        Returns `(None, None)` if no parameter can be confidently extracted from
+        the category name.
     """
     logger.info(f"Attempting parameter extraction from RAG category: '{category_name}'")
 
@@ -1429,13 +1767,19 @@ def try_extract_param_from_rag_category(category_name: str) -> tuple:
 
 def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
     """
-    Directly extract parameters from the user query using regex patterns.
+    Directly extracts parameters from the user query using regular expression patterns.
+
+    This function attempts a first pass at extracting common parameters like price,
+    mileage, and year directly from the user's query text without relying on an LLM.
+    It's intended as a faster, simpler extraction method for clearly stated parameters.
 
     Args:
-        user_query: The user's query text
+        user_query: The user's query string.
 
     Returns:
-        Dict of extracted parameters (e.g., {'maxPrice': 25000})
+        A dictionary where keys are parameter names (e.g., "maxPrice", "minYear")
+        and values are the extracted parameter values. Returns an empty dictionary
+        if no parameters are directly extracted.
     """
     results = {}
     query_lower = user_query.lower()
@@ -1546,9 +1890,46 @@ def run_llm_with_history(
     contains_override: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
-    Run LLM extraction with conversation history and context.
-    Tries multiple models in order of preference.
-    Includes REVISED post-processing for negations and hallucinations.
+    Orchestrates parameter extraction using an LLM, incorporating conversation history and context.
+
+    This function:
+    1. Builds an enhanced system prompt for the LLM.
+    2. Attempts extraction using a sequence of LLM models (e.g., a fast model first,
+       then potentially more capable ones if needed, though currently set to try one).
+    3. Processes the LLM's raw JSON output using `process_parameters` for validation
+       and standardization.
+    4. Performs extensive post-processing:
+        - Validates logical consistency (e.g., minPrice <= maxPrice).
+        - Analyzes the query fragment for positive and negative mentions of makes,
+          types, and fuels.
+        - Merges LLM-extracted parameters with `confirmed_context` based on the
+          determined `intent` and whether the query explicitly mentions a parameter type.
+        - Handles hallucinated parameters by checking if the query fragment contains
+          keywords related to the extracted scalar parameter.
+        - Populates `explicitly_negated_*` lists.
+        - Overrides `clarificationNeeded` if sufficient parameters are already present,
+          even if the LLM requested clarification.
+    5. Returns the final, processed parameters or a fallback "confused" response if
+       all attempts fail or yield invalid results.
+
+    Args:
+        user_query: The latest user query string.
+        conversation_history: A list of previous turns in the conversation.
+        matched_category: The vehicle category matched by RAG, if any.
+        force_model: An optional string to force the use of a specific model strategy
+                     (e.g., "fast", "refine"). Currently, this mainly influences the
+                     order of models tried, but the list is fixed to one model.
+        confirmed_context: A dictionary of parameters confirmed by the user in
+                           previous turns.
+        rejected_context: A dictionary of parameters explicitly rejected by the
+                          user in previous turns.
+        contains_override: A boolean flag indicating if the query contains override
+                           keywords that might force an LLM path.
+
+    Returns:
+        A dictionary containing the final extracted and processed parameters,
+        or `None` if a critical error occurred before a fallback could be generated
+        (though it aims to always return a dictionary, even if it's a confused state).
     """
     # Define confused fallback prompt
     CONFUSED_FALLBACK_PROMPT = (

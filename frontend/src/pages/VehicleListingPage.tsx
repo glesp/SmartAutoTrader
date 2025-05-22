@@ -1,5 +1,29 @@
-// src/pages/VehicleListingPage.tsx
-import { useState, useEffect } from 'react';
+/**
+ * @file VehicleListingPage.tsx
+ * @summary Provides the `VehicleListingPage` component, which displays a paginated list of vehicles with filtering and sorting options.
+ *
+ * @description The `VehicleListingPage` component fetches and displays a list of vehicles from the backend API. It includes a filter panel
+ * for refining search results and a pagination control for navigating through multiple pages of vehicles. The component dynamically updates
+ * the displayed vehicles based on the selected filters and the current page.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Grid`, and `Pagination`.
+ * - The `VehicleFilters` component is used to manage and apply filters for sorting and filtering vehicles.
+ * - The `VehicleCard` component is used to display individual vehicle details in a card format.
+ * - Error handling is implemented to display fallback content in case of API failures or no results.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect` for managing state and side effects.
+ * - Material-UI: Components for layout, styling, and pagination.
+ * - `vehicleService`: For fetching vehicle data from the backend API.
+ * - `VehicleCard`: A reusable component for displaying individual vehicle details.
+ * - `VehicleFilters`: A reusable component for managing vehicle filters.
+ *
+ * @example
+ * <VehicleListingPage />
+ */
+
+import { useState, useEffect, JSX } from 'react';
 import { vehicleService } from '../services/api';
 import VehicleCard from '../components/vehicles/VehicleCard';
 import VehicleFilters from '../components/vehicles/VehicleFilters';
@@ -16,7 +40,22 @@ import {
   Skeleton,
 } from '@mui/material';
 
-const VehicleListingPage = () => {
+/**
+ * @function VehicleListingPage
+ * @summary Renders the vehicle listing page, displaying a paginated list of vehicles with filtering and sorting options.
+ *
+ * @returns {JSX.Element} The rendered vehicle listing page component.
+ *
+ * @remarks
+ * - The component fetches vehicle data from the backend API and displays it in a responsive grid layout.
+ * - It includes a filter panel for refining search results and a pagination control for navigating through multiple pages.
+ * - The displayed vehicles are dynamically updated based on the selected filters and the current page.
+ * - Error handling ensures that fallback content is displayed if the API request fails or no results are found.
+ *
+ * @example
+ * <VehicleListingPage />
+ */
+const VehicleListingPage = (): JSX.Element => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -27,6 +66,16 @@ const VehicleListingPage = () => {
   });
 
   useEffect(() => {
+    /**
+     * @function loadVehicles
+     * @summary Fetches the list of vehicles from the backend API based on the current filters and page.
+     *
+     * @throws Will log an error if the API request fails.
+     *
+     * @remarks
+     * - The function fetches vehicles using the `vehicleService` and updates the state with the results.
+     * - It calculates the total number of pages based on the total count of vehicles and the page size.
+     */
     const loadVehicles = async () => {
       setLoading(true);
       try {
@@ -53,6 +102,15 @@ const VehicleListingPage = () => {
     loadVehicles();
   }, [filters, page]);
 
+  /**
+   * @function handleFilterChange
+   * @summary Updates the filters and resets the page to the first page when filters change.
+   *
+   * @param {Partial<FilterState>} newFilters - The updated filter values.
+   *
+   * @remarks
+   * - The function merges the new filters with the existing filters and resets the page to 1.
+   */
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     setFilters((prev) => {
       const next = { ...prev, ...newFilters };
@@ -68,6 +126,13 @@ const VehicleListingPage = () => {
     });
   };
 
+  /**
+   * @function handlePageChange
+   * @summary Updates the current page and scrolls to the top of the page.
+   *
+   * @param {React.ChangeEvent<unknown>} _event - The pagination change event.
+   * @param {number} newPage - The new page number.
+   */
   const handlePageChange = (
     _event: React.ChangeEvent<unknown>,
     newPage: number

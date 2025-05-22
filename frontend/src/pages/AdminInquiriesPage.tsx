@@ -1,4 +1,28 @@
-import { useState, useEffect } from 'react';
+/**
+ * @file AdminInquiriesPage.tsx
+ * @summary Provides the `AdminInquiriesPage` component, which allows administrators to manage customer inquiries.
+ *
+ * @description The `AdminInquiriesPage` component displays a list of customer inquiries and provides tools for administrators to manage them.
+ * Administrators can view inquiries by status (e.g., New, Read, Replied, Closed), mark inquiries as read, and reply to inquiries.
+ * The component includes a dialog for composing replies and updates the inquiry status upon submission. It interacts with the backend API
+ * to fetch inquiries, send replies, and update inquiry statuses.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Tabs`, and `Dialog`.
+ * - It fetches inquiries from the backend using the `inquiryService` and updates the local state accordingly.
+ * - The component includes a tabbed interface for filtering inquiries by status and a dialog for replying to inquiries.
+ * - Error handling is implemented to gracefully handle API failures.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect` for managing state and side effects.
+ * - Material-UI: Components for layout, styling, and dialogs.
+ * - `inquiryService`: For interacting with the backend API to fetch and update inquiries.
+ *
+ * @example
+ * <AdminInquiriesPage />
+ */
+
+import { useState, useEffect, JSX } from 'react';
 import {
   Container,
   Typography,
@@ -18,7 +42,22 @@ import {
 } from '@mui/material';
 import { inquiryService } from '../services/api';
 
-// Define type for Inquiry
+/**
+ * @interface Inquiry
+ * @summary Represents a customer inquiry.
+ *
+ * @property {number} id - The unique identifier for the inquiry.
+ * @property {number} userId - The ID of the user who submitted the inquiry.
+ * @property {number} vehicleId - The ID of the vehicle associated with the inquiry.
+ * @property {string} subject - The subject of the inquiry.
+ * @property {string} message - The message content of the inquiry.
+ * @property {string} [response] - The administrator's response to the inquiry.
+ * @property {string} dateSent - The date the inquiry was sent.
+ * @property {string} [dateReplied] - The date the inquiry was replied to.
+ * @property {'New' | 'Read' | 'Replied' | 'Closed'} status - The current status of the inquiry.
+ * @property {object} [user] - Information about the user who submitted the inquiry.
+ * @property {object} [vehicle] - Information about the vehicle associated with the inquiry.
+ */
 interface Inquiry {
   id: number;
   userId: number;
@@ -44,11 +83,31 @@ interface Inquiry {
   };
 }
 
+/**
+ * @interface ReplyData
+ * @summary Represents the data for replying to an inquiry.
+ *
+ * @property {string} response - The response message to the inquiry.
+ */
 interface ReplyData {
   response: string;
 }
 
-const AdminInquiriesPage = () => {
+/**
+ * @function AdminInquiriesPage
+ * @summary Renders the admin inquiries page, allowing administrators to manage customer inquiries.
+ *
+ * @returns {JSX.Element} The rendered admin inquiries page component.
+ *
+ * @remarks
+ * - The component fetches inquiries from the backend and displays them in a tabbed interface based on their status.
+ * - Administrators can mark inquiries as read, reply to inquiries, and view inquiry details.
+ * - A dialog is used for composing and submitting replies to inquiries.
+ *
+ * @example
+ * <AdminInquiriesPage />
+ */
+const AdminInquiriesPage = (): JSX.Element => {
   const [loading, setLoading] = useState<boolean>(true);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [status, setStatus] = useState<string>('New'); // Default to showing New inquiries
@@ -73,6 +132,13 @@ const AdminInquiriesPage = () => {
     fetchInquiries();
   }, [status]);
 
+  /**
+   * @function handleStatusChange
+   * @summary Handles changes to the inquiry status filter.
+   *
+   * @param {React.SyntheticEvent} _event - The event triggered by the status change.
+   * @param {string} newValue - The new status value.
+   */
   const handleStatusChange = (
     _event: React.SyntheticEvent,
     newValue: string
@@ -80,11 +146,24 @@ const AdminInquiriesPage = () => {
     setStatus(newValue);
   };
 
+  /**
+   * @function handleReply
+   * @summary Opens the reply dialog for a specific inquiry.
+   *
+   * @param {Inquiry} inquiry - The inquiry to reply to.
+   */
   const handleReply = (inquiry: Inquiry) => {
     setCurrentInquiry(inquiry);
     setReplyOpen(true);
   };
 
+  /**
+   * @function handleMarkAsRead
+   * @summary Marks an inquiry as read.
+   *
+   * @param {number} id - The ID of the inquiry to mark as read.
+   * @throws Will log an error if the API request fails.
+   */
   const handleMarkAsRead = async (id: number) => {
     try {
       await inquiryService.markInquiryAsRead(id);
@@ -99,6 +178,12 @@ const AdminInquiriesPage = () => {
     }
   };
 
+  /**
+   * @function submitReply
+   * @summary Submits a reply to the current inquiry.
+   *
+   * @throws Will log an error if the API request fails.
+   */
   const submitReply = async () => {
     if (!replyText.trim() || !currentInquiry) return;
 
@@ -134,7 +219,13 @@ const AdminInquiriesPage = () => {
     }
   };
 
-  // Helper function to format user name
+  /**
+   * @function formatUserName
+   * @summary Formats the user's name for display.
+   *
+   * @param {Inquiry['user']} user - The user object to format.
+   * @returns {string} The formatted user name.
+   */
   const formatUserName = (user?: Inquiry['user']): string => {
     if (!user) return 'Unknown';
     if (user.name) return user.name;

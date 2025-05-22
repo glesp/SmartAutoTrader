@@ -1,4 +1,25 @@
-import { useContext } from 'react';
+/**
+ * @file VehicleRecommendations.tsx
+ * @summary Defines the `VehicleRecommendations` component, which displays AI-powered vehicle recommendations for authenticated users.
+ *
+ * @description The `VehicleRecommendations` component renders a list of recommended vehicles based on the user's preferences and interactions with the AI assistant.
+ * It displays vehicle details such as make, model, year, price, mileage, and fuel type in a card layout. The component also handles cases where no recommendations are available
+ * or the user is not authenticated.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including `Box`, `Typography`, `Card`, and `Button` components.
+ * - React Router is used for navigation, enabling seamless routing to vehicle detail pages.
+ * - The `AuthContext` is used to determine the user's authentication state and conditionally render content.
+ * - The component gracefully handles edge cases such as missing images or invalid data.
+ *
+ * @dependencies
+ * - Material-UI components: `Box`, `Typography`, `Card`, `CardMedia`, `CardContent`, `CardActions`, `Button`.
+ * - React Router: `Link` for navigation.
+ * - Context: `AuthContext` for user authentication state.
+ * - Types: `Vehicle`, `VehicleRecommendationsProps` for defining the structure of props and vehicle data.
+ */
+
+import { JSX, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { Vehicle } from '../../types/models.ts';
 import { VehicleRecommendationsProps } from '../../types/models.ts';
@@ -13,7 +34,22 @@ import {
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 
-// Helper function to extract arrays from ASP.NET response format
+/**
+ * @function extractArray
+ * @summary Extracts an array from various possible ASP.NET response formats.
+ *
+ * @template T
+ * @param {T[] | { $values: T[] } | undefined} data - The data to extract the array from.
+ * @returns {T[]} The extracted array.
+ *
+ * @remarks
+ * - This function handles different formats of array-like data, including ASP.NET's `$values` format.
+ * - If the input is undefined or not an array, it returns an empty array.
+ *
+ * @example
+ * const data = { $values: [1, 2, 3] };
+ * const result = extractArray(data); // [1, 2, 3]
+ */
 const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
   if (!data) return [];
   if (Array.isArray(data)) return data;
@@ -21,49 +57,83 @@ const extractArray = <T,>(data: T[] | { $values: T[] } | undefined): T[] => {
   return [];
 };
 
+/**
+ * @function VehicleRecommendations
+ * @summary Renders a list of AI-powered vehicle recommendations for authenticated users.
+ *
+ * @param {VehicleRecommendationsProps} props - The props for the component, including the list of recommended vehicles.
+ * @returns {JSX.Element} The rendered vehicle recommendations component.
+ *
+ * @remarks
+ * - The component displays a grid of vehicle cards, each showing details such as make, model, year, price, mileage, and fuel type.
+ * - If the user is not authenticated, a message prompting them to sign in is displayed.
+ * - If no recommendations are available, a placeholder message with example queries is shown.
+ *
+ * @example
+ * <VehicleRecommendations recommendedVehicles={vehicles} />
+ */
 const VehicleRecommendations = ({
   recommendedVehicles,
-}: VehicleRecommendationsProps) => {
+}: VehicleRecommendationsProps): JSX.Element => {
   const { user } = useContext(AuthContext);
 
-  // Direct conversion function
-  const getVehicles = () => {
+  /**
+   * @function getVehicles
+   * @summary Retrieves the list of recommended vehicles from the props.
+   *
+   * @returns {Vehicle[]} The list of recommended vehicles.
+   *
+   * @remarks
+   * - This function handles different formats of the `recommendedVehicles` prop, including ASP.NET's `$values` format.
+   */
+  const getVehicles = (): Vehicle[] => {
     if (!recommendedVehicles) return [];
-
-    // If it's an array, use it directly
     if (Array.isArray(recommendedVehicles)) return recommendedVehicles;
-
-    // If it has $values property
     if (recommendedVehicles && '$values' in recommendedVehicles) {
       return (recommendedVehicles as { $values: Vehicle[] }).$values;
     }
-
     return [];
   };
 
-  // Get vehicles directly from props
-  const vehicles = getVehicles();
-
-  // Helper function to get primary image URL or fallback
-  const getImageUrl = (vehicle: Vehicle) => {
+  /**
+   * @function getImageUrl
+   * @summary Retrieves the URL of the primary image for a vehicle.
+   *
+   * @param {Vehicle} vehicle - The vehicle object.
+   * @returns {string} The URL of the primary image, or a placeholder URL if no valid image is found.
+   *
+   * @remarks
+   * - If the vehicle has no images, a placeholder image is used.
+   * - If no primary image is found, the first image in the list is used as a fallback.
+   */
+  const getImageUrl = (vehicle: Vehicle): string => {
     const images = extractArray<{ imageUrl: string; isPrimary: boolean }>(
       vehicle.images
-    ); // Ensure VehicleImage type if defined elsewhere
+    );
     if (!images || images.length === 0) {
       return '/images/placeholder.jpg'; // Local frontend placeholder
     }
 
     const primaryImage = images.find((img) => img.isPrimary);
-    const imageToUse = primaryImage || images[0]; // Fallback to the first image
+    const imageToUse = primaryImage || images[0];
 
     if (imageToUse && imageToUse.imageUrl) {
-      return imageToUse.imageUrl; // This is now the full public URL
+      return imageToUse.imageUrl;
     }
 
     return '/images/placeholder.jpg'; // Fallback placeholder if no valid URL found
   };
 
-  // Map fuel type numbers to strings
+  /**
+   * @function getFuelTypeName
+   * @summary Maps a fuel type number or string to its corresponding name.
+   *
+   * @param {number | string} fuelType - The fuel type to map.
+   * @returns {string} The name of the fuel type, or "Unknown" if the value is invalid.
+   *
+   * @remarks
+   * - This function supports both numeric and string representations of fuel types.
+   */
   const getFuelTypeName = (fuelType: number | string): string => {
     if (typeof fuelType === 'string') return fuelType;
 
@@ -77,9 +147,18 @@ const VehicleRecommendations = ({
     return fuelTypes[fuelType] || 'Unknown';
   };
 
-  // Alternative content when user is not authenticated
+  // Retrieve the list of vehicles
+  const vehicles = getVehicles();
+
+  // Render a message if the user is not authenticated
   if (!user) {
-    return <Box p={4}>Please sign in to view recommendations.</Box>;
+    return (
+      <Box p={4}>
+        <Typography variant="h6" textAlign="center">
+          Please sign in to view recommendations.
+        </Typography>
+      </Box>
+    );
   }
 
   return (

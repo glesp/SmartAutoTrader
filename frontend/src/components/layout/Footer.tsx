@@ -1,3 +1,22 @@
+/**
+ * @file Footer.tsx
+ * @summary Defines the `Footer` component, which serves as the footer section for the Smart Auto Trader application.
+ *
+ * @description The `Footer` component provides a consistent footer layout across the application. It includes branding, quick links, contact information, and social media links.
+ * The component is styled using Material-UI and is designed to be responsive, adapting to different screen sizes.
+ *
+ * @remarks
+ * - The component uses Material-UI's `Box`, `Container`, `Grid`, `Typography`, and `Link` components for layout and styling.
+ * - Icons from Material-UI are used for social media links and contact information.
+ * - React Router's `Link` component is used for internal navigation.
+ * - The footer is designed to be accessible and visually appealing, with proper semantic HTML and ARIA attributes.
+ *
+ * @dependencies
+ * - Material-UI components: `Box`, `Container`, `Grid`, `Typography`, `Link`
+ * - Material-UI icons: `FacebookIcon`, `TwitterIcon`, `InstagramIcon`, `EmailIcon`, `PhoneIcon`, `LocationIcon`
+ * - React Router: `Link` for internal navigation
+ */
+
 import { Box, Container, Grid, Typography, Link } from '@mui/material';
 import {
   Facebook as FacebookIcon,
@@ -8,8 +27,23 @@ import {
   LocationOn as LocationIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import { JSX } from 'react';
 
-const Footer = () => {
+/**
+ * @function Footer
+ * @summary Renders the footer section of the Smart Auto Trader application.
+ *
+ * @returns {JSX.Element} The rendered footer component.
+ *
+ * @remarks
+ * - The footer includes four main sections: branding, quick links, contact information, and social media links.
+ * - It dynamically displays the current year in the copyright notice.
+ * - The component is styled to ensure readability and responsiveness across devices.
+ *
+ * @example
+ * <Footer />
+ */
+const Footer = (): JSX.Element => {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -19,6 +53,7 @@ const Footer = () => {
     >
       <Container>
         <Grid container spacing={4}>
+          {/* Branding Section */}
           <Grid item xs={12} md={3}>
             <Typography variant="h6" gutterBottom>
               Smart Auto Trader
@@ -33,6 +68,7 @@ const Footer = () => {
             </Typography>
           </Grid>
 
+          {/* Quick Links Section */}
           <Grid item xs={12} md={3}>
             <Typography variant="h6" gutterBottom>
               Quick Links
@@ -81,6 +117,7 @@ const Footer = () => {
             </Box>
           </Grid>
 
+          {/* Contact Information Section */}
           <Grid item xs={12} md={3}>
             <Typography variant="h6" gutterBottom>
               Contact Us
@@ -110,6 +147,7 @@ const Footer = () => {
             </Box>
           </Grid>
 
+          {/* Social Media Links Section */}
           <Grid item xs={12} md={3}>
             <Typography variant="h6" gutterBottom>
               Follow Us
@@ -128,6 +166,7 @@ const Footer = () => {
           </Grid>
         </Grid>
 
+        {/* Copyright Section */}
         <Box
           sx={{
             borderTop: 1,

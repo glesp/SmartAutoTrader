@@ -1,11 +1,49 @@
+/**
+ * @file AdminDashboardPage.tsx
+ * @summary Provides the `AdminDashboardPage` component, which serves as the main dashboard for administrators.
+ *
+ * @description The `AdminDashboardPage` component is a central hub for administrators, providing quick access to key management features such as vehicle creation,
+ * viewing all vehicles, and managing user inquiries. It also includes placeholders for future features like site statistics and analytics. The component is styled
+ * using Material-UI and is designed to be responsive and user-friendly.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Grid`, and `Button`.
+ * - React Router is used for navigation, enabling seamless routing to different admin pages.
+ * - The dashboard is modular, with each section represented as a card for better organization and scalability.
+ * - Placeholder sections are included for future enhancements, such as analytics and site statistics.
+ *
+ * @dependencies
+ * - React: For creating the functional component.
+ * - Material-UI: Components for layout, styling, and buttons.
+ * - React Router: `RouterLink` for navigation between pages.
+ * - Material-UI icons: Icons for visual representation of actions (e.g., `AddCircleOutlineIcon`, `ListAltIcon`, `EmailIcon`, `BarChartIcon`).
+ *
+ * @example
+ * <AdminDashboardPage />
+ */
+
 import React from 'react';
 import { Container, Typography, Paper, Grid, Button, Box } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EmailIcon from '@mui/icons-material/Email';
-import BarChartIcon from '@mui/icons-material/BarChart'; // Example for future stats
+import BarChartIcon from '@mui/icons-material/BarChart';
 
+/**
+ * @function AdminDashboardPage
+ * @summary Renders the admin dashboard page, providing access to key administrative features.
+ *
+ * @returns {JSX.Element} The rendered admin dashboard page component.
+ *
+ * @remarks
+ * - The dashboard includes cards for vehicle management, user inquiries, and placeholders for future features.
+ * - Each card is styled with Material-UI and includes buttons for navigation to specific admin pages.
+ * - The component is designed to be responsive, adapting to different screen sizes.
+ *
+ * @example
+ * <AdminDashboardPage />
+ */
 const AdminDashboardPage: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>

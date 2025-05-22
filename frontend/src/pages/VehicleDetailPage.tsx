@@ -1,5 +1,31 @@
-// src/pages/VehicleDetailPage.tsx
-import { useState, useEffect, useContext } from 'react';
+/**
+ * @file VehicleDetailPage.tsx
+ * @summary Provides the `VehicleDetailPage` component, which displays detailed information about a specific vehicle.
+ *
+ * @description The `VehicleDetailPage` component fetches and displays detailed information about a specific vehicle, including its images,
+ * specifications, and description. It allows authenticated users to save the vehicle to their favorites and send inquiries. Admin users
+ * can navigate to the edit page for the vehicle. The component handles API interactions for fetching vehicle details and managing favorites.
+ *
+ * @remarks
+ * - The component uses Material-UI for layout and styling, including components such as `Container`, `Paper`, `Grid`, and `Button`.
+ * - React Router is used for navigation, enabling redirection and dynamic routing based on the vehicle ID.
+ * - The `AuthContext` is used to check the user's authentication status and role.
+ * - The `vehicleService` and `favoriteService` are used to fetch vehicle details and manage favorite status, respectively.
+ * - Error handling is implemented to display fallback content in case of API failures.
+ *
+ * @dependencies
+ * - React: `useState`, `useEffect`, `useContext` for managing state and accessing the authentication context.
+ * - Material-UI: Components for layout, styling, and icons.
+ * - React Router: `useParams`, `Link`, `useNavigate` for navigation and dynamic routing.
+ * - `AuthContext`: For managing user authentication and access control.
+ * - `vehicleService`: For fetching vehicle details from the backend API.
+ * - `favoriteService`: For managing the user's favorite vehicles.
+ *
+ * @example
+ * <VehicleDetailPage />
+ */
+
+import { useState, useEffect, useContext, JSX } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { vehicleService, favoriteService } from '../services/api';
 import { AuthContext } from '../contexts/AuthContext';
@@ -21,19 +47,48 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import EditIcon from '@mui/icons-material/Edit';
 
-// Define what your API actually returns
+/**
+ * @interface VehicleImage
+ * @summary Represents an image associated with a vehicle.
+ *
+ * @property {number} id - The unique identifier for the image.
+ * @property {string} imageUrl - The URL of the image.
+ * @property {boolean} isPrimary - Indicates whether the image is the primary image for the vehicle.
+ */
 interface VehicleImage {
   id: number;
   imageUrl: string;
   isPrimary: boolean;
 }
 
-// Define a type for the ASP.NET Core reference format
+/**
+ * @interface ReferenceWrapper
+ * @summary Represents a wrapper for ASP.NET Core reference format data.
+ *
+ * @property {string} [$id] - The unique identifier for the reference.
+ * @property {VehicleImage[]} $values - The array of vehicle images.
+ */
 interface ReferenceWrapper {
   $id?: string;
   $values: VehicleImage[];
 }
 
+/**
+ * @interface ApiVehicle
+ * @summary Represents the structure of a vehicle object returned by the API.
+ *
+ * @property {number} id - The unique identifier for the vehicle.
+ * @property {string} make - The make of the vehicle.
+ * @property {string} model - The model of the vehicle.
+ * @property {number} year - The year of manufacture of the vehicle.
+ * @property {number} price - The price of the vehicle.
+ * @property {number} mileage - The mileage of the vehicle in kilometers.
+ * @property {string} fuelType - The fuel type of the vehicle (e.g., Petrol, Diesel).
+ * @property {string} transmission - The transmission type of the vehicle (e.g., Manual, Automatic).
+ * @property {string} vehicleType - The body type of the vehicle (e.g., Sedan, SUV).
+ * @property {string} description - A detailed description of the vehicle.
+ * @property {VehicleImage[] | ReferenceWrapper | null | undefined} images - The images associated with the vehicle.
+ */
 interface ApiVehicle {
   id: number;
   make: string;
@@ -48,7 +103,22 @@ interface ApiVehicle {
   images: VehicleImage[] | ReferenceWrapper | null | undefined;
 }
 
-const VehicleDetailPage = () => {
+/**
+ * @function VehicleDetailPage
+ * @summary Renders the vehicle detail page, displaying detailed information about a specific vehicle.
+ *
+ * @returns {JSX.Element} The rendered vehicle detail page component.
+ *
+ * @remarks
+ * - The component fetches vehicle details from the backend API based on the vehicle ID from the URL parameters.
+ * - It allows authenticated users to save the vehicle to their favorites and send inquiries.
+ * - Admin users can navigate to the edit page for the vehicle.
+ * - The component handles API interactions for fetching vehicle details and managing favorite status.
+ *
+ * @example
+ * <VehicleDetailPage />
+ */
+const VehicleDetailPage = (): JSX.Element => {
   const { id } = useParams<{ id: string }>();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -61,6 +131,12 @@ const VehicleDetailPage = () => {
   const [favAnim, setFavAnim] = useState(false);
 
   useEffect(() => {
+    /**
+     * @function fetchVehicle
+     * @summary Fetches the details of the vehicle from the backend API.
+     *
+     * @throws Will set an error message if the API request fails.
+     */
     const fetchVehicle = async () => {
       if (!id) return;
 
@@ -101,6 +177,12 @@ const VehicleDetailPage = () => {
   }, [id]);
 
   useEffect(() => {
+    /**
+     * @function checkFavorite
+     * @summary Checks if the vehicle is marked as a favorite by the user.
+     *
+     * @throws Will log an error if the API request fails.
+     */
     const checkFavorite = async () => {
       if (!id) return;
 
@@ -128,6 +210,12 @@ const VehicleDetailPage = () => {
     }
   }, [isFavorite]);
 
+  /**
+   * @function handleToggleFavorite
+   * @summary Toggles the favorite status of the vehicle for the user.
+   *
+   * @throws Will log an error if the API request fails.
+   */
   const handleToggleFavorite = async () => {
     if (!id) return;
 
@@ -143,6 +231,12 @@ const VehicleDetailPage = () => {
     }
   };
 
+  /**
+   * @function getImageArray
+   * @summary Retrieves the array of images associated with the vehicle.
+   *
+   * @returns {VehicleImage[]} The array of vehicle images.
+   */
   const getImageArray = (): VehicleImage[] => {
     if (!vehicle) return [];
 
@@ -159,7 +253,14 @@ const VehicleDetailPage = () => {
     return [];
   };
 
-  const getImageUrl = (image: VehicleImage | undefined) => {
+  /**
+   * @function getImageUrl
+   * @summary Retrieves the URL of a specific vehicle image.
+   *
+   * @param {VehicleImage | undefined} image - The vehicle image object.
+   * @returns {string} The URL of the image or a placeholder URL if the image is undefined.
+   */
+  const getImageUrl = (image: VehicleImage | undefined): string => {
     if (!image || !image.imageUrl) {
       return '/images/placeholder.jpg'; // Local frontend placeholder
     }
