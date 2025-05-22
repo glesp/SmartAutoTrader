@@ -1,3 +1,26 @@
+/* <copyright file="ChatController.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the ChatController class, which provides API endpoints for managing chat interactions, retrieving chat history, and handling conversation sessions in the Smart Auto Trader application.
+</summary>
+<remarks>
+The ChatController class is a key component of the backend API, enabling users to interact with the Smart Auto Trader assistant. It leverages dependency injection for services such as IChatRecommendationService, IConversationContextService, and ApplicationDbContext. The controller follows RESTful principles and includes endpoints for sending messages, retrieving chat history, managing conversations, and starting new conversation sessions.
+</remarks>
+<dependencies>
+- Microsoft.AspNetCore.Authorization
+- Microsoft.AspNetCore.Mvc
+- Microsoft.EntityFrameworkCore
+- SmartAutoTrader.API.Data
+- SmartAutoTrader.API.DTOs
+- SmartAutoTrader.API.Helpers
+- SmartAutoTrader.API.Models
+- SmartAutoTrader.API.Repositories
+- SmartAutoTrader.API.Services
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Controllers
 {
     using Microsoft.AspNetCore.Authorization;
@@ -145,6 +168,20 @@ namespace SmartAutoTrader.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves the chat history for the authenticated user.
+        /// </summary>
+        /// <param name="limit">The maximum number of chat history items to retrieve. Default is 10.</param>
+        /// <param name="conversationId">The ID of the conversation to filter history by. Optional.</param>
+        /// <returns>An <see cref="IActionResult"/> containing a list of chat history items.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="Exception">Thrown if an error occurs while retrieving chat history.</exception>
+        /// <remarks>
+        /// This method retrieves chat history from the database, optionally filtered by conversation ID. The history is ordered chronologically.
+        /// </remarks>
+        /// <example>
+        /// GET /api/chat/history?limit=5&conversationId=123.
+        /// </example>
         [HttpGet("history")]
         public async Task<IActionResult> GetChatHistory(
             [FromQuery] int limit = 10,
@@ -192,6 +229,19 @@ namespace SmartAutoTrader.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a list of recent conversations for the authenticated user.
+        /// </summary>
+        /// <param name="limit">The maximum number of conversations to retrieve. Default is 5.</param>
+        /// <returns>An <see cref="IActionResult"/> containing a list of recent conversations.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="Exception">Thrown if an error occurs while retrieving conversations.</exception>
+        /// <remarks>
+        /// This method retrieves recent conversations from the database, ordered by the last interaction timestamp.
+        /// </remarks>
+        /// <example>
+        /// GET /api/chat/conversations?limit=3.
+        /// </example>
         [HttpGet("conversations")]
         public async Task<IActionResult> GetConversations([FromQuery] int limit = 5)
         {
@@ -227,6 +277,19 @@ namespace SmartAutoTrader.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Starts a new conversation session for the authenticated user.
+        /// </summary>
+        /// <returns>An <see cref="IActionResult"/> containing the new conversation ID and a welcome message.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="Exception">Thrown if an error occurs while starting a new conversation.</exception>
+        /// <remarks>
+        /// This method creates a new conversation session in the database and returns a standard welcome message to the user.
+        /// </remarks>
+        /// <example>
+        /// POST /api/chat/conversation/new
+        /// Response: { "conversationId": "456", "welcomeMessage": "Hi! I'm your Smart Auto Trader assistant..." }.
+        /// </example>
         [HttpPost("conversation/new")]
         public async Task<IActionResult> StartNewConversation()
         {

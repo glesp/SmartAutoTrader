@@ -1,3 +1,19 @@
+/* <copyright file="ApplicationDbContext.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the ApplicationDbContext class, which serves as the Entity Framework Core database context for the Smart Auto Trader application.
+</summary>
+<remarks>
+The ApplicationDbContext class provides DbSet properties for all the entities in the application, enabling CRUD operations and database queries. It also configures relationships between entities and seeds initial data, such as roles. The class uses dependency injection to receive DbContextOptions and is designed to work with Microsoft SQL Server or other compatible databases.
+</remarks>
+<dependencies>
+- Microsoft.EntityFrameworkCore
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Data
 {
     using Microsoft.EntityFrameworkCore;
@@ -5,30 +21,95 @@ namespace SmartAutoTrader.API.Data
 
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
+        /// <summary>
+        /// Gets or sets the DbSet for vehicles.
+        /// </summary>
+        /// <value>A collection of <see cref="Vehicle"/> entities.</value>
         public DbSet<Vehicle>? Vehicles { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for vehicle images.
+        /// </summary>
+        /// <value>A collection of <see cref="VehicleImage"/> entities.</value>
         public DbSet<VehicleImage>? VehicleImages { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for vehicle features.
+        /// </summary>
+        /// <value>A collection of <see cref="VehicleFeature"/> entities.</value>
         public DbSet<VehicleFeature>? VehicleFeatures { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for users.
+        /// </summary>
+        /// <value>A collection of <see cref="User"/> entities.</value>
         public DbSet<User>? Users { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for user favorites.
+        /// </summary>
+        /// <value>A collection of <see cref="UserFavorite"/> entities.</value>
         public DbSet<UserFavorite>? UserFavorites { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for user preferences.
+        /// </summary>
+        /// <value>A collection of <see cref="UserPreference"/> entities.</value>
         public DbSet<UserPreference>? UserPreferences { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for browsing history.
+        /// </summary>
+        /// <value>A collection of <see cref="BrowsingHistory"/> entities.</value>
         public DbSet<BrowsingHistory>? BrowsingHistory { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for inquiries.
+        /// </summary>
+        /// <value>A collection of <see cref="Inquiry"/> entities.</value>
         public DbSet<Inquiry>? Inquiries { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for chat history.
+        /// </summary>
+        /// <value>A collection of <see cref="ChatHistory"/> entities.</value>
         public DbSet<ChatHistory>? ChatHistory { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for conversation sessions.
+        /// </summary>
+        /// <value>A collection of <see cref="ConversationSession"/> entities.</value>
         public DbSet<ConversationSession>? ConversationSessions { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for roles.
+        /// </summary>
+        /// <value>A collection of <see cref="Role"/> entities.</value>
         public DbSet<Role>? Roles { get; set; }
 
+        /// <summary>
+        /// Gets or sets the DbSet for user roles.
+        /// </summary>
+        /// <value>A collection of <see cref="UserRole"/> entities.</value>
         public DbSet<UserRole>? UserRoles { get; set; }
 
+        /// <summary>
+        /// Configures the relationships and constraints for the database entities.
+        /// </summary>
+        /// <param name="modelBuilder">The <see cref="ModelBuilder"/> used to configure entity relationships.</param>
+        /// <remarks>
+        /// This method defines relationships such as one-to-many and many-to-many, sets up composite keys, and seeds initial data for roles.
+        /// </remarks>
+        /// <example>
+        /// protected override void OnModelCreating(ModelBuilder modelBuilder)
+        /// {
+        ///     base.OnModelCreating(modelBuilder);
+        ///     modelBuilder.Entity.<VehicleImage>()
+        ///         .HasOne(vi => vi.Vehicle)
+        ///         .WithMany(v => v.Images)
+        ///         .HasForeignKey(vi => vi.VehicleId);
+        /// }
+        /// </example>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -94,22 +175,29 @@ namespace SmartAutoTrader.API.Data
                 .HasOne(ch => ch.User)
                 .WithMany()
                 .HasForeignKey(ch => ch.UserId);
+
+            // ConversationSession - User (one-to-many)
             _ = modelBuilder.Entity<ConversationSession>()
                 .HasOne(cs => cs.User)
                 .WithMany()
                 .HasForeignKey(cs => cs.UserId);
 
+            // ConversationSession - ChatHistory (one-to-many)
             _ = modelBuilder.Entity<ConversationSession>()
                 .HasMany(cs => cs.Messages)
                 .WithOne(ch => ch.Session)
                 .HasForeignKey(ch => ch.ConversationSessionId)
                 .IsRequired(false); // Make the relationship optional
+
+            // UserRole - Composite Key
             modelBuilder.Entity<UserRole>()
                 .HasKey(ur => new { ur.UserId, ur.RoleId }); // Define composite key
             modelBuilder.Entity<UserRole>()
                 .HasOne(ur => ur.User)
                 .WithMany(u => u.UserRoles) // Use navigation property in User
                 .HasForeignKey(ur => ur.UserId);
+
+            // UserRole - Role Relationship
             modelBuilder.Entity<UserRole>()
                 .HasOne(ur => ur.Role)
                 .WithMany(r => r.UserRoles) // Use navigation property in Role

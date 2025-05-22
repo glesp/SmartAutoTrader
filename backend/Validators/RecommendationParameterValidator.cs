@@ -1,10 +1,62 @@
+/* <copyright file="RecommendationParameterValidator.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the RecommendationParameterValidator class, which provides methods for validating user-provided recommendation parameters in the Smart Auto Trader application.
+</summary>
+<remarks>
+The RecommendationParameterValidator class ensures that user-provided recommendation parameters, such as preferred fuel types, vehicle types, price ranges, and year ranges, are valid. It checks for invalid enum values, ensures logical consistency in ranges, and provides detailed error messages for invalid inputs. This class is typically used in scenarios where user input needs to be validated before processing recommendations.
+</remarks>
+<dependencies>
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Validators
 {
     using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
 
+    /// <summary>
+    /// Provides methods for validating user-provided recommendation parameters.
+    /// </summary>
+    /// <remarks>
+    /// This static class validates various aspects of recommendation parameters, including enum values, price ranges, and year ranges. It ensures that invalid inputs are identified and replaced or rejected with appropriate error messages.
+    /// </remarks>
     public static class RecommendationParameterValidator
     {
+        /// <summary>
+        /// Validates the provided recommendation parameters.
+        /// </summary>
+        /// <param name="parameters">The <see cref="RecommendationParameters"/> object containing user preferences for recommendations.</param>
+        /// <param name="errorMessage">An output parameter that contains the error message if validation fails; otherwise, null.</param>
+        /// <returns>
+        /// True if the parameters are valid; otherwise, false.
+        /// </returns>
+        /// <remarks>
+        /// This method performs the following validations:
+        /// - Ensures that all provided fuel types and vehicle types are valid enums.
+        /// - Ensures that the minimum price is not greater than the maximum price.
+        /// - Ensures that the minimum year is not greater than the maximum year.
+        /// If any validation fails, an appropriate error message is returned.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var parameters = new RecommendationParameters
+        /// {
+        ///     PreferredFuelTypes = new List<FuelType> { FuelType.Gasoline, (FuelType)999 },
+        ///     MinPrice = 5000,
+        ///     MaxPrice = 3000
+        /// };
+        ///
+        /// if (!RecommendationParameterValidator.Validate(parameters, out string? errorMessage))
+        /// {
+        ///     Console.WriteLine($"Validation failed: {errorMessage}");
+        /// }
+        /// </code>
+        /// </example>
         public static bool Validate(RecommendationParameters parameters, out string? errorMessage)
         {
             errorMessage = null;
@@ -12,8 +64,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if FuelType values are valid
             if (parameters.PreferredFuelTypes?.Any() == true)
             {
-                List<string> invalidFuelTypes = [];
-                List<FuelType> validatedFuelTypes = [];
+                List<string> invalidFuelTypes = new();
+                List<FuelType> validatedFuelTypes = new();
 
                 foreach (FuelType fuelType in parameters.PreferredFuelTypes)
                 {
@@ -43,8 +95,8 @@ namespace SmartAutoTrader.API.Validators
             // Check if VehicleType values are valid
             if (parameters.PreferredVehicleTypes?.Any() == true)
             {
-                List<string> invalidVehicleTypes = [];
-                List<VehicleType> validatedVehicleTypes = [];
+                List<string> invalidVehicleTypes = new();
+                List<VehicleType> validatedVehicleTypes = new();
 
                 foreach (VehicleType vehicleType in parameters.PreferredVehicleTypes)
                 {

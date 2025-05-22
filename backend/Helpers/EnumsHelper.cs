@@ -1,11 +1,51 @@
+/* <copyright file="EnumsHelper.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the EnumHelpers class, which provides utility methods for parsing and working with enumerations in the Smart Auto Trader application.
+</summary>
+<remarks>
+The EnumHelpers class is a static helper class designed to simplify the process of parsing string values into enumeration types, such as FuelType, VehicleType, and TransmissionType. It includes methods for handling standard parsing as well as fuzzy matching for common terms. Additionally, it provides methods for parsing lists of enumeration values. This class is typically used in scenarios where user input or external data needs to be mapped to strongly-typed enumerations.
+</remarks>
+<dependencies>
+- System.Globalization
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Helpers
 {
     using System.Globalization;
     using SmartAutoTrader.API.Enums;
     using SmartAutoTrader.API.Models;
 
+    /// <summary>
+    /// Provides utility methods for parsing and working with enumerations.
+    /// </summary>
+    /// <remarks>
+    /// This static class simplifies the process of converting string values into enumeration types, including support for fuzzy matching and list parsing.
+    /// </remarks>
     public static class EnumHelpers
     {
+        /// <summary>
+        /// Attempts to parse a string value into a <see cref="FuelType"/> enumeration.
+        /// </summary>
+        /// <param name="value">The string value to parse.</param>
+        /// <param name="result">The parsed <see cref="FuelType"/> value, if successful.</param>
+        /// <returns>True if parsing is successful; otherwise, false.</returns>
+        /// <remarks>
+        /// This method supports standard parsing as well as fuzzy matching for common terms like "gas" or "ev.".
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// if (EnumHelpers.TryParseFuelType("gasoline", out FuelType fuelType))
+        /// {
+        ///     Console.WriteLine($"Parsed fuel type: {fuelType}");
+        /// }
+        /// </code>
+        /// </example>
         public static bool TryParseFuelType(string value, out FuelType result)
         {
             result = default;
@@ -47,6 +87,23 @@ namespace SmartAutoTrader.API.Helpers
             }
         }
 
+        /// <summary>
+        /// Attempts to parse a string value into a <see cref="VehicleType"/> enumeration.
+        /// </summary>
+        /// <param name="value">The string value to parse.</param>
+        /// <param name="result">The parsed <see cref="VehicleType"/> value, if successful.</param>
+        /// <returns>True if parsing is successful; otherwise, false.</returns>
+        /// <remarks>
+        /// This method supports standard parsing as well as fuzzy matching for common terms like "suv" or "crossover.".
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// if (EnumHelpers.TryParseVehicleType("SUV", out VehicleType vehicleType))
+        /// {
+        ///     Console.WriteLine($"Parsed vehicle type: {vehicleType}");
+        /// }
+        /// </code>
+        /// </example>
         public static bool TryParseVehicleType(string value, out VehicleType result)
         {
             result = default;
@@ -117,6 +174,23 @@ namespace SmartAutoTrader.API.Helpers
             }
         }
 
+        /// <summary>
+        /// Attempts to parse a string value into a <see cref="TransmissionType"/> enumeration.
+        /// </summary>
+        /// <param name="value">The string value to parse.</param>
+        /// <param name="result">The parsed <see cref="TransmissionType"/> value, if successful.</param>
+        /// <returns>True if parsing is successful; otherwise, false.</returns>
+        /// <remarks>
+        /// This method supports standard parsing as well as fuzzy matching for common terms like "auto" or "stick shift.".
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// if (EnumHelpers.TryParseTransmissionType("automatic", out TransmissionType transmissionType))
+        /// {
+        ///     Console.WriteLine($"Parsed transmission type: {transmissionType}");
+        /// }
+        /// </code>
+        /// </example>
         public static bool TryParseTransmissionType(string value, out TransmissionType result)
         {
             result = default;
@@ -167,6 +241,20 @@ namespace SmartAutoTrader.API.Helpers
             }
         }
 
+        /// <summary>
+        /// Parses a list of string values into a list of <see cref="FuelType"/> enumerations.
+        /// </summary>
+        /// <param name="values">The list of string values to parse.</param>
+        /// <returns>A list of parsed <see cref="FuelType"/> values.</returns>
+        /// <remarks>
+        /// This method iterates through the provided list of strings and attempts to parse each value into a <see cref="FuelType"/>. Invalid values are ignored.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var fuelTypes = EnumHelpers.ParseFuelTypeList(new[] { "gas", "electric", "invalid" });
+        /// Console.WriteLine($"Parsed fuel types: {string.Join(", ", fuelTypes)}");
+        /// </code>
+        /// </example>
         public static List<FuelType> ParseFuelTypeList(IEnumerable<string> values)
         {
             List<FuelType> result = [];
@@ -182,6 +270,20 @@ namespace SmartAutoTrader.API.Helpers
             return result;
         }
 
+        /// <summary>
+        /// Parses a list of string values into a list of <see cref="VehicleType"/> enumerations.
+        /// </summary>
+        /// <param name="values">The list of string values to parse.</param>
+        /// <returns>A list of parsed <see cref="VehicleType"/> values.</returns>
+        /// <remarks>
+        /// This method iterates through the provided list of strings and attempts to parse each value into a <see cref="VehicleType"/>. Invalid values are ignored.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var vehicleTypes = EnumHelpers.ParseVehicleTypeList(new[] { "SUV", "sedan", "invalid" });
+        /// Console.WriteLine($"Parsed vehicle types: {string.Join(", ", vehicleTypes)}");
+        /// </code>
+        /// </example>
         public static List<VehicleType> ParseVehicleTypeList(IEnumerable<string> values)
         {
             List<VehicleType> result = [];

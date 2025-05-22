@@ -1,3 +1,21 @@
+/* <copyright file="VehicleSeederScript.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the VehicleSeeder class, which is responsible for seeding the database with realistic vehicle data for testing and demonstration purposes.
+</summary>
+<remarks>
+The VehicleSeeder class generates a specified number of vehicles with randomized attributes such as make, model, year, price, mileage, and features. It uses predefined mappings for vehicle types and fuel types based on models and includes logic for generating descriptions, statuses, and associated images. The class is designed to be invoked during application initialization or testing to populate the database with sample data.
+</remarks>
+<dependencies>
+- System.Globalization
+- SmartAutoTrader.API.Data
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.DataSeeding
 {
     using System.Globalization;
@@ -61,6 +79,17 @@ namespace SmartAutoTrader.API.DataSeeding
             }
         }
 
+        /// <summary>
+        /// Generates a list of randomized vehicles with realistic attributes.
+        /// </summary>
+        /// <param name="count">The number of vehicles to generate.</param>
+        /// <returns>A list of generated <see cref="Vehicle"/> objects.</returns>
+        /// <remarks>
+        /// This method uses predefined mappings and randomization to generate vehicle attributes such as make, model, year, price, mileage, and features.
+        /// </remarks>
+        /// <example>
+        /// var vehicles = VehicleSeeder.GenerateVehicles(50).
+        /// </example>
         private static List<Vehicle> GenerateVehicles(int count)
         {
             Random random = new();
@@ -183,6 +212,17 @@ namespace SmartAutoTrader.API.DataSeeding
             return vehicles;
         }
 
+        /// <summary>
+        /// Gets the country of origin for a vehicle make.
+        /// </summary>
+        /// <param name="make">The manufacturer or make of the vehicle.</param>
+        /// <returns>The country of origin for the specified make.</returns>
+        /// <remarks>
+        /// This method uses a predefined mapping of makes to countries. If the make is not recognized, it returns "Other".
+        /// </remarks>
+        /// <example>
+        /// string country = VehicleSeeder.GetCountryForMake("Toyota").
+        /// </example>
         private static string GetCountryForMake(string make)
         {
             return make switch
@@ -195,6 +235,17 @@ namespace SmartAutoTrader.API.DataSeeding
             };
         }
 
+        /// <summary>
+        /// Generates a random vehicle status with weighted probabilities.
+        /// </summary>
+        /// <param name="random">The random number generator.</param>
+        /// <returns>A randomly selected <see cref="VehicleStatus"/> value.</returns>
+        /// <remarks>
+        /// This method assigns a higher probability to the "Available" status compared to "Reserved" and "Sold".
+        /// </remarks>
+        /// <example>
+        /// VehicleStatus status = VehicleSeeder.GetRandomStatusWithWeights(new Random()).
+        /// </example>
         private static VehicleStatus GetRandomStatusWithWeights(Random random)
         {
             return random.Next(100) switch
@@ -205,6 +256,19 @@ namespace SmartAutoTrader.API.DataSeeding
             };
         }
 
+        /// <summary>
+        /// Generates a random description for a vehicle.
+        /// </summary>
+        /// <param name="make">The manufacturer or make of the vehicle.</param>
+        /// <param name="model">The model of the vehicle.</param>
+        /// <param name="year">The year of manufacture.</param>
+        /// <returns>A randomly generated description for the vehicle.</returns>
+        /// <remarks>
+        /// This method selects a random description template and populates it with the provided make, model, and year.
+        /// </remarks>
+        /// <example>
+        /// string description = VehicleSeeder.GenerateDescription("Toyota", "Camry", 2020).
+        /// </example>
         private static string GenerateDescription(string make, string model, int year)
         {
             string[] descriptions =

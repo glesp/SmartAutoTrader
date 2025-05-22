@@ -1,3 +1,25 @@
+/* <copyright file="InquiriesController.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the InquiriesController class, which provides API endpoints for managing user inquiries in the Smart Auto Trader application.
+</summary>
+<remarks>
+The InquiriesController class allows users to create, retrieve, and manage inquiries about vehicles. It also includes administrative endpoints for managing inquiries, such as marking them as read, replying, or closing them. The controller uses dependency injection for the ApplicationDbContext to interact with the database and is secured with the [Authorize] attribute to restrict access to authenticated users. Some endpoints are further restricted to users with the "Admin" role.
+</remarks>
+<dependencies>
+- Microsoft.AspNetCore.Authorization
+- Microsoft.AspNetCore.Mvc
+- Microsoft.EntityFrameworkCore
+- SmartAutoTrader.API.Data
+- SmartAutoTrader.API.DTOs
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Helpers
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Controllers
 {
     using Microsoft.AspNetCore.Authorization;
@@ -35,7 +57,19 @@ namespace SmartAutoTrader.API.Controllers
             return inquiries;
         }
 
-        // GET: api/Inquiries/5
+        /// <summary>
+        /// Retrieves a specific inquiry by its ID for the authenticated user.
+        /// </summary>
+        /// <param name="id">The ID of the inquiry to retrieve.</param>
+        /// <returns>The inquiry with the specified ID, if it exists and belongs to the authenticated user.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown if the inquiry does not exist or does not belong to the user.</exception>
+        /// <remarks>
+        /// This method retrieves a specific inquiry for the authenticated user, including related vehicle information.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Inquiries/5.
+        /// </example>
         [HttpGet("{id}")]
         public async Task<ActionResult<Inquiry>> GetInquiry(int id)
         {
@@ -52,7 +86,18 @@ namespace SmartAutoTrader.API.Controllers
             return inquiry == null ? (ActionResult<Inquiry>)this.NotFound() : (ActionResult<Inquiry>)inquiry;
         }
 
-        // GET: api/Inquiries/admin
+        /// <summary>
+        /// Retrieves all inquiries, optionally filtered by status, for administrative purposes.
+        /// </summary>
+        /// <param name="status">The status to filter inquiries by. Optional.</param>
+        /// <returns>A list of inquiries, optionally filtered by status.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated or lacks the "Admin" role.</exception>
+        /// <remarks>
+        /// This method is restricted to users with the "Admin" role and allows filtering inquiries by their status.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Inquiries/admin?status=New.
+        /// </example>
         [HttpGet("admin")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<Inquiry>>> GetAllInquiries([FromQuery] string status = "")
@@ -70,7 +115,20 @@ namespace SmartAutoTrader.API.Controllers
             return inquiries;
         }
 
-        // POST: api/Inquiries
+        /// <summary>
+        /// Creates a new inquiry for the authenticated user.
+        /// </summary>
+        /// <param name="inquiryDto">The DTO containing the details of the inquiry to create.</param>
+        /// <returns>The created inquiry.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle specified in the inquiry does not exist.</exception>
+        /// <remarks>
+        /// This method creates a new inquiry for the authenticated user and associates it with the specified vehicle.
+        /// </remarks>
+        /// <example>
+        /// POST /api/Inquiries
+        /// Body: { "vehicleId": 123, "subject": "Inquiry about the car", "message": "Is this car still available?" }.
+        /// </example>
         [HttpPost]
         public async Task<ActionResult<Inquiry>> CreateInquiry(InquiryCreateDto inquiryDto)
         {
@@ -103,7 +161,19 @@ namespace SmartAutoTrader.API.Controllers
             return this.CreatedAtAction(nameof(this.GetInquiry), new { id = inquiry.Id }, inquiry);
         }
 
-        // PUT: api/Inquiries/5/MarkAsRead
+        /// <summary>
+        /// Marks a specific inquiry as read. Restricted to administrators.
+        /// </summary>
+        /// <param name="id">The ID of the inquiry to mark as read.</param>
+        /// <returns>No content if the operation is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the inquiry does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated or lacks the "Admin" role.</exception>
+        /// <remarks>
+        /// This method updates the status of the specified inquiry to "Read".
+        /// </remarks>
+        /// <example>
+        /// PUT /api/Inquiries/5/MarkAsRead.
+        /// </example>
         [HttpPut("{id}/MarkAsRead")]
         [Authorize(Roles = "Admin")] // For admin access only
         public async Task<IActionResult> MarkInquiryAsRead(int id)
@@ -135,7 +205,21 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
-        // PUT: api/Inquiries/5/Reply
+        /// <summary>
+        /// Replies to a specific inquiry. Restricted to administrators.
+        /// </summary>
+        /// <param name="id">The ID of the inquiry to reply to.</param>
+        /// <param name="replyDto">The DTO containing the reply message.</param>
+        /// <returns>No content if the operation is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the inquiry does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated or lacks the "Admin" role.</exception>
+        /// <remarks>
+        /// This method updates the inquiry with the reply message and changes its status to "Replied".
+        /// </remarks>
+        /// <example>
+        /// PUT /api/Inquiries/5/Reply
+        /// Body: { "response": "Thank you for your inquiry. The car is still available." }.
+        /// </example>
         [HttpPut("{id}/Reply")]
         [Authorize(Roles = "Admin")] // For admin access only
         public async Task<IActionResult> ReplyToInquiry(int id, InquiryReplyDto replyDto)
@@ -170,7 +254,19 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
-        // PUT: api/Inquiries/5/Close
+        /// <summary>
+        /// Closes a specific inquiry for the authenticated user.
+        /// </summary>
+        /// <param name="id">The ID of the inquiry to close.</param>
+        /// <returns>No content if the operation is successful.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown if the inquiry does not exist or does not belong to the user.</exception>
+        /// <remarks>
+        /// This method updates the status of the specified inquiry to "Closed".
+        /// </remarks>
+        /// <example>
+        /// PUT /api/Inquiries/5/Close.
+        /// </example>
         [HttpPut("{id}/Close")]
         public async Task<IActionResult> CloseInquiry(int id)
         {
@@ -208,6 +304,11 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
+        /// <summary>
+        /// Checks if an inquiry with the specified ID exists in the database.
+        /// </summary>
+        /// <param name="id">The ID of the inquiry to check.</param>
+        /// <returns>True if the inquiry exists; otherwise, false.</returns>
         private bool InquiryExists(int id)
         {
             return this.context.Inquiries.Any(e => e.Id == id);

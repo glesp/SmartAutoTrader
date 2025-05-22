@@ -1,18 +1,46 @@
+/* <copyright file="ConversationContextService.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the ConversationContextService class, which manages conversation contexts and sessions for users in the Smart Auto Trader application.
+</summary>
+<remarks>
+The ConversationContextService class is responsible for tracking and persisting conversation state across multiple user interactions. It integrates with the IChatRepository to manage conversation sessions and uses in-memory caching for performance optimization. The service ensures that conversation contexts are properly created, updated, and retrieved, while handling session timeouts and error logging.
+</remarks>
+<dependencies>
+- System.Text.Json
+- SmartAutoTrader.API.Models
+- SmartAutoTrader.API.Repositories
+- Microsoft.Extensions.Logging
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Services
 {
     using System.Text.Json;
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 
-    // This class represents the state we want to track throughout a conversation
+    /// <summary>
+    /// Service responsible for managing conversation contexts and sessions for users.
+    /// </summary>
+    /// <remarks>
+    /// This class tracks and persists conversation state across multiple user interactions, enabling contextual responses and dynamic query refinement.
+    /// </remarks>
     public class ConversationContextService : IConversationContextService
     {
-        // In-memory cache for active conversations (optional)
         private readonly Dictionary<int, ConversationContext> activeContexts = new();
         private readonly IChatRepository chatRepo;
         private readonly ILogger<ConversationContextService> logger;
         private readonly IUserRepository userRepo;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConversationContextService"/> class.
+        /// </summary>
+        /// <param name="userRepo">The user repository for managing user data.</param>
+        /// <param name="chatRepo">The chat repository for managing conversation sessions.</param>
+        /// <param name="logger">The logger instance for logging errors and information.</param>
         public ConversationContextService(
             IUserRepository userRepo,
             IChatRepository chatRepo,
@@ -23,22 +51,36 @@ namespace SmartAutoTrader.API.Services
             this.logger = logger;
         }
 
+        /// <summary>
+        /// Retrieves an existing conversation context for the specified user or creates a new one if none exists.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains the <see cref="ConversationContext"/> for the user.
+        /// </returns>
+        /// <exception cref="JsonException">Thrown if deserialization of the session context fails.</exception>
+        /// <remarks>
+        /// This method checks for an active session and retrieves the associated context. If no session exists, a new context and session are created.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var context = await conversationContextService.GetOrCreateContextAsync(userId);
+        /// Console.WriteLine($"Model used: {context.ModelUsed}");
+        /// </code>
+        /// </example>
         public async Task<ConversationContext> GetOrCreateContextAsync(int userId)
         {
             try
             {
-                // Check if we have an active session for the user
                 ConversationSession? session = await this.GetCurrentSessionAsync(userId);
 
                 if (session != null)
                 {
-                    // Check in-memory cache first for performance
                     if (this.activeContexts.TryGetValue(userId, out ConversationContext? cachedContext))
                     {
                         return cachedContext;
                     }
 
-                    // Try to deserialize the context from the session
                     if (!string.IsNullOrEmpty(session.SessionContext))
                     {
                         try
@@ -47,38 +89,31 @@ namespace SmartAutoTrader.API.Services
                                 JsonSerializer.Deserialize<ConversationContext>(session.SessionContext);
                             if (context != null)
                             {
-                                // Cache for subsequent requests
                                 this.activeContexts[userId] = context;
                                 return context;
                             }
                         }
                         catch (JsonException ex)
                         {
-                            this.logger.LogError(ex, "Error deserializing conversation context for user {UserId}",
-                                userId);
+                            this.logger.LogError(ex, "Error deserializing conversation context for user {UserId}", userId);
                         }
                     }
                 }
 
-                // Create a new context if we couldn't retrieve one
                 ConversationContext newContext = new()
                 {
                     LastInteraction = DateTime.UtcNow,
                 };
 
-                // Start a new session if needed
                 if (session == null)
                 {
                     _ = await this.StartNewSessionAsync(userId);
                 }
 
-                // If we detect it's a brand-new session, pick a model
-                // e.g. rotate among fast/refine/clarify:
                 string[] modelPool = { "fast", "refine", "clarify" };
                 int index = new Random().Next(0, modelPool.Length);
                 newContext.ModelUsed = modelPool[index];
 
-                // Cache and return the new context
                 this.activeContexts[userId] = newContext;
                 return newContext;
             }
@@ -150,17 +185,12 @@ namespace SmartAutoTrader.API.Services
         {
             try
             {
-                // Update in-memory cache
                 this.activeContexts[userId] = context;
-
-                // Update the timestamp
                 context.LastInteraction = DateTime.UtcNow;
 
-                // Get the current session
                 ConversationSession session = await this.GetCurrentSessionAsync(userId) ??
                                               await this.StartNewSessionAsync(userId);
 
-                // Serialize and save the context
                 session.SessionContext = JsonSerializer.Serialize(context);
                 session.LastInteractionAt = DateTime.UtcNow;
 
@@ -173,7 +203,22 @@ namespace SmartAutoTrader.API.Services
             }
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Starts a new conversation session for the specified user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains the newly created <see cref="ConversationSession"/>.
+        /// </returns>
+        /// <remarks>
+        /// This method creates a new session for the user, initializes the session context, and clears any cached context for the user.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var newSession = await conversationContextService.StartNewSessionAsync(userId);
+        /// Console.WriteLine($"New session created with ID: {newSession.Id}");
+        /// </code>
+        /// </example>
         public async Task<ConversationSession> StartNewSessionAsync(int userId)
         {
             ConversationSession newSession = new()
@@ -187,13 +232,30 @@ namespace SmartAutoTrader.API.Services
             await this.chatRepo.AddSessionAsync(newSession);
             await this.chatRepo.SaveChangesAsync();
 
-            // Clear any cached context
             _ = this.activeContexts.Remove(userId);
 
             return newSession;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Retrieves the current conversation session for the specified user, if one exists.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains the current <see cref="ConversationSession"/> for the user, or null if no session exists.
+        /// </returns>
+        /// <remarks>
+        /// This method retrieves the most recent session for the user within a specified timeout period.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// var currentSession = await conversationContextService.GetCurrentSessionAsync(userId);
+        /// if (currentSession != null)
+        /// {
+        ///     Console.WriteLine($"Current session ID: {currentSession.Id}");
+        /// }
+        /// </code>
+        /// </example>
         public async Task<ConversationSession?> GetCurrentSessionAsync(int userId)
         {
             return await this.chatRepo.GetRecentSessionAsync(userId, TimeSpan.FromMinutes(30));

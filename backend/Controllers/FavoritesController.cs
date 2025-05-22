@@ -1,3 +1,23 @@
+/* <copyright file="FavoritesController.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the FavoritesController class, which provides API endpoints for managing a user's favorite vehicles in the Smart Auto Trader application.
+</summary>
+<remarks>
+The FavoritesController class enables users to perform CRUD operations on their favorite vehicles, including adding, removing, checking, and retrieving favorites. It uses dependency injection for the ApplicationDbContext to interact with the database. The controller is secured with the [Authorize] attribute, ensuring only authenticated users can access its endpoints.
+</remarks>
+<dependencies>
+- Microsoft.AspNetCore.Authorization
+- Microsoft.AspNetCore.Mvc
+- Microsoft.EntityFrameworkCore
+- SmartAutoTrader.API.Data
+- SmartAutoTrader.API.Helpers
+- SmartAutoTrader.API.Models
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Controllers
 {
     using Microsoft.AspNetCore.Authorization;
@@ -12,9 +32,23 @@ namespace SmartAutoTrader.API.Controllers
     [Authorize]
     public class FavoritesController(ApplicationDbContext context) : ControllerBase
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FavoritesController"/> class.
+        /// </summary>
+        /// <param name="context">The database context for accessing user favorites and vehicles.</param>
         private readonly ApplicationDbContext context = context;
 
-        // GET: api/Favorites
+        /// <summary>
+        /// Retrieves the list of favorite vehicles for the authenticated user.
+        /// </summary>
+        /// <returns>A list of vehicles marked as favorites by the user.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <remarks>
+        /// This method queries the database for vehicles favorited by the authenticated user and includes related vehicle images.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Favorites.
+        /// </example>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Vehicle>>> GetFavorites()
         {
@@ -34,7 +68,20 @@ namespace SmartAutoTrader.API.Controllers
             return favorites;
         }
 
-        // POST: api/Favorites
+        /// <summary>
+        /// Adds a vehicle to the authenticated user's favorites.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle to add to favorites.</param>
+        /// <returns>A success message if the vehicle is added to favorites.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle does not exist.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the vehicle is already in the user's favorites.</exception>
+        /// <remarks>
+        /// This method checks if the vehicle exists and is not already in the user's favorites before adding it.
+        /// </remarks>
+        /// <example>
+        /// POST /api/Favorites/123.
+        /// </example>
         [HttpPost("{vehicleId}")]
         public async Task<IActionResult> AddFavorite(int vehicleId)
         {
@@ -74,7 +121,19 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(new { Message = "Vehicle added to favorites" });
         }
 
-        // DELETE: api/Favorites/5
+        /// <summary>
+        /// Removes a vehicle from the authenticated user's favorites.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle to remove from favorites.</param>
+        /// <returns>A success message if the vehicle is removed from favorites.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle is not in the user's favorites.</exception>
+        /// <remarks>
+        /// This method checks if the vehicle is in the user's favorites before removing it.
+        /// </remarks>
+        /// <example>
+        /// DELETE /api/Favorites/123.
+        /// </example>
         [HttpDelete("{vehicleId}")]
         public async Task<IActionResult> RemoveFavorite(int vehicleId)
         {
@@ -98,7 +157,18 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(new { Message = "Vehicle removed from favorites" });
         }
 
-        // GET: api/Favorites/Check/5
+        /// <summary>
+        /// Checks if a specific vehicle is in the authenticated user's favorites.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle to check.</param>
+        /// <returns>A boolean indicating whether the vehicle is in the user's favorites.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <remarks>
+        /// This method queries the database to determine if the specified vehicle is in the user's favorites.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Favorites/Check/123.
+        /// </example>
         [HttpGet("Check/{vehicleId}")]
         public async Task<ActionResult<bool>> CheckFavorite(int vehicleId)
         {
@@ -114,7 +184,17 @@ namespace SmartAutoTrader.API.Controllers
             return isFavorite;
         }
 
-        // GET: api/Favorites/Count
+        /// <summary>
+        /// Retrieves the count of favorite vehicles for the authenticated user.
+        /// </summary>
+        /// <returns>The total number of vehicles in the user's favorites.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not authenticated.</exception>
+        /// <remarks>
+        /// This method counts the number of vehicles in the user's favorites and returns the total.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Favorites/Count.
+        /// </example>
         [HttpGet("Count")]
         public async Task<ActionResult<int>> GetFavoritesCount()
         {

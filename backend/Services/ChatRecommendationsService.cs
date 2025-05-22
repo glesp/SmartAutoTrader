@@ -1,3 +1,26 @@
+/* <copyright file="ChatRecommendationsService.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the ChatRecommendationService class and its interface, IChatRecommendationService, which provide methods for processing user chat messages, extracting vehicle preferences, and generating contextual responses and recommendations in the Smart Auto Trader application.
+</summary>
+<remarks>
+The ChatRecommendationService class implements the IChatRecommendationService interface and provides functionality for handling user interactions in a conversational format. It processes user messages, extracts vehicle preferences using AI-based services, and generates recommendations or clarification requests. The service integrates with various repositories and external services for managing conversation context, user data, and recommendation logic.
+</remarks>
+<dependencies>
+- System.Diagnostics
+- System.Globalization
+- System.Linq.Expressions
+- System.Text
+- System.Text.Json
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Helpers
+- SmartAutoTrader.API.Models
+- SmartAutoTrader.API.Repositories
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Services
 {
     using System.Diagnostics;
@@ -10,26 +33,43 @@ namespace SmartAutoTrader.API.Services
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 
+    /// <summary>
+    /// Interface for chat-based recommendation services that process user messages
+    /// and return appropriate vehicle recommendations or clarification requests.
+    /// </summary>
     public interface IChatRecommendationService
     {
+        /// <summary>
+        /// Processes a chat message from a user and generates an appropriate response.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user sending the message.</param>
+        /// <param name="message">The chat message content and metadata.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation. The task result contains a <see cref="ChatResponse"/> object with the AI-generated message, recommendations, and context information.
+        /// </returns>
+        /// <exception cref="Exception">Thrown if an error occurs during message processing.</exception>
+        /// <example>
+        /// <code>
+        /// var response = await chatRecommendationService.ProcessMessageAsync(userId, chatMessage);
+        /// Console.WriteLine(response.Message);
+        /// </code>
+        /// </example>
         Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message);
     }
 
-    public class ChatRecommendationService(
-        IUserRepository userRepo,
-        IChatRepository chatRepo,
-        IConfiguration configuration,
-        ILogger<ChatRecommendationService> logger,
-        HttpClient httpClient,
-        IAIRecommendationService recommendationService,
-        IConversationContextService contextService) : IChatRecommendationService
+    /// <summary>
+    /// Service that processes user chat messages to extract vehicle preferences,
+    /// generate contextual responses, and provide relevant vehicle recommendations.
+    /// </summary>
+    /// <remarks>
+    /// This service integrates with AI-based recommendation services, user repositories, and conversation context management to handle user interactions in a conversational format. It supports dynamic query refinement, clarification, and fallback mechanisms.
+    /// </remarks>
+    public class ChatRecommendationService : IChatRecommendationService
     {
-        // Constants should be declared first
         private const int MaxClarificationAttempts = 3;
         private const int MaxQuestionsToKeep = 3;
         private const int MaxRecentParametersToTrack = 5;
 
-        // Static readonly fields can come after constants
         private static readonly string[] _fallbackMessages =
         {
             "Sorry, I didn't quite catch that. Could you rephrase?",
@@ -37,29 +77,45 @@ namespace SmartAutoTrader.API.Services
             "I'm having trouble understanding that request. Could you simplify?",
         };
 
-        // Instance readonly fields (dependencies and others)
-        private readonly IChatRepository chatRepo = chatRepo;
-        private readonly IConfiguration configuration = configuration;
-        private readonly IConversationContextService contextService = contextService;
-        private readonly HttpClient httpClient = httpClient;
-        private readonly ILogger<ChatRecommendationService> logger = logger;
-        private readonly IAIRecommendationService recommendationService = recommendationService;
-        private readonly IUserRepository userRepo = userRepo;
+        private readonly IChatRepository chatRepo;
+        private readonly IConfiguration configuration;
+        private readonly IConversationContextService contextService;
+        private readonly HttpClient httpClient;
+        private readonly ILogger<ChatRecommendationService> logger;
+        private readonly IAIRecommendationService recommendationService;
+        private readonly IUserRepository userRepo;
 
-        // Define the model strategies
-        private readonly string[] modelStrategies = ["fast", "refine", "clarify"];
+        private readonly string[] modelStrategies = { "fast", "refine", "clarify" };
 
-        // Method to determine which LLM strategy to use
-        private string DetermineModelStrategy(ConversationContext context)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ChatRecommendationService"/> class.
+        /// </summary>
+        /// <param name="userRepo">The user repository for managing user data.</param>
+        /// <param name="chatRepo">The chat repository for managing chat history.</param>
+        /// <param name="configuration">The application's configuration object.</param>
+        /// <param name="logger">The logger instance for logging errors and information.</param>
+        /// <param name="httpClient">The HTTP client for making external API calls.</param>
+        /// <param name="recommendationService">The AI recommendation service for generating vehicle recommendations.</param>
+        /// <param name="contextService">The conversation context service for managing user conversation state.</param>
+        public ChatRecommendationService(
+            IUserRepository userRepo,
+            IChatRepository chatRepo,
+            IConfiguration configuration,
+            ILogger<ChatRecommendationService> logger,
+            HttpClient httpClient,
+            IAIRecommendationService recommendationService,
+            IConversationContextService contextService)
         {
-            // Simple strategy: Rotate through models based on message count
-            // More sophisticated logic could depend on intent, clarification needs, etc.
-            int strategyIndex = (context.MessageCount - 1) % this.modelStrategies.Length;
-            string selectedStrategy = this.modelStrategies[strategyIndex];
-            this.logger.LogInformation("Determined model strategy: {Strategy} for message count {Count}", selectedStrategy, context.MessageCount);
-            return selectedStrategy;
+            this.userRepo = userRepo;
+            this.chatRepo = chatRepo;
+            this.configuration = configuration;
+            this.logger = logger;
+            this.httpClient = httpClient;
+            this.recommendationService = recommendationService;
+            this.contextService = contextService;
         }
 
+        /// <inheritdoc/>
         public async Task<ChatResponse> ProcessMessageAsync(int userId, ChatMessage message)
         {
             Stopwatch sw = Stopwatch.StartNew();
@@ -450,6 +506,17 @@ namespace SmartAutoTrader.API.Services
                     RecommendedVehicles = new List<Vehicle>(),
                 };
             }
+        }
+
+        // Determine which LLM strategy to use based on conversation context
+        private string DetermineModelStrategy(ConversationContext context)
+        {
+            // Simple strategy: Rotate through models based on message count
+            // More sophisticated logic could depend on intent, clarification needs, etc.
+            int strategyIndex = (context.MessageCount - 1) % this.modelStrategies.Length;
+            string selectedStrategy = this.modelStrategies[strategyIndex];
+            this.logger.LogInformation("Determined model strategy: {Strategy} for message count {Count}", selectedStrategy, context.MessageCount);
+            return selectedStrategy;
         }
 
         // Determine if a message is a follow-up to the previous conversation

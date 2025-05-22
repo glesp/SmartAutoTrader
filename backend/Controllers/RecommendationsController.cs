@@ -1,3 +1,22 @@
+/* <copyright file="RecommendationsController.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the RecommendationsController class, which provides API endpoints for generating vehicle recommendations in the Smart Auto Trader application.
+</summary>
+<remarks>
+The RecommendationsController class allows users to retrieve personalized vehicle recommendations based on various parameters such as price range, vehicle type, fuel type, and desired features. It leverages the IAIRecommendationService to generate recommendations using AI-based algorithms. The controller is secured with the [Authorize] attribute, ensuring only authenticated users can access its primary endpoints. A test endpoint is also provided for debugging purposes, which bypasses authentication.
+</remarks>
+<dependencies>
+- System.Security.Claims
+- Microsoft.AspNetCore.Authorization
+- Microsoft.AspNetCore.Mvc
+- SmartAutoTrader.API.Models
+- SmartAutoTrader.API.Services
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Controllers
 {
     using System.Security.Claims;
@@ -64,7 +83,19 @@ namespace SmartAutoTrader.API.Controllers
             }
         }
 
-        // Endpoint for testing without authentication
+        /// <summary>
+        /// Retrieves vehicle recommendations for a specific user without requiring authentication. For testing purposes only.
+        /// </summary>
+        /// <param name="userId">The ID of the user for whom recommendations are being generated.</param>
+        /// <param name="request">The request model containing recommendation parameters such as price range, vehicle type, and desired features.</param>
+        /// <returns>An <see cref="IActionResult"/> containing a list of recommended vehicles.</returns>
+        /// <exception cref="Exception">Thrown if an error occurs while generating recommendations.</exception>
+        /// <remarks>
+        /// This endpoint bypasses authentication and is intended for testing purposes. It uses the IAIRecommendationService to generate recommendations based on the provided user ID and parameters.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Recommendations/test/1?MinPrice=10000&MaxPrice=50000&VehicleTypes=SUV&FuelTypes=Petrol.
+        /// </example>
         [HttpGet("test/{userId}")]
         [AllowAnonymous]
         public async Task<IActionResult> TestRecommendations(int userId, [FromQuery] RecommendationRequestModel request)

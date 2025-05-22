@@ -15,12 +15,24 @@ namespace SmartAutoTrader.API.Services
     using SmartAutoTrader.API.Models;
     using SmartAutoTrader.API.Repositories;
 
-    // Interface for any AI recommendation service (allows easy swapping)
+    /// <summary>
+    /// Interface for AI-powered recommendation services that suggest vehicles based on user preferences.
+    /// </summary>
     public interface IAIRecommendationService
     {
+        /// <summary>
+        /// Retrieves vehicle recommendations based on specified parameters and user context.
+        /// </summary>
+        /// <param name="userId">ID of the user requesting recommendations.</param>
+        /// <param name="parameters">Search parameters containing user preferences.</param>
+        /// <returns>Collection of recommended vehicles matching the specified criteria.</returns>
         Task<IEnumerable<Vehicle>> GetRecommendationsAsync(int userId, RecommendationParameters parameters);
     }
 
+    /// <summary>
+    /// Implementation of the AI recommendation service using OpenRouter API
+    /// to generate intelligent vehicle recommendations.
+    /// </summary>
     public class OpenRouterRecommendationService(
         IVehicleRepository vehicleRepo,
         IConfiguration configuration,

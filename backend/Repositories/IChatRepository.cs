@@ -4,20 +4,61 @@ namespace SmartAutoTrader.API.Repositories
     using SmartAutoTrader.API.Data;
     using SmartAutoTrader.API.Models;
 
+    /// <summary>
+    /// Repository interface for managing chat conversations and history.
+    /// </summary>
     public interface IChatRepository
     {
+        /// <summary>
+        /// Adds a new chat history entry to the database.
+        /// </summary>
+        /// <param name="chatHistory">The chat history entry to add.</param>
+        /// <returns>Task representing the asynchronous operation.</returns>
         Task AddChatHistoryAsync(ChatHistory chatHistory);
 
+        /// <summary>
+        /// Updates an existing conversation session in the database.
+        /// </summary>
+        /// <param name="session">The session to update.</param>
+        /// <returns>Task representing the asynchronous operation.</returns>
         Task UpdateSessionAsync(ConversationSession session);
 
+        /// <summary>
+        /// Adds a new conversation session to the database.
+        /// </summary>
+        /// <param name="session">The session to add.</param>
+        /// <returns>Task representing the asynchronous operation.</returns>
         Task AddSessionAsync(ConversationSession session);
 
+        /// <summary>
+        /// Retrieves the most recent conversation session for a user.
+        /// </summary>
+        /// <param name="userId">ID of the user.</param>
+        /// <param name="maxAge">Maximum age of the session to be considered recent.</param>
+        /// <returns>The most recent conversation session if found, otherwise null.</returns>
         Task<ConversationSession?> GetRecentSessionAsync(int userId, TimeSpan maxAge);
 
+        /// <summary>
+        /// Retrieves recent conversation history for a user within a specific session.
+        /// </summary>
+        /// <param name="userId">ID of the user.</param>
+        /// <param name="conversationSessionId">ID of the conversation session.</param>
+        /// <param name="maxItems">Maximum number of items to retrieve.</param>
+        /// <returns>List of recent conversation turns.</returns>
         Task<List<ConversationTurn>> GetRecentHistoryAsync(int userId, int conversationSessionId, int maxItems = 3);
 
+        /// <summary>
+        /// Saves changes to the database.
+        /// </summary>
+        /// <returns>Task representing the asynchronous operation.</returns>
         Task SaveChangesAsync();
 
+        /// <summary>
+        /// Retrieves a specific conversation session by its ID.
+        /// </summary>
+        /// <param name="sessionId">ID of the session to retrieve.</param>
+        /// <param name="userId">ID of the user who owns the session.</param>
+        /// <returns>The requested conversation session if found, otherwise null.</returns>
         Task<ConversationSession?> GetSessionByIdAsync(int sessionId, int userId);
     }
 

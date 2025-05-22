@@ -1,3 +1,34 @@
+/* <copyright file="VehiclesController.cs" company="PlaceholderCompany">
+ * Copyright (c) PlaceholderCompany. All rights reserved.
+ * </copyright>
+ *
+<summary>
+This file defines the VehiclesController class, which provides API endpoints for managing vehicle data in the Smart Auto Trader application.
+</summary>
+<remarks>
+The VehiclesController class allows users to perform CRUD operations on vehicles, retrieve filtered and paginated vehicle listings, and manage vehicle images. It supports advanced filtering, sorting, and pagination for vehicle searches. The controller uses dependency injection for the ApplicationDbContext, IBlobStorageService, and ILogger to interact with the database, manage image uploads, and log application events. Certain endpoints are restricted to administrators using role-based authorization.
+</remarks>
+<dependencies>
+- System
+- System.Collections.Generic
+- System.Globalization
+- System.IO
+- System.Linq
+- System.Threading.Tasks
+- Microsoft.AspNetCore.Authorization
+- Microsoft.AspNetCore.Http
+- Microsoft.AspNetCore.Mvc
+- Microsoft.EntityFrameworkCore
+- Microsoft.Extensions.Logging
+- SmartAutoTrader.API.Data
+- SmartAutoTrader.API.DTOs
+- SmartAutoTrader.API.Enums
+- SmartAutoTrader.API.Helpers
+- SmartAutoTrader.API.Models
+- SmartAutoTrader.API.Services
+</dependencies>
+ */
+
 namespace SmartAutoTrader.API.Controllers
 {
     using System;
@@ -167,7 +198,18 @@ namespace SmartAutoTrader.API.Controllers
             return vehicles;
         }
 
-        // GET: api/Vehicles/5
+        /// <summary>
+        /// Retrieves a specific vehicle by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the vehicle to retrieve.</param>
+        /// <returns>The vehicle with the specified ID, if it exists.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle does not exist.</exception>
+        /// <remarks>
+        /// This method retrieves a specific vehicle by its ID, including related images and features. If the user is authenticated, the vehicle is added to their browsing history.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/5.
+        /// </example>
         [HttpGet("{id}")]
         public async Task<ActionResult<Vehicle>> GetVehicle(int id)
         {
@@ -205,7 +247,20 @@ namespace SmartAutoTrader.API.Controllers
             return vehicle;
         }
 
-        // POST: api/Vehicles
+        /// <summary>
+        /// Creates a new vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="createDto">The DTO containing the details of the vehicle to create.</param>
+        /// <returns>The created vehicle.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not an administrator.</exception>
+        /// <exception cref="ArgumentException">Thrown if the provided data is invalid.</exception>
+        /// <remarks>
+        /// This method validates the input data, creates a new vehicle, and saves it to the database.
+        /// </remarks>
+        /// <example>
+        /// POST /api/Vehicles
+        /// Body: { "make": "Toyota", "model": "Camry", "year": 2020, "price": 25000, "fuelType": "Petrol" }.
+        /// </example>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<Vehicle>> PostVehicle([FromBody] CreateVehicleDto createDto)
@@ -261,7 +316,21 @@ namespace SmartAutoTrader.API.Controllers
             return this.CreatedAtAction(nameof(this.GetVehicle), new { id = newVehicle.Id }, newVehicle);
         }
 
-        // PUT: api/Vehicles/5
+        /// <summary>
+        /// Updates an existing vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="id">The ID of the vehicle to update.</param>
+        /// <param name="updateDto">The DTO containing the updated details of the vehicle.</param>
+        /// <returns>No content if the update is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not an administrator.</exception>
+        /// <remarks>
+        /// This method validates the input data, updates the specified vehicle, and saves the changes to the database.
+        /// </remarks>
+        /// <example>
+        /// PUT /api/Vehicles/5
+        /// Body: { "make": "Toyota", "model": "Corolla", "year": 2021, "price": 22000 }.
+        /// </example>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PutVehicle(int id, [FromBody] UpdateVehicleDto updateDto)
@@ -357,6 +426,49 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent(); // Or return Ok(existingVehicle) if you want to send back the updated entity
         }
 
+        /// <summary>
+        /// Deletes a specific vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="id">The ID of the vehicle to delete.</param>
+        /// <returns>No content if the deletion is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not an administrator.</exception>
+        /// <remarks>
+        /// This method deletes the specified vehicle from the database.
+        /// </remarks>
+        /// <example>
+        /// DELETE /api/Vehicles/5.
+        /// </example>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteVehicle(int id)
+        {
+            Vehicle? vehicle = await this._context.Vehicles.FindAsync(id);
+            if (vehicle == null)
+            {
+                return this.NotFound();
+            }
+
+            _ = this._context.Vehicles.Remove(vehicle);
+            _ = await this._context.SaveChangesAsync();
+
+            return this.NoContent();
+        }
+
+        /// <summary>
+        /// Uploads an image for a specific vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle to upload the image for.</param>
+        /// <param name="imageFile">The image file to upload.</param>
+        /// <returns>The details of the uploaded image.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the vehicle does not exist.</exception>
+        /// <exception cref="ArgumentException">Thrown if the image file is invalid.</exception>
+        /// <remarks>
+        /// This method validates the image file, uploads it to blob storage, and associates it with the specified vehicle.
+        /// </remarks>
+        /// <example>
+        /// POST /api/Vehicles/5/images.
+        /// </example>
         [HttpPost("{vehicleId}/images")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UploadVehicleImage(int vehicleId, IFormFile imageFile)
@@ -441,24 +553,20 @@ namespace SmartAutoTrader.API.Controllers
             }
         }
 
-        // DELETE: api/Vehicles/5
-        [HttpDelete("{id}")]
-        [Authorize]
-        public async Task<IActionResult> DeleteVehicle(int id)
-        {
-            Vehicle? vehicle = await this._context.Vehicles.FindAsync(id);
-            if (vehicle == null)
-            {
-                return this.NotFound();
-            }
-
-            _ = this._context.Vehicles.Remove(vehicle);
-            _ = await this._context.SaveChangesAsync();
-
-            return this.NoContent();
-        }
-
-        // DELETE: api/Vehicles/5/images/10
+        /// <summary>
+        /// Deletes a specific image for a vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle the image belongs to.</param>
+        /// <param name="imageId">The ID of the image to delete.</param>
+        /// <returns>No content if the deletion is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the image does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not an administrator.</exception>
+        /// <remarks>
+        /// This method deletes the specified image from blob storage and removes its record from the database.
+        /// </remarks>
+        /// <example>
+        /// DELETE /api/Vehicles/5/images/10.
+        /// </example>
         [HttpDelete("{vehicleId}/images/{imageId}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteVehicleImage(int vehicleId, int imageId)
@@ -524,6 +632,20 @@ namespace SmartAutoTrader.API.Controllers
             return this.NoContent();
         }
 
+        /// <summary>
+        /// Sets a specific image as the primary image for a vehicle. Restricted to administrators.
+        /// </summary>
+        /// <param name="vehicleId">The ID of the vehicle the image belongs to.</param>
+        /// <param name="imageId">The ID of the image to set as primary.</param>
+        /// <returns>No content if the operation is successful.</returns>
+        /// <exception cref="KeyNotFoundException">Thrown if the image does not exist.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the user is not an administrator.</exception>
+        /// <remarks>
+        /// This method sets the specified image as the primary image for the vehicle and updates the database.
+        /// </remarks>
+        /// <example>
+        /// PUT /api/Vehicles/5/images/10/primary.
+        /// </example>
         [HttpPut("{vehicleId}/images/{imageId}/primary")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SetPrimaryVehicleImage(int vehicleId, int imageId)
@@ -560,6 +682,16 @@ namespace SmartAutoTrader.API.Controllers
             return this._context.Vehicles.Any(e => e.Id == id);
         }
 
+        /// <summary>
+        /// Retrieves a list of available makes.
+        /// </summary>
+        /// <returns>A list of distinct vehicle makes.</returns>
+        /// <remarks>
+        /// This endpoint returns a list of available vehicle makes for use in filtering vehicle searches.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/available-makes.
+        /// </example>
         [HttpGet("available-makes")]
         public IActionResult GetAvailableMakes()
         {
@@ -572,6 +704,17 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(makes);
         }
 
+        /// <summary>
+        /// Retrieves a list of available models for a specific make.
+        /// </summary>
+        /// <param name="make">The make to filter models by.</param>
+        /// <returns>A list of distinct models for the specified make.</returns>
+        /// <remarks>
+        /// This endpoint returns a list of available vehicle models for a given make, to assist in filtering vehicle searches.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/available-models?make=Toyota.
+        /// </example>
         [HttpGet("available-models")]
         public IActionResult GetAvailableModels([FromQuery] string make)
         {
@@ -585,6 +728,16 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(models);
         }
 
+        /// <summary>
+        /// Retrieves the range of available years for vehicles.
+        /// </summary>
+        /// <returns>An object containing the minimum and maximum available years.</returns>
+        /// <remarks>
+        /// This endpoint returns the range of years for which vehicles are available, to assist in filtering vehicle searches by year.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/year-range.
+        /// </example>
         [HttpGet("year-range")]
         public IActionResult GetYearRange()
         {
@@ -599,6 +752,16 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(new { min = minYear, max = maxYear });
         }
 
+        /// <summary>
+        /// Retrieves the range of available engine sizes for vehicles.
+        /// </summary>
+        /// <returns>An object containing the minimum and maximum available engine sizes.</returns>
+        /// <remarks>
+        /// This endpoint returns the range of engine sizes for which vehicles are available, to assist in filtering vehicle searches by engine size.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/engine-size-range.
+        /// </example>
         [HttpGet("engine-size-range")]
         public IActionResult GetEngineSizeRange()
         {
@@ -613,6 +776,16 @@ namespace SmartAutoTrader.API.Controllers
             return this.Ok(new { min = minEngineSize, max = maxEngineSize });
         }
 
+        /// <summary>
+        /// Retrieves the range of available horsepower ratings for vehicles.
+        /// </summary>
+        /// <returns>An object containing the minimum and maximum available horsepower ratings.</returns>
+        /// <remarks>
+        /// This endpoint returns the range of horsepower ratings for which vehicles are available, to assist in filtering vehicle searches by horsepower.
+        /// </remarks>
+        /// <example>
+        /// GET /api/Vehicles/horsepower-range.
+        /// </example>
         [HttpGet("horsepower-range")]
         public IActionResult GetHorsepowerRange()
         {
