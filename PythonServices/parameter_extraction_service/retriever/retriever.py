@@ -27,6 +27,7 @@ Dependencies:
     - `.embed_model_loader.load_embedding_model`: Internal module used to load
       the sentence embedding model (e.g., from Sentence Transformers).
 """
+
 # retriever.py
 # This does offline vector matching for vague queries.
 
@@ -225,7 +226,9 @@ def find_best_match(user_query: str) -> (Optional[str], float):
 
         similarities = [cosine_sim(query_embedding, vec) for vec in _vectors]
         if not similarities:  # Should not happen if _vectors is populated
-            logger.error("No similarities computed, _vectors might be empty or invalid.")
+            logger.error(
+                "No similarities computed, _vectors might be empty or invalid."
+            )
             return None, 0.0
 
         best_match_idx = np.argmax(similarities)

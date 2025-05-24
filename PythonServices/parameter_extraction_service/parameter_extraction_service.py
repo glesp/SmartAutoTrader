@@ -32,6 +32,7 @@ Dependencies:
     - Local: retriever.retriever (for cosine_sim, get_query_embedding, find_best_match,
       initialize_retriever)
 """
+
 # !/usr/bin/env python3
 # Standard library imports first
 import datetime
@@ -606,6 +607,7 @@ def build_enhanced_system_prompt(
     valid_vehicles: List[str],
     confirmed_context: Optional[Dict] = None,
     rejected_context: Optional[Dict] = None,
+    last_question_asked: Optional[str] = None,  # ADD THIS
 ) -> str:
     """
     Constructs a detailed system prompt for the LLM parameter extraction task.
@@ -635,6 +637,7 @@ def build_enhanced_system_prompt(
                            previous turns.
         rejected_context: A dictionary of parameters explicitly rejected by the
                           user in previous turns.
+        last_question_asked: The last question asked by the assistant, if any.
 
     Returns:
         A string representing the complete system prompt to be sent to the LLM.
@@ -1888,6 +1891,7 @@ def run_llm_with_history(
     confirmed_context: Optional[Dict] = None,
     rejected_context: Optional[Dict] = None,
     contains_override: bool = False,
+    last_question_asked: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
     """
     Orchestrates parameter extraction using an LLM, incorporating conversation history and context.
@@ -1925,6 +1929,7 @@ def run_llm_with_history(
                           user in previous turns.
         contains_override: A boolean flag indicating if the query contains override
                            keywords that might force an LLM path.
+        last_question_asked: The last question asked by the assistant, if any.
 
     Returns:
         A dictionary containing the final extracted and processed parameters,
@@ -1957,6 +1962,7 @@ def run_llm_with_history(
             VALID_VEHICLE_TYPES,
             confirmed_context,
             rejected_context,
+            last_question_asked,  # PASS IT THROUGH
         )
     except Exception as e:
         logger.exception(f"Error building system prompt: {e}")
@@ -2573,6 +2579,10 @@ def extract_parameters():
         user_query = data["query"]
         force_model = data.get("forceModel")  # Model strategy from backend
         conversation_history = data.get("conversationHistory", [])
+        # Initialize last_question_asked from the request data
+        # Ensure the key "lastQuestionAsked" matches what's sent in the request payload.
+        # If it's "lastQuestionAskedByAI" (like in your C# backend model), use that key instead.
+        last_question_asked = data.get("lastQuestionAsked")
 
         # Safely retrieve context information
         confirmed_context = data.get("confirmedContext", {})
@@ -2705,7 +2715,78 @@ def extract_parameters():
 
         # --- Execute based on routing decision ---
         final_response = None
-        if force_llm or classified_intent == "SPECIFIC_SEARCH":
+
+        # NEW: Priority routing for contextual follow-ups
+        if last_question_asked and force_model in [
+            "clarify",
+            "refine",
+        ]:  # Now last_question_asked is defined
+            logger.info(
+                "Contextual follow-up detected, prioritizing LLM parameter extraction with enhanced prompt."
+            )
+
+            # Direct call to LLM with enhanced context
+            extracted_params = run_llm_with_history(
+                user_query,
+                conversation_history,
+                None,  # matched_category
+                force_model,
+                confirmed_context=confirmed_context,
+                rejected_context=rejected_context,
+                contains_override=contains_override,
+                last_question_asked=last_question_asked,  # Use the initialized variable
+            )
+
+            if extracted_params and extracted_params.get("intent") != "error":
+                # Post-processing for contextual follow-ups
+                logger.info(
+                    "Contextual LLM extraction successful, performing post-processing."
+                )
+
+                # Prevent clarification loops
+                if extracted_params.get("clarificationNeeded"):
+                    logger.info(
+                        "LOOP PREVENTION: Overriding LLM's clarificationNeeded=True because this is a "
+                        "contextual follow-up answer"
+                    )
+                    extracted_params["clarificationNeeded"] = False
+                    extracted_params["clarificationNeededFor"] = []
+
+                # Override intent to 'clarify' for contextual answers
+                if extracted_params.get("intent") != "clarify":
+                    logger.info(
+                        "Overriding LLM intent to 'clarify' based on contextual follow-up detection"
+                    )
+                    extracted_params["intent"] = "clarify"
+
+                # Ensure all fields exist using create_default_parameters as base
+                base = create_default_parameters()
+                base.update(extracted_params)
+                final_response = base
+                logger.info(
+                    "Final extracted parameters from contextual LLM: %s", final_response
+                )
+            else:
+                # Contextual LLM call failed - fallback logic
+                logger.warning(
+                    "Contextual LLM extraction failed or returned error. Falling back to standard routing."
+                )
+
+                if classified_intent == "VAGUE_INQUIRY":
+                    logger.info(
+                        "Falling back to RAG processing for failed contextual follow-up."
+                    )
+                    final_response = None  # Will trigger RAG logic below
+                else:
+                    final_response = create_default_parameters(
+                        intent="CONFUSED_FALLBACK",
+                        clarification_needed=True,
+                        clarification_needed_for=["reset"],
+                        retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
+                    )
+
+        # Existing routing logic (now as elif)
+        elif force_llm or classified_intent == "SPECIFIC_SEARCH":
             if not force_llm:  # Log if it was originally specific
                 logger.info("Intent classified as SPECIFIC_SEARCH, proceeding to LLM.")
             else:  # Log details if forced
@@ -2722,6 +2803,7 @@ def extract_parameters():
                 confirmed_context=confirmed_context,
                 rejected_context=rejected_context,
                 contains_override=contains_override,
+                last_question_asked=last_question_asked,  # Use the initialized variable consistently
             )
 
             if extracted_params:
@@ -2736,11 +2818,8 @@ def extract_parameters():
                         extracted_params["clarificationNeeded"] = False
                         extracted_params["clarificationNeededFor"] = []
 
-                # Existing code for intent override continues below
-                if (
-                    is_clarification_answer
-                    and extracted_params.get("intent") != "clarify"
-                ):
+                # Override intent to 'clarify' for contextual answers
+                if extracted_params.get("intent") != "clarify":
                     logger.info(
                         "Overriding LLM intent to 'clarify' based on context detection"
                     )
