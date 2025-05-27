@@ -9,6 +9,7 @@ from parameter_extraction_service import (
 
 # --- Mocking Setup ---
 
+
 class MockLLMResponse:
     """Class to simulate different LLM JSON outputs"""
 
@@ -216,6 +217,7 @@ def test_run_llm_post_processing_negations(
         assert sorted(result_params.get("explicitly_negated_fuel_types", [])) == sorted(
             ["Diesel"]
         ), "Expected explicitly_negated_fuel_types to contain 'Diesel'"
+
 
 def test_process_parameters_valid_input():
     """Tests process_parameters with a typical valid input"""

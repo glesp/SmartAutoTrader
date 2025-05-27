@@ -1885,17 +1885,49 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
 
 # Helper function for indifference (can be defined at module level)
 _INDIFFERENCE_KEYWORDS_MAP = {
-    "make": ["any make", "make doesn't matter", "don't care about make", "no preference on make", "all makes"],
-    "type": ["any type", "type doesn't matter", "don't care about type", "no preference on type", "any vehicle type", "all types"],
-    "fuel_type": ["any fuel", "fuel type doesn't matter", "don't care about fuel", "no preference on fuel", "all fuels"],
-    "price": ["flexible budget", "price not important", "any budget", "budget flexible", "no budget"],
+    "make": [
+        "any make",
+        "make doesn't matter",
+        "don't care about make",
+        "no preference on make",
+        "all makes",
+    ],
+    "type": [
+        "any type",
+        "type doesn't matter",
+        "don't care about type",
+        "no preference on type",
+        "any vehicle type",
+        "all types",
+    ],
+    "fuel_type": [
+        "any fuel",
+        "fuel type doesn't matter",
+        "don't care about fuel",
+        "no preference on fuel",
+        "all fuels",
+    ],
+    "price": [
+        "flexible budget",
+        "price not important",
+        "any budget",
+        "budget flexible",
+        "no budget",
+    ],
     "year": ["any year", "year doesn't matter", "don't care about year"],
     "mileage": ["any mileage", "mileage doesn't matter", "don't care about mileage"],
-    "transmission": ["any transmission", "transmission doesn't matter", "don't care about transmission"]
+    "transmission": [
+        "any transmission",
+        "transmission doesn't matter",
+        "don't care about transmission",
+    ],
     # Add more specific parameter keys if needed, e.g., "minPrice", "maxPrice"
 }
 
-def _detect_indifference_and_update_clarification_list(query_fragment: str, clarification_needed_for: List[str]) -> List[str]:
+
+def _detect_indifference_and_update_clarification_list(
+    query_fragment: str, clarification_needed_for: List[str]
+) -> List[str]:
     """
     Detects user indifference from query_fragment and removes corresponding items from clarification_needed_for.
     Returns the updated clarification_needed_for list.
@@ -1910,9 +1942,12 @@ def _detect_indifference_and_update_clarification_list(query_fragment: str, clar
         for keyword in keywords:
             if keyword in query_lower:
                 indifferent_params_detected.add(param_key_in_map)
-                logger.info(f"Detected indifference for '{param_key_in_map}' due to keyword: '{keyword}' in query: '{query_fragment}'")
+                logger.info(
+                    f"Detected indifference for '{param_key_in_map}' due to keyword: "
+                    f"'{keyword}' in query: '{query_fragment}'"
+                )
                 break
-    
+
     if not indifferent_params_detected:
         return clarification_needed_for
 
@@ -1924,20 +1959,30 @@ def _detect_indifference_and_update_clarification_list(query_fragment: str, clar
             is_covered = True
         elif item_needed == "budget" and "price" in indifferent_params_detected:
             is_covered = True
-        elif item_needed == "make_or_type": # A common placeholder we might use
-            if "make" in indifferent_params_detected or "type" in indifferent_params_detected:
+        elif item_needed == "make_or_type":  # A common placeholder we might use
+            if (
+                "make" in indifferent_params_detected
+                or "type" in indifferent_params_detected
+            ):
                 is_covered = True
         # Add more specific mappings if 'item_needed' (e.g. 'vehicle_type') differs from map key ('type')
         elif item_needed == "vehicle_type" and "type" in indifferent_params_detected:
             is_covered = True
-        
+
         if not is_covered:
             updated_needed_for.append(item_needed)
         else:
-            logger.info(f"'{item_needed}' removed from clarificationNeededFor due to detected indifference for related param(s): {indifferent_params_detected}")
-            
+            logger.info(
+                f"Removed '{item_needed}' from clarificationNeededFor due to indifference detected for: "
+                f"{indifferent_params_detected}"
+            )
+
     if len(updated_needed_for) < len(clarification_needed_for):
-        logger.info(f"Original clarificationNeededFor: {clarification_needed_for}, Updated after indifference: {updated_needed_for}")
+        logger.info(
+            "Original clarificationNeededFor: %s, Updated after indifference: %s",
+            clarification_needed_for,
+            updated_needed_for,
+        )
     return updated_needed_for
 
 
@@ -2027,7 +2072,9 @@ def run_llm_with_history(
         return create_default_parameters(intent="error")
 
     # --- Try Models ---
-    extracted_params_from_llm_loop = None # Renamed to avoid confusion with final `extracted_params`
+    extracted_params_from_llm_loop = (
+        None  # Renamed to avoid confusion with final `extracted_params`
+    )
     for model in models_to_try:
         logger.info(f"Attempting extraction with model: {model}")
         extracted = None
@@ -2496,17 +2543,21 @@ def run_llm_with_history(
             for key in [
                 "isOffTopic",
                 "offTopicResponse",
-                "clarificationNeeded", # This is LLM's view
-                "clarificationNeededFor", # This is LLM's view
+                "clarificationNeeded",  # This is LLM's view
+                "clarificationNeededFor",  # This is LLM's view
                 "retrieverSuggestion",
                 "matchedCategory",
             ]:
                 final_params[key] = processed.get(key)
-            
-            logger.info(f"Parameters after LLM processing & initial merge: {final_params}")
+
+            logger.info(
+                f"Parameters after LLM processing & initial merge: {final_params}"
+            )
 
             # --- SUFFICIENCY OVERRIDE LOGIC ---
-            if final_params.get("clarificationNeeded") is True: # If LLM thinks clarification is needed
+            if (
+                final_params.get("clarificationNeeded") is True
+            ):  # If LLM thinks clarification is needed
                 has_vehicle_category = (
                     len(final_params.get("preferredMakes", [])) > 0
                     or len(final_params.get("preferredVehicleTypes", [])) > 0
@@ -2532,44 +2583,86 @@ def run_llm_with_history(
                 else:
                     # LLM said clarification is needed, AND Python agrees sufficient_info is False.
                     # Now, refine final_params["clarificationNeededFor"].
-                    logger.info("Clarification is needed (LLM agreed or Python determined after override attempt). Determining specific parameters for clarificationNeededFor.")
-                    
-                    llm_suggested_clarification_for = processed.get("clarificationNeededFor")
-                    
+                    logger.info(
+                        "Clarification is needed. Determining specific parameters for clarificationNeededFor."
+                    )
+
+                    llm_suggested_clarification_for = processed.get(
+                        "clarificationNeededFor"
+                    )
+
                     # Start with LLM's suggestion if it's valid and non-empty
                     current_clarification_list = []
-                    if llm_suggested_clarification_for and isinstance(llm_suggested_clarification_for, list) and len(llm_suggested_clarification_for) > 0:
-                        logger.info(f"Using base clarificationNeededFor from LLM: {llm_suggested_clarification_for}")
-                        current_clarification_list.extend(llm_suggested_clarification_for)
+                    if (
+                        llm_suggested_clarification_for
+                        and isinstance(llm_suggested_clarification_for, list)
+                        and len(llm_suggested_clarification_for) > 0
+                    ):
+                        logger.info(
+                            f"Using base clarificationNeededFor from LLM: {llm_suggested_clarification_for}"
+                        )
+                        current_clarification_list.extend(
+                            llm_suggested_clarification_for
+                        )
                     else:
-                        logger.info("LLM did not specify clarificationNeededFor, or it was empty. Python will determine specifics.")
+                        logger.info(
+                            "LLM did not specify clarificationNeededFor or it was empty. "
+                            "Python will determine specifics."
+                        )
                         # Python determines missing critical items if LLM didn't specify
-                        if not (final_params.get("preferredMakes") or final_params.get("preferredVehicleTypes")):
-                            current_clarification_list.append("type") # Suggest 'type' as a common starting point
-                        
-                        if final_params.get("minPrice") is None and final_params.get("maxPrice") is None:
+                        if not (
+                            final_params.get("preferredMakes")
+                            or final_params.get("preferredVehicleTypes")
+                        ):
+                            current_clarification_list.append(
+                                "type"
+                            )  # Suggest 'type' as a common starting point
+
+                        if (
+                            final_params.get("minPrice") is None
+                            and final_params.get("maxPrice") is None
+                        ):
                             current_clarification_list.append("budget")
-                        
+
                         # Add other critical missing params if not already asked by LLM
-                        if not final_params.get("preferredFuelTypes") and "fuel_type" not in current_clarification_list and "fuel" not in current_clarification_list:
-                             current_clarification_list.append("fuel_type")
-                        if final_params.get("minYear") is None and final_params.get("maxYear") is None and "year" not in current_clarification_list:
+                        if (
+                            not final_params.get("preferredFuelTypes")
+                            and "fuel_type" not in current_clarification_list
+                            and "fuel" not in current_clarification_list
+                        ):
+                            current_clarification_list.append("fuel_type")
+                        if (
+                            final_params.get("minYear") is None
+                            and final_params.get("maxYear") is None
+                            and "year" not in current_clarification_list
+                        ):
                             current_clarification_list.append("year")
                         # Add more specific checks as needed, ensuring not to duplicate if LLM already listed them.
 
                     # Ensure uniqueness and update final_params
-                    final_params["clarificationNeededFor"] = list(set(current_clarification_list))
-                    logger.info(f"Refined clarificationNeededFor before indifference check: {final_params['clarificationNeededFor']}")
+                    final_params["clarificationNeededFor"] = list(
+                        set(current_clarification_list)
+                    )
+                    logger.info(
+                        "Refined clarificationNeededFor before indifference check: %s",
+                        final_params["clarificationNeededFor"],
+                    )
 
             # --- Indifference Handling ---
             # This should apply whether clarificationNeeded was true from LLM or set by Python
-            if final_params.get("clarificationNeededFor"): # Only if there's something to clarify
-                final_params["clarificationNeededFor"] = _detect_indifference_and_update_clarification_list(
-                    query_fragment, 
-                    final_params["clarificationNeededFor"]
+            if final_params.get(
+                "clarificationNeededFor"
+            ):  # Only if there's something to clarify
+                final_params["clarificationNeededFor"] = (
+                    _detect_indifference_and_update_clarification_list(
+                        query_fragment, final_params["clarificationNeededFor"]
+                    )
                 )
-                if not final_params["clarificationNeededFor"] and final_params.get("clarificationNeeded") is True:
-                    logger.info("clarificationNeededFor became empty after indifference processing. Considering if clarification is still needed.")
+                if (
+                    not final_params["clarificationNeededFor"]
+                    and final_params.get("clarificationNeeded") is True
+                ):
+                    logger.info("clarificationNeededFor is empty after indifference processing. Reassessing necessity.")
                     # If all clarification points were covered by indifference,
                     # and the initial `sufficient_info` check was borderline,
                     # you might re-evaluate or decide clarification is no longer needed.
@@ -2578,21 +2671,22 @@ def run_llm_with_history(
                     # final_params["clarificationNeeded"] = False # Be cautious with this override
                     pass
 
-
             if is_valid_extraction(final_params):
                 logger.info("Post-processing complete. Parameters are valid.")
                 extracted_params_from_llm_loop = final_params
-                break 
+                break
             # ... (else block for failed validation) ...
-        else: # if not extracted (LLM call failed or no JSON)
+        else:  # if not extracted (LLM call failed or no JSON)
             logger.warning(
                 f"Extraction from model {model} returned None or failed parsing."
             )
             # extracted_params_from_llm_loop remains None or its last valid value
 
     # --- Final Return ---
-    if extracted_params_from_llm_loop: # Use the renamed variable
-        logger.info(f"Successful extraction with final parameters: {extracted_params_from_llm_loop}")
+    if extracted_params_from_llm_loop:  # Use the renamed variable
+        logger.info(
+            f"Successful extraction with final parameters: {extracted_params_from_llm_loop}"
+        )
         return extracted_params_from_llm_loop
     else:
         # ... (CONFUSED_FALLBACK logic) ...
