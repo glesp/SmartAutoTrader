@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="53" failures="0" errors="0" time="4.8207728">
-    <testsuite name="src/contexts/AuthProvider.test.tsx" timestamp="2025-05-21T15:08:09.420Z" hostname="DESKTOP-NL5NAFR" tests="7" failures="0" errors="0" skipped="0" time="0.1866989">
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; initial state: not authenticated, not loading (after useEffect resolution)" time="0.0407403">
+<testsuites name="vitest tests" tests="53" failures="0" errors="0" time="4.4341263">
+    <testsuite name="src/contexts/AuthProvider.test.tsx" timestamp="2025-05-27T21:18:23.530Z" hostname="DESKTOP-RLHHSDO" tests="7" failures="0" errors="0" skipped="0" time="0.2487041">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; initial state: not authenticated, not loading (after useEffect resolution)" time="0.0417829">
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; loads and validates token and user from localStorage on initial mount" time="0.0084004">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; loads and validates token and user from localStorage on initial mount" time="0.0329725">
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; login: successful login updates context and localStorage" time="0.0082035">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; login: successful login updates context and localStorage" time="0.0176296">
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; login: failed login does not update context and re-throws the error" time="0.0106401">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; login: failed login does not update context and re-throws the error" time="0.0249433">
             <system-err>
 Login error: Error: Invalid credentials
-    at [90mC:\Users\gille\Documents\Projects\SmartAutoTrader\frontend\[39msrc\contexts\AuthProvider.test.tsx:215:24
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
+    at [90mC:\Users\kelly\RiderProjects\SmartAutoTrader\frontend\[39msrc\contexts\AuthProvider.test.tsx:215:24
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
     at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
-    at runTest [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runFiles [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
+    at runWithTimeout [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
+    at runTest [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runFiles [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
 
             </system-err>
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; logout: clears context and localStorage" time="0.1054279">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; logout: clears context and localStorage" time="0.1030169">
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; register: successful registration calls services and updates context" time="0.0057714">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; register: successful registration calls services and updates context" time="0.0099247">
         </testcase>
-        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; register: failed registration does not call login or update context and re-throws error" time="0.0058157">
+        <testcase classname="src/contexts/AuthProvider.test.tsx" name="AuthProvider &gt; register: failed registration does not call login or update context and re-throws error" time="0.0164694">
             <system-err>
 Registration error: Error: Email already exists
-    at [90mC:\Users\gille\Documents\Projects\SmartAutoTrader\frontend\[39msrc\contexts\AuthProvider.test.tsx:329:27
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
+    at [90mC:\Users\kelly\RiderProjects\SmartAutoTrader\frontend\[39msrc\contexts\AuthProvider.test.tsx:329:27
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
     at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
-    at runTest [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runFiles [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
+    at runWithTimeout [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
+    at runTest [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runFiles [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
 An update to AuthProvider inside a test was not wrapped in act(...).
 
 When testing, code that causes React state updates should be wrapped into act(...):
@@ -64,64 +64,64 @@ This ensures that you&apos;re testing the behavior the user would see in the bro
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/pages/LoginPage.test.tsx" timestamp="2025-05-21T15:08:09.424Z" hostname="DESKTOP-NL5NAFR" tests="10" failures="0" errors="0" skipped="0" time="0.2872278">
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; initial state: not authenticated, not loading (after useEffect finishes)" time="0.0458446">
+    <testsuite name="src/pages/LoginPage.test.tsx" timestamp="2025-05-27T21:18:23.534Z" hostname="DESKTOP-RLHHSDO" tests="10" failures="0" errors="0" skipped="0" time="0.4407348">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; initial state: not authenticated, not loading (after useEffect finishes)" time="0.0535826">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; loads and validates token and user from localStorage on initial mount" time="0.0077364">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; loads and validates token and user from localStorage on initial mount" time="0.0286583">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; login: successful login updates context and localStorage" time="0.1030365">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; login: successful login updates context and localStorage" time="0.1418908">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; login: failed login does not update context and logs error" time="0.0217742">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; login: failed login does not update context and logs error" time="0.0287175">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; logout: clears context and localStorage" time="0.0173137">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; logout: clears context and localStorage" time="0.0270573">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; register: successful registration calls authService.register, then authService.login, and updates context" time="0.0219967">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; register: successful registration calls authService.register, then authService.login, and updates context" time="0.0358649">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; register: failed registration does not call login or update context" time="0.01364">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="AuthProvider &gt; register: failed registration does not call login or update context" time="0.030398">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; loads and validates token and user from localStorage on initial mount" time="0.0153858">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; loads and validates token and user from localStorage on initial mount" time="0.0149084">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; logout: clears context and localStorage" time="0.0209321">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; logout: clears context and localStorage" time="0.0306663">
         </testcase>
-        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; login: successful login updates context and localStorage" time="0.0173013">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/pages/RegisterPage.test.tsx" timestamp="2025-05-21T15:08:09.426Z" hostname="DESKTOP-NL5NAFR" tests="6" failures="0" errors="0" skipped="0" time="1.2359">
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; renders registration form with all fields and submit button" time="0.287547">
-        </testcase>
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; allows typing into form fields" time="0.074249">
-        </testcase>
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; calls register from AuthContext with form data and navigates on successful submit" time="0.3236989">
-        </testcase>
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; displays an error message on failed registration" time="0.3241927">
-        </testcase>
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; renders link to login page" time="0.0557424">
-        </testcase>
-        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; password and confirm password validation: mismatch" time="0.1685534">
+        <testcase classname="src/pages/LoginPage.test.tsx" name="LoginPage &gt; login: successful login updates context and localStorage" time="0.0470434">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/chat/ChatInterface.test.tsx" timestamp="2025-05-21T15:08:09.428Z" hostname="DESKTOP-NL5NAFR" tests="8" failures="0" errors="0" skipped="0" time="1.0855466">
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; minimal test case" time="0.0013116">
+    <testsuite name="src/pages/RegisterPage.test.tsx" timestamp="2025-05-27T21:18:23.536Z" hostname="DESKTOP-RLHHSDO" tests="6" failures="0" errors="0" skipped="0" time="1.0120402">
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; renders registration form with all fields and submit button" time="0.2373825">
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; shows empty state and suggested prompts before any message is sent" time="0.1461044">
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; allows typing into form fields" time="0.0742922">
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; sends message and displays user and AI messages" time="0.2899051">
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; calls register from AuthContext with form data and navigates on successful submit" time="0.2793288">
+        </testcase>
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; displays an error message on failed registration" time="0.2802401">
+        </testcase>
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; renders link to login page" time="0.0267477">
+        </testcase>
+        <testcase classname="src/pages/RegisterPage.test.tsx" name="RegisterPage Component &gt; password and confirm password validation: mismatch" time="0.1123398">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/chat/ChatInterface.test.tsx" timestamp="2025-05-27T21:18:23.537Z" hostname="DESKTOP-RLHHSDO" tests="8" failures="0" errors="0" skipped="0" time="0.8110652">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; minimal test case" time="0.0012419">
+        </testcase>
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; shows empty state and suggested prompts before any message is sent" time="0.1215448">
+        </testcase>
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; sends message and displays user and AI messages" time="0.2349674">
             <system-out>
 Parameters received from backend before calling onRecommendationsUpdated: {}
 
             </system-out>
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; displays an error message if sending a message (after initial welcome) fails" time="0.1304524">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; displays an error message if sending a message (after initial welcome) fails" time="0.104315">
             <system-err>
 Failed to send message: Error: Network Error
-    at Object.&lt;anonymous&gt; [90m(C:\Users\gille\Documents\Projects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.test.tsx:148:22[90m)[39m
-    at Object.mockCall [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/spy/dist/index.js:66:15[90m)[39m
-    at Object.spy [as sendMessage] [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4mtinyspy[24m/dist/index.js:45:80[90m)[39m
-    at handleSendMessage [90m(C:\Users\gille\Documents\Projects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.tsx:347:27[90m)[39m
+    at Object.&lt;anonymous&gt; [90m(C:\Users\kelly\RiderProjects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.test.tsx:148:22[90m)[39m
+    at Object.mockCall [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/spy/dist/index.js:66:15[90m)[39m
+    at Object.spy [as sendMessage] [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4mtinyspy[24m/dist/index.js:45:80[90m)[39m
+    at handleSendMessage [90m(C:\Users\kelly\RiderProjects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.tsx:394:27[90m)[39m
 
             </system-err>
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; calls onRecommendationsUpdated when API response includes recommendations" time="0.1418045">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; calls onRecommendationsUpdated when API response includes recommendations" time="0.0900705">
             <system-out>
 Parameters received from backend before calling onRecommendationsUpdated: {
   &quot;intent&quot;: &quot;vehicleSearch&quot;
@@ -129,75 +129,75 @@ Parameters received from backend before calling onRecommendationsUpdated: {
 
             </system-out>
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; handles clarification needed" time="0.1200543">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; handles clarification needed" time="0.0865636">
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; sends first message and shows user and AI response (no welcome)" time="0.1447656">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; sends first message and shows user and AI response (no welcome)" time="0.1015058">
             <system-out>
 Parameters received from backend before calling onRecommendationsUpdated: {}
 
             </system-out>
         </testcase>
-        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; displays error when new conversation fails" time="0.1093474">
+        <testcase classname="src/components/chat/ChatInterface.test.tsx" name="ChatInterface Component &gt; displays error when new conversation fails" time="0.0690389">
             <system-err>
 Failed to start new conversation: Error: Network Fail
-    at [90mC:\Users\gille\Documents\Projects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.test.tsx:292:54
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
-    at [90mfile:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
+    at [90mC:\Users\kelly\RiderProjects\SmartAutoTrader\frontend\[39msrc\components\chat\ChatInterface.test.tsx:292:54
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:103:11
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:596:26
+    at [90mfile:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:879:20
     at new Promise (&lt;anonymous&gt;)
-    at runWithTimeout [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
-    at runTest [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runSuite [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
-    at runFiles [90m(file:///C:/Users/gille/Documents/Projects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
+    at runWithTimeout [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:852:10[90m)[39m
+    at runTest [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1360:12[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runSuite [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1507:8[90m)[39m
+    at runFiles [90m(file:///C:/Users/kelly/RiderProjects/SmartAutoTrader/frontend/[39mnode_modules/[4m@vitest[24m/runner/dist/index.js:1561:3[90m)[39m
 
             </system-err>
         </testcase>
     </testsuite>
-    <testsuite name="src/components/layout/Header.test.tsx" timestamp="2025-05-21T15:08:09.430Z" hostname="DESKTOP-NL5NAFR" tests="11" failures="0" errors="0" skipped="0" time="0.3635038">
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; renders brand name &quot;Smart Auto Trader&quot;" time="0.0658559">
+    <testsuite name="src/components/layout/Header.test.tsx" timestamp="2025-05-27T21:18:23.538Z" hostname="DESKTOP-RLHHSDO" tests="11" failures="0" errors="0" skipped="0" time="0.3270213">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; renders brand name &quot;Smart Auto Trader&quot;" time="0.0617936">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; renders &quot;Vehicles&quot; navigation link" time="0.0613149">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; renders &quot;Vehicles&quot; navigation link" time="0.058238">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is not authenticated and not loading &gt; renders &quot;Log In&quot; and &quot;Register&quot; links and does not show profile or logout" time="0.0250055">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is not authenticated and not loading &gt; renders &quot;Log In&quot; and &quot;Register&quot; links and does not show profile or logout" time="0.0231622">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; renders &quot;My Profile&quot; link and &quot;Log Out&quot; button for regular authenticated user" time="0.0432574">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; renders &quot;My Profile&quot; link and &quot;Log Out&quot; button for regular authenticated user" time="0.0481147">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; calls the logout function from AuthContext when &quot;Log Out&quot; button is clicked" time="0.0253002">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; calls the logout function from AuthContext when &quot;Log Out&quot; button is clicked" time="0.0237605">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; profile link navigates to /profile" time="0.0167396">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; profile link navigates to /profile" time="0.0122229">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; Admin Links &gt; does NOT render &quot;Admin Inquiries&quot; link for regular authenticated user" time="0.0147879">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; Admin Links &gt; does NOT render &quot;Admin Inquiries&quot; link for regular authenticated user" time="0.0116856">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; Admin Links &gt; renders &quot;Admin Inquiries&quot; link for authenticated admin user" time="0.0248266">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when user is authenticated and not loading &gt; Admin Links &gt; renders &quot;Admin Inquiries&quot; link for authenticated admin user" time="0.0249486">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders &quot;Log In&quot; and &quot;Register&quot; links if not authenticated, even when loading" time="0.0180475">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders &quot;Log In&quot; and &quot;Register&quot; links if not authenticated, even when loading" time="0.0158498">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders Profile, Logout, and Admin (if applicable) links if authenticated, even when loading" time="0.0406346">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders Profile, Logout, and Admin (if applicable) links if authenticated, even when loading" time="0.0264076">
         </testcase>
-        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders Profile and Logout links but NOT Admin link if authenticated non-admin user, even when loading" time="0.0251288">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/components/vehicles/VehicleCard.test.tsx" timestamp="2025-05-21T15:08:09.433Z" hostname="DESKTOP-NL5NAFR" tests="5" failures="0" errors="0" skipped="0" time="0.2323732">
-        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; renders essential vehicle details" time="0.1360887">
-        </testcase>
-        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; renders primary image with correct alt text and src" time="0.0607673">
-        </testcase>
-        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; handles missing primary image gracefully" time="0.011289">
-        </testcase>
-        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; handles empty images array gracefully" time="0.0035317">
-        </testcase>
-        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; &quot;View Details&quot; link navigates to the correct vehicle page" time="0.0190913">
+        <testcase classname="src/components/layout/Header.test.tsx" name="Header Component &gt; when auth state is loading &gt; renders Profile and Logout links but NOT Admin link if authenticated non-admin user, even when loading" time="0.0171108">
         </testcase>
     </testsuite>
-    <testsuite name="src/components/vehicles/VehicleFilters.test.tsx" timestamp="2025-05-21T15:08:09.434Z" hostname="DESKTOP-NL5NAFR" tests="6" failures="0" errors="0" skipped="0" time="1.4295225">
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; renders filter controls and fetches initial data on mount" time="0.4552456">
+    <testsuite name="src/components/vehicles/VehicleCard.test.tsx" timestamp="2025-05-27T21:18:23.540Z" hostname="DESKTOP-RLHHSDO" tests="5" failures="0" errors="0" skipped="0" time="0.1908338">
+        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; renders essential vehicle details" time="0.100145">
         </testcase>
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; calls onFilterChange when a make is selected" time="0.2733689">
+        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; renders primary image with correct alt text and src" time="0.0544458">
         </testcase>
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; fetches models when a make is selected" time="0.2434805">
+        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; handles missing primary image gracefully" time="0.0104344">
         </testcase>
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; &quot;Reset All Filters&quot; button calls onFilterChange with specific reset values" time="0.1327641">
+        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; handles empty images array gracefully" time="0.0043797">
+        </testcase>
+        <testcase classname="src/components/vehicles/VehicleCard.test.tsx" name="VehicleCard Component &gt; &quot;View Details&quot; link navigates to the correct vehicle page" time="0.019617">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/components/vehicles/VehicleFilters.test.tsx" timestamp="2025-05-27T21:18:23.540Z" hostname="DESKTOP-RLHHSDO" tests="6" failures="0" errors="0" skipped="0" time="1.4037269">
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; renders filter controls and fetches initial data on mount" time="0.4244223">
+        </testcase>
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; calls onFilterChange when a make is selected" time="0.2658664">
+        </testcase>
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; fetches models when a make is selected" time="0.2528098">
+        </testcase>
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; &quot;Reset All Filters&quot; button calls onFilterChange with specific reset values" time="0.1339407">
             <system-err>
 MUI: You have provided an out-of-range value `Ford` for the select component.
 Consider providing a value that matches one of the available options or &apos;&apos;.
@@ -208,9 +208,9 @@ The available values are ``.
 
             </system-err>
         </testcase>
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; renders filter controls including dropdowns and sliders" time="0.1492263">
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; renders filter controls including dropdowns and sliders" time="0.1485538">
         </testcase>
-        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; &quot;Reset All Filters&quot; button calls onFilterChange with all default values" time="0.1735099">
+        <testcase classname="src/components/vehicles/VehicleFilters.test.tsx" name="VehicleFilters Component &gt; &quot;Reset All Filters&quot; button calls onFilterChange with all default values" time="0.176573">
             <system-err>
 MUI: You have provided an out-of-range value `Ford` for the select component.
 Consider providing a value that matches one of the available options or &apos;&apos;.

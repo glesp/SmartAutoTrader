@@ -225,7 +225,7 @@ def find_best_match(user_query: str) -> (Optional[str], float):
             return None, 0.0
 
         similarities = [cosine_sim(query_embedding, vec) for vec in _vectors]
-        if not similarities:  # Should not happen if _vectors is populated
+        if not similarities:
             logger.error(
                 "No similarities computed, _vectors might be empty or invalid."
             )

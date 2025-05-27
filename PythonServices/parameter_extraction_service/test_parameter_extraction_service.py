@@ -1,6 +1,5 @@
 import pytest
 
-# Assuming your script is named 'parameter_extraction_service.py'
 # Adjust the import path if your structure is different
 from parameter_extraction_service import (
     create_default_parameters,
@@ -9,8 +8,6 @@ from parameter_extraction_service import (
 )
 
 # --- Mocking Setup ---
-# We need to mock 'try_extract_with_model' as it makes the external API call.
-
 
 class MockLLMResponse:
     """Class to simulate different LLM JSON outputs"""
@@ -219,10 +216,6 @@ def test_run_llm_post_processing_negations(
         assert sorted(result_params.get("explicitly_negated_fuel_types", [])) == sorted(
             ["Diesel"]
         ), "Expected explicitly_negated_fuel_types to contain 'Diesel'"
-
-
-# --- Example Test for process_parameters (can add more) ---
-
 
 def test_process_parameters_valid_input():
     """Tests process_parameters with a typical valid input"""

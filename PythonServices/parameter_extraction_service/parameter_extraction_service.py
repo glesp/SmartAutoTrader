@@ -102,7 +102,7 @@ if not OPENROUTER_API_KEY:
         "OPENROUTER_API_KEY environment variable not set. API calls will fail."
     )
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-FAST_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+FAST_MODEL = "meta-llama/llama-3.3-8b-instruct:free"
 REFINE_MODEL = "google/gemma-3-27b-it:free"
 CLARIFY_MODEL = "mistralai/mistral-7b-instruct:free"
 VERY_LOW_CONFIDENCE_THRESHOLD = 0.2  # Task 1: Define a constant
@@ -1883,6 +1883,64 @@ def try_direct_extract_from_query(user_query: str) -> Dict[str, Any]:
     return results
 
 
+# Helper function for indifference (can be defined at module level)
+_INDIFFERENCE_KEYWORDS_MAP = {
+    "make": ["any make", "make doesn't matter", "don't care about make", "no preference on make", "all makes"],
+    "type": ["any type", "type doesn't matter", "don't care about type", "no preference on type", "any vehicle type", "all types"],
+    "fuel_type": ["any fuel", "fuel type doesn't matter", "don't care about fuel", "no preference on fuel", "all fuels"],
+    "price": ["flexible budget", "price not important", "any budget", "budget flexible", "no budget"],
+    "year": ["any year", "year doesn't matter", "don't care about year"],
+    "mileage": ["any mileage", "mileage doesn't matter", "don't care about mileage"],
+    "transmission": ["any transmission", "transmission doesn't matter", "don't care about transmission"]
+    # Add more specific parameter keys if needed, e.g., "minPrice", "maxPrice"
+}
+
+def _detect_indifference_and_update_clarification_list(query_fragment: str, clarification_needed_for: List[str]) -> List[str]:
+    """
+    Detects user indifference from query_fragment and removes corresponding items from clarification_needed_for.
+    Returns the updated clarification_needed_for list.
+    """
+    if not query_fragment or not clarification_needed_for:
+        return clarification_needed_for
+
+    query_lower = query_fragment.lower()
+    indifferent_params_detected = set()
+
+    for param_key_in_map, keywords in _INDIFFERENCE_KEYWORDS_MAP.items():
+        for keyword in keywords:
+            if keyword in query_lower:
+                indifferent_params_detected.add(param_key_in_map)
+                logger.info(f"Detected indifference for '{param_key_in_map}' due to keyword: '{keyword}' in query: '{query_fragment}'")
+                break
+    
+    if not indifferent_params_detected:
+        return clarification_needed_for
+
+    updated_needed_for = []
+    for item_needed in clarification_needed_for:
+        # Map general clarification items to specific indifference keys
+        is_covered = False
+        if item_needed in indifferent_params_detected:
+            is_covered = True
+        elif item_needed == "budget" and "price" in indifferent_params_detected:
+            is_covered = True
+        elif item_needed == "make_or_type": # A common placeholder we might use
+            if "make" in indifferent_params_detected or "type" in indifferent_params_detected:
+                is_covered = True
+        # Add more specific mappings if 'item_needed' (e.g. 'vehicle_type') differs from map key ('type')
+        elif item_needed == "vehicle_type" and "type" in indifferent_params_detected:
+            is_covered = True
+        
+        if not is_covered:
+            updated_needed_for.append(item_needed)
+        else:
+            logger.info(f"'{item_needed}' removed from clarificationNeededFor due to detected indifference for related param(s): {indifferent_params_detected}")
+            
+    if len(updated_needed_for) < len(clarification_needed_for):
+        logger.info(f"Original clarificationNeededFor: {clarification_needed_for}, Updated after indifference: {updated_needed_for}")
+    return updated_needed_for
+
+
 def run_llm_with_history(
     user_query: str,
     conversation_history: List[Dict[str, str]],
@@ -1969,7 +2027,7 @@ def run_llm_with_history(
         return create_default_parameters(intent="error")
 
     # --- Try Models ---
-    extracted_params = None
+    extracted_params_from_llm_loop = None # Renamed to avoid confusion with final `extracted_params`
     for model in models_to_try:
         logger.info(f"Attempting extraction with model: {model}")
         extracted = None
@@ -1983,7 +2041,6 @@ def run_llm_with_history(
 
         if extracted:
             processed = process_parameters(extracted)
-
             # Task 2 & 3: Insert new validation code block
             min_price = processed.get("minPrice")
             max_price = processed.get("maxPrice")
@@ -2439,25 +2496,21 @@ def run_llm_with_history(
             for key in [
                 "isOffTopic",
                 "offTopicResponse",
-                "clarificationNeeded",
-                "clarificationNeededFor",
+                "clarificationNeeded", # This is LLM's view
+                "clarificationNeededFor", # This is LLM's view
                 "retrieverSuggestion",
                 "matchedCategory",
             ]:
                 final_params[key] = processed.get(key)
+            
+            logger.info(f"Parameters after LLM processing & initial merge: {final_params}")
 
-            # --- 7. Replace Output Assignment ---
-            logger.info(f"Final merged parameters: {final_params}")
-
-            # NEW: Override clarificationNeeded flag based on the sufficiency of extracted parameters
-            # We override LLM's request for clarification if we already have enough info
-            if final_params.get("clarificationNeeded") is True:
-                # Define what constitutes "sufficient information" for a vehicle search
+            # --- SUFFICIENCY OVERRIDE LOGIC ---
+            if final_params.get("clarificationNeeded") is True: # If LLM thinks clarification is needed
                 has_vehicle_category = (
                     len(final_params.get("preferredMakes", [])) > 0
                     or len(final_params.get("preferredVehicleTypes", [])) > 0
                 )
-
                 has_constraints = (
                     final_params.get("minPrice") is not None
                     or final_params.get("maxPrice") is not None
@@ -2467,81 +2520,90 @@ def run_llm_with_history(
                     or len(final_params.get("preferredFuelTypes", [])) > 0
                     or final_params.get("transmission") is not None
                 )
-
                 sufficient_info = has_vehicle_category and has_constraints
 
                 if sufficient_info:
                     logger.info(
                         "SUFFICIENCY OVERRIDE: Overriding LLM's clarificationNeeded=True because "
-                        "sufficient search parameters are already present."
+                        "sufficient search parameters are already present in final_params."
                     )
-                    logger.info(
-                        f"Vehicle category: {has_vehicle_category}, Constraints: {has_constraints}"
-                    )
-                    # Override the clarification flags
                     final_params["clarificationNeeded"] = False
                     final_params["clarificationNeededFor"] = []
                 else:
-                    # Log why we're keeping the clarification request
-                    missing_elements = []
-                    if not has_vehicle_category:
-                        missing_elements.append(
-                            "vehicle category (make or vehicle type)"
-                        )
-                    if not has_constraints:
-                        missing_elements.append(
-                            "constraints (price, year, mileage, etc.)"
-                        )
+                    # LLM said clarification is needed, AND Python agrees sufficient_info is False.
+                    # Now, refine final_params["clarificationNeededFor"].
+                    logger.info("Clarification is needed (LLM agreed or Python determined after override attempt). Determining specific parameters for clarificationNeededFor.")
+                    
+                    llm_suggested_clarification_for = processed.get("clarificationNeededFor")
+                    
+                    # Start with LLM's suggestion if it's valid and non-empty
+                    current_clarification_list = []
+                    if llm_suggested_clarification_for and isinstance(llm_suggested_clarification_for, list) and len(llm_suggested_clarification_for) > 0:
+                        logger.info(f"Using base clarificationNeededFor from LLM: {llm_suggested_clarification_for}")
+                        current_clarification_list.extend(llm_suggested_clarification_for)
+                    else:
+                        logger.info("LLM did not specify clarificationNeededFor, or it was empty. Python will determine specifics.")
+                        # Python determines missing critical items if LLM didn't specify
+                        if not (final_params.get("preferredMakes") or final_params.get("preferredVehicleTypes")):
+                            current_clarification_list.append("type") # Suggest 'type' as a common starting point
+                        
+                        if final_params.get("minPrice") is None and final_params.get("maxPrice") is None:
+                            current_clarification_list.append("budget")
+                        
+                        # Add other critical missing params if not already asked by LLM
+                        if not final_params.get("preferredFuelTypes") and "fuel_type" not in current_clarification_list and "fuel" not in current_clarification_list:
+                             current_clarification_list.append("fuel_type")
+                        if final_params.get("minYear") is None and final_params.get("maxYear") is None and "year" not in current_clarification_list:
+                            current_clarification_list.append("year")
+                        # Add more specific checks as needed, ensuring not to duplicate if LLM already listed them.
 
-                    logger.info(
-                        f"Keeping clarificationNeeded=True because missing: {', '.join(missing_elements)}"
-                    )
+                    # Ensure uniqueness and update final_params
+                    final_params["clarificationNeededFor"] = list(set(current_clarification_list))
+                    logger.info(f"Refined clarificationNeededFor before indifference check: {final_params['clarificationNeededFor']}")
 
-                    # Optionally enhance clarificationNeededFor with specific missing elements
-                    if not final_params.get("clarificationNeededFor"):
-                        final_params["clarificationNeededFor"] = []
+            # --- Indifference Handling ---
+            # This should apply whether clarificationNeeded was true from LLM or set by Python
+            if final_params.get("clarificationNeededFor"): # Only if there's something to clarify
+                final_params["clarificationNeededFor"] = _detect_indifference_and_update_clarification_list(
+                    query_fragment, 
+                    final_params["clarificationNeededFor"]
+                )
+                if not final_params["clarificationNeededFor"] and final_params.get("clarificationNeeded") is True:
+                    logger.info("clarificationNeededFor became empty after indifference processing. Considering if clarification is still needed.")
+                    # If all clarification points were covered by indifference,
+                    # and the initial `sufficient_info` check was borderline,
+                    # you might re-evaluate or decide clarification is no longer needed.
+                    # For now, an empty list means C# won't ask for these specifics.
+                    # Potentially, if clarificationNeededFor is now empty, set clarificationNeeded = False
+                    # final_params["clarificationNeeded"] = False # Be cautious with this override
+                    pass
 
-                    if not has_vehicle_category:
-                        if "make" not in final_params["clarificationNeededFor"]:
-                            final_params["clarificationNeededFor"].append("make")
-                        if "type" not in final_params["clarificationNeededFor"]:
-                            final_params["clarificationNeededFor"].append("type")
 
-                    if (
-                        not has_constraints
-                        and "budget" not in final_params["clarificationNeededFor"]
-                    ):
-                        final_params["clarificationNeededFor"].append("budget")
-
-            # Check validity before return
             if is_valid_extraction(final_params):
                 logger.info("Post-processing complete. Parameters are valid.")
-                extracted_params = final_params
-                break
-
-        else:
+                extracted_params_from_llm_loop = final_params
+                break 
+            # ... (else block for failed validation) ...
+        else: # if not extracted (LLM call failed or no JSON)
             logger.warning(
                 f"Extraction from model {model} returned None or failed parsing."
             )
-            extracted_params = None
+            # extracted_params_from_llm_loop remains None or its last valid value
 
     # --- Final Return ---
-    if extracted_params:
-        logger.info(f"Successful extraction with final parameters: {extracted_params}")
+    if extracted_params_from_llm_loop: # Use the renamed variable
+        logger.info(f"Successful extraction with final parameters: {extracted_params_from_llm_loop}")
+        return extracted_params_from_llm_loop
     else:
-        logger.warning(
-            "All LLM extraction attempts failed or resulted in invalid parameters "
-            "after post-processing! Triggering CONFUSED_FALLBACK."
-        )
-        # Use create_default_parameters ensure all keys exist
-        extracted_params = create_default_parameters(
+        # ... (CONFUSED_FALLBACK logic) ...
+        # Ensure the variable name here matches what's returned
+        confused_fallback_params = create_default_parameters(
             intent="CONFUSED_FALLBACK",
-            clarification_needed=True,  # Signal that user input is needed
-            clarification_needed_for=["reset"],  # Custom flag indicating reset
+            clarification_needed=True,
+            clarification_needed_for=["reset"],
             retriever_suggestion=CONFUSED_FALLBACK_PROMPT,
         )
-
-    return extracted_params
+        return confused_fallback_params
 
 
 # --- Flask App Setup ---
@@ -2716,7 +2778,7 @@ def extract_parameters():
         # --- Execute based on routing decision ---
         final_response = None
 
-        # NEW: Priority routing for contextual follow-ups
+        # Priority routing for contextual follow-ups
         if last_question_asked and force_model in [
             "clarify",
             "refine",
