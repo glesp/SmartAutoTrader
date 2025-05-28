@@ -2792,7 +2792,7 @@ def extract_parameters():
                 # For the following logic to work as intended, classify_intent_zero_shot
                 # would need to be modified to return an intent_scores dictionary as well.
                 intent_result = classify_intent_zero_shot(
-                    query_embedding, threshold=0.35
+                    query_embedding, threshold=0.25
                 )
                 if intent_result:
                     classified_intent = intent_result
