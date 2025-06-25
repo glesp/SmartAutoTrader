@@ -39,10 +39,7 @@ An AI-powered vehicle marketplace designed to offer personalized recommendations
 - **Testing:** .NET Unit Tests (xUnit likely, based on template)
 - **Linting/Formatting:** dotnet format, ESLint, flake8, black
 
-## Project Structure
-
-This repository is organized as a monorepo:
-
+```
 /
 ├── backend/ # .NET Core API (C#)
 │ ├── Controllers/
@@ -65,6 +62,7 @@ This repository is organized as a monorepo:
 │ ├── retriever/
 │ └── parameter_extraction_service.py
 └── ... (Configuration files, Dockerfile, CI workflows etc.)
+```
 
 ## Getting Started 🚀
 
