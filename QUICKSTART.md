@@ -97,7 +97,7 @@ Keep the three terminals open and run:
 cd backend
 dotnet run --launch-profile https
 ```
-**Default URL**: https://localhost:7079
+**Default URL**: https://localhost:7001
 
 #### Terminal 2: Frontend
 ```bash
@@ -197,7 +197,7 @@ npm install
 
 Use this checklist to verify everything is running:
 
-- [ ] Backend API responding at https://localhost:7079/api/vehicles (or your configured port)
+- [ ] Backend API responding at https://localhost:7001/api/vehicles (or your configured port)
 - [ ] Frontend accessible at http://localhost:5173
 - [ ] Python service responding at http://localhost:5006/health (if health endpoint exists)
 - [ ] Can register a new user account
