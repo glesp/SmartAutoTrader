@@ -4,6 +4,7 @@ An AI-powered vehicle marketplace designed to offer personalized recommendations
 
 ## Table of Contents
 
+- [Quick Start](#quick-start)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -14,8 +15,13 @@ An AI-powered vehicle marketplace designed to offer personalized recommendations
   - [Frontend Setup (React)](#frontend-setup-react)
   - [Python Service Setup](#python-service-setup)
 - [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Quick Start
+
+**New to the project? 🚀** Check out our **[QUICKSTART.md](QUICKSTART.md)** guide for step-by-step instructions to get all services running in minutes.
 
 ## Features 
 
@@ -65,6 +71,32 @@ An AI-powered vehicle marketplace designed to offer personalized recommendations
 ```
 
 ## Getting Started 🚀
+
+### Quick Setup (Automated)
+
+We provide setup scripts to automate the installation process:
+
+**Linux/macOS:**
+```bash
+./setup.sh
+```
+
+**Windows:**
+```cmd
+setup.bat
+```
+
+These scripts will:
+- Check all prerequisites
+- Install dependencies for all services
+- Create template configuration files
+- Set up the database
+
+After running the setup script, update the configuration files with your API keys and then start the services.
+
+### Manual Setup
+
+Prefer to set things up manually? Follow the detailed instructions below.
 
 ### Prerequisites
 
@@ -158,3 +190,50 @@ Create necessary environment configuration files (e.g., `.env` for Python, `apps
 2.  Open your browser and navigate to the frontend URL (e.g., `http://localhost:5173`).
 3.  Register or log in.
 4.  Browse vehicles or start interacting with the Chat Assistant on the Recommendations page.
+
+For detailed troubleshooting and setup instructions, see **[QUICKSTART.md](QUICKSTART.md)**.
+
+## Troubleshooting
+
+### Common Issues
+
+#### Services Won't Start
+- Ensure all prerequisites are installed (Node.js 18+, Python 3.10+, .NET 8)
+- Check that required ports are not in use (5173, 7079, 5006)
+- Verify environment variables are configured correctly
+
+#### Database Issues
+- Run `dotnet ef database update` in the backend directory
+- If EF tools are missing: `dotnet tool install --global dotnet-ef`
+
+#### Python Service Errors
+- Ensure virtual environment is activated
+- Verify OPENROUTER_API_KEY is set in `.env` file
+- Check that all dependencies installed: `pip install -r requirements.txt`
+
+#### Frontend Build Errors
+- Try deleting `node_modules` and `package-lock.json`, then run `npm install`
+- Ensure Node.js version is 18 or higher
+
+For more detailed troubleshooting, see **[QUICKSTART.md](QUICKSTART.md)**.
+
+### Running All Services Simultaneously
+
+For convenience, you can run all three services in separate terminal windows:
+
+**Terminal 1 - Backend:**
+```bash
+cd backend && dotnet run --launch-profile https
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend && npm run dev
+```
+
+**Terminal 3 - Python Service:**
+```bash
+cd PythonServices/parameter_extraction_service
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python parameter_extraction_service.py
+```
